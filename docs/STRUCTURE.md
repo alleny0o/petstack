@@ -3,8 +3,9 @@
 Vanilla PHP + PDO + MySQL. Apache points at `public/`. Everything else
 sits above it and can't be reached from a browser.
 
-> **Decided:** `public/` is flat (no role subfolders). Access is gated in
-> code on each page, not by folder. See "The three rules" below.
+> **Decided:** `public/` is flat for pages (no role subfolders). Access is
+> gated in code on each page, not by folder. Static assets (CSS, JS, icons)
+> live in their own subfolders so the page files stay easy to scan.
 
 ```
 petstack/
@@ -18,18 +19,17 @@ petstack/
 └── PLAN.md
 ```
 
-That's the whole project at a glance. The two that matter are
-`public/` (the pages) and `src/` (the brains). Here's what's in each.
+The two that matter are `public/` (the pages + assets) and `src/` (the
+brains). Here's what's in each.
 
 ---
 
-## public/ : the pages
+## public/ : pages and static assets
 
 ```
 public/
 ├── .htaccess         Apache rules (HTTPS, error pages, file blocking)
 ├── index.php         front door, routes you by role
-├── assets/           style.css, app.js
 │
 ├── login · logout · register · reg_status
 ├── account · change_password
@@ -39,10 +39,24 @@ public/
 │
 ├── manage_*          (admin: customers, users, compounds, isotopes...)
 ├── reports
-└── 404 · 403 · 500   (error pages)
+├── 404 · 403 · 500   (error pages)
+│
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
+│
+└── favicons/
+    ├── favicon.ico
+    ├── favicon-16x16.png · favicon-32x32.png
+    ├── apple-touch-icon.png
+    ├── android-chrome-192x192.png · android-chrome-512x512.png
+    └── site.webmanifest
 ```
 
-One file = one page = one URL. The folder *is* the site map.
+Pages stay flat at the top so they're easy to scan. CSS/JS go in
+`assets/`, icons in `favicons/`. One file = one page = one URL.
 
 ---
 
@@ -55,7 +69,9 @@ src/
 ├── db.php              the PDO connection
 ├── auth.php            login + require_role() + session guard
 ├── helpers.php         csrf, escaping, redirects
-└── partials/           header.php, footer.php
+└── partials/
+    ├── header.php      opening HTML, <head>, nav, favicon + CSS links
+    └── footer.php      closing HTML
 ```
 
 ---
@@ -74,3 +90,15 @@ src/
 
 3. **Always `__DIR__` in require paths.** Relative paths break when
    it moves to RHEL.
+
+---
+
+## Asset paths
+
+Because assets live in subfolders, links in `header.php` point at:
+
+```
+/assets/css/style.css
+/assets/js/app.js
+/favicons/favicon.ico   (and the other icon files)
+```
