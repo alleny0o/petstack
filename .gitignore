@@ -1,0 +1,39 @@
+# ---- Project-specific ----
+# The important one: holds the DB password, must never be committed
+src/config.php
+# Runtime logs
+logs/*
+!logs/.gitkeep
+
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# ---- Windows ----
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---- PHP / Composer ----
+/vendor/
+composer.phar
+.env
+.env.local
+.env.*.local
+*.log
+
+# ---- Editors / IDEs ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
