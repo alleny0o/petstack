@@ -1,200 +1,116 @@
 # PETStack: Project Plan
 
-A web-based radiotracer ordering system for the NIH Clinical Center PET
-Department. Replaces the legacy HSS PET Ordering System. 6-week build,
-three people.
-
-This plan answers four things: who does what, what order we build in,
-what's already decided, and what's done so far.
+Radiotracer ordering system for NIH Clinical Center PET Dept. Replaces
+legacy HSS system. 6-week build, 3 people.
 
 ---
 
 ## Who does what
 
-In vanilla PHP, a page's HTML and its logic live in the same file, so
-"frontend person" and "backend person" can't cleanly split one page. So we
-split a different way:
+Split by page (not frontend/backend — vanilla PHP mixes both per file).
 
-- **Xiaofan owns the data layer.** Schema, SQL, queries. This is genuinely
-  separate work (different language, different files) and rarely collides
-  with the rest.
-- **Allen and Anthony own the web app**, splitting it **by page, not by
-  layer.** Each of us takes whole pages start to finish: the HTML, the form,
-  the styling, and the PHP logic for that page. We're good enough to each
-  handle both halves of our own pages, and it keeps us out of the same files.
+| Person   | Owns                                          |
+|----------|------------------------------------------------|
+| Xiaofan  | Database, UI/visual design (mockups)           |
+| Allen    | Login/accounts, admin setup, dashboard/base CSS (done) |
+| Anthony  | Ordering, staff processing                     |
 
-| Person   | Owns                                                          |
-|----------|--------------------------------------------------------------|
-| Xiaofan  | Database: schema, SQL, queries, the data layer               |
-| Allen    | Whole pages: login, customer ordering, order views            |
-| Anthony  | Whole pages: admin management, staff processing queue         |
-
-Shared foundation files (`db.php`, `auth.php`, base CSS, header/footer) are
-built once by whoever picks them up, then everyone uses them. Decide those
-per-file as we go, don't both grab the same one.
-
-Allen is strongest at web dev (HTML/CSS); Anthony wants to learn, so owning
-whole pages including the PHP is good growth for him. When a page is tricky,
-pair on it: one person types, both think.
-
-Rule of thumb: **one person owns a page at a time.** Before touching a page
-or shared file someone else might be in, say so first. A 10-second "I'm in
-`login.php`, you good?" prevents almost every merge conflict.
+One person per page at a time — flag it before touching a shared file.
 
 ---
 
-## How we work (so we don't clobber each other)
+## How we work
 
-- **Never push straight to `main`.** Make a branch, open a pull request, merge it.
-- One branch per piece of work, named for what it does (`login-page`, `schema`, `auth`).
-- Keep pull requests small. Easier to review, less to break.
-- `main` should always be in a working state.
+Branch → PR → merge. Never push to `main` directly. Small PRs. `main` stays working.
 
 ---
 
 ## Build order
 
-We build bottom-up: the shared foundation first, then features on top. Much
-of this runs in parallel: Xiaofan on data, Allen and Anthony on pages.
+**Phase 1: Foundation**
+- [x] Planning docs, `.gitignore`, config
+- [x] Base CSS + sidebar (collapse, mobile off-canvas, dark mode) *(Allen)*
+- [ ] `sql/schema.sql` *(Xiaofan)*
+- [ ] `src/db.php` *(first to grab it)*
 
-**Phase 1: Foundation (in progress)**
-- [x] Planning docs (README, STRUCTURE, SCHEMA, this file)
-- [x] `.gitignore`, repo setup
-- [x] `config.sample.php` + local `config.php`
-- [ ] `sql/schema.sql`: all tables  *(Xiaofan)*
-- [ ] `src/db.php`: the database connection  *(whoever picks it up first)*
-- [ ] Base CSS + header/footer partials  *(Allen)*
+**Phase 2: Login and accounts** *(Allen)*
+- [ ] `src/auth.php` — login, `require_role()`, session guard
+- [ ] Login/logout, forced password change
+- [ ] Self-registration + approval queue
 
-**Phase 2: Login and accounts**
-- [ ] `src/auth.php`: login, `require_role()`, session guard  *(shared foundation)*
-- [ ] Login / logout pages  *(Allen)*
-- [ ] Forced password change, strong-password rule (see Business Rules below)
-- [ ] Self-registration form + admin approval queue  *(Anthony)*
-
-**Phase 3: The menu (admin setup)**  *(Anthony's pages)*
+**Phase 3: Admin setup** *(Allen)*
 - [ ] Manage compounds, isotopes, categories, delivery options
-- [ ] Manage institutes, labs, PIs
-- [ ] Manage customers and users
+- [ ] Manage institutes, labs, PIs, customers, users
 
-**Phase 4: Ordering**  *(Allen's pages)*
-- [ ] New order form, Type A (dose) and Type B (cyclotron)
-- [ ] Isotope-first selection, lead-time validation
-- [ ] Customer order list + order detail view
+**Phase 4: Ordering** *(Anthony)*
+- [ ] Order form (Type A dose / Type B cyclotron), isotope-first, lead-time validation
+- [ ] Order list + detail view
 
-**Phase 5: Processing**
-- [ ] Staff processing queue (filtered by category)
-- [ ] Accept / modify / complete / cancel / return actions (see status rules below)
+**Phase 5: Processing** *(Anthony)*
+- [ ] Staff queue, accept/modify/complete/cancel/return
 - [ ] Public comments + internal notes
 
 **Phase 6: Reports**
-- [ ] The six report types, filterable
-- [ ] CSV / PDF export (cost reports admin-only)
+- [ ] Six report types, filterable, CSV/PDF (cost = admin-only)
 
-**Phase 7: Polish + handoff**
-- [ ] Responsive / mobile pass
-- [ ] `.htaccess`, HTTPS, error pages (404/403/500)
-- [ ] Deployment notes for NIH IT
+**Phase 7: Polish**
+- [ ] Responsive pass on remaining pages, `.htaccess`/HTTPS/error pages, deploy notes
 
 ---
 
-## What's already decided
+## Already decided
 
-So nobody reopens these:
+- Vanilla PHP + PDO + MariaDB, no framework/Composer
+- MariaDB is RHEL's default repo — no extra setup needed
+- `public/` flat, no role subfolders — access gated per-page in code
+- `src/` outside web root (DB password unreachable by URL)
+- Soft-delete only; cost snapshotted per order; order IDs never reused
+- No email integration (admin notifies manually) — no phone-in orders
+- Auth centralized in `auth.php`; pages only check `$_SESSION['role']`/`user_id`
+  — keeps a future SSO swap contained to `auth.php`
 
-- **Stack:** vanilla PHP + PDO + MySQL. No framework, no Composer.
-- **Database engine:** MySQL (team's choice; needs the MySQL repo on RHEL, not the default MariaDB).
-- **`public/` is flat** (no role subfolders). Access is gated in code on each page.
-- **`src/` lives outside the web root** so the DB password can't be reached by URL.
-- **Soft-delete only**: nothing is ever truly deleted, just flagged inactive. Keeps history for reports.
-- **Cost is snapshotted** onto each order when placed, so old reports stay correct if a price changes.
-- **Order IDs** always increment, never reused.
-- **No email integration**: admins notify customers manually via NIH email outside the app.
-- **No phone-in orders.** Every order is created one way: the customer logs in and
-  places it themselves. (Originally scoped, cut for complexity — Kris's call.)
-- **Auth is centralized in `auth.php`.** Local username/password is what we're
-  building now, but NIH SSO is a possible future swap (Kris left it open during
-  the original interview, didn't commit either way). Pages only ever check
-  `$_SESSION['role']` / `$_SESSION['user_id']` — never touch passwords or auth
-  mechanics directly. If SSO happens later, only `auth.php` (and maybe
-  `login.php` / `register.php`) should need to change; the rest of the app
-  doesn't know or care how someone got authenticated.
-
-Full details in `docs/STRUCTURE.md` and `docs/SCHEMA.md`.
+Details: `docs/STRUCTURE.md`, `docs/SCHEMA.md`.
 
 ---
 
-## Business rules checklist (don't lose these)
+## Business rules checklist
 
-Specific rules from the original requirements interview that need to land
-in code somewhere, not just "be implied." Whoever builds the relevant page
-should check this list before calling it done.
-
-**Auth / accounts** *(mostly `auth.php`)*
-- [ ] Session idle timeout: **15 minutes**, then forced re-login.
-- [ ] Failed login lockout: **5 attempts**, then **15-minute** lockout.
-- [ ] Strong password policy is defined explicitly somewhere (length + character
-      mix) — don't leave this as "industry standard" with no actual rule written.
-- [ ] Temp passwords (initial registration *and* admin-triggered resets) are
-      **one-time use**: forces a password change on first login, then the temp
-      password is invalidated.
-- [ ] Admin can **trigger** a password reset but can never **view or set** the
-      actual password at any point.
+**Auth**
+- [ ] 15-min idle timeout · 5 failed logins → 15-min lockout
+- [ ] Explicit strong-password rule (not just "industry standard")
+- [ ] Temp passwords (registration + admin reset) are one-time use
+- [ ] Admin can trigger a reset, never view/set the actual password
 
 **Registration**
-- [ ] Self-registration form collects: Institute (dropdown, admin-expandable),
-      Investigator (name, email, phone, lab building + room), PI (name, email,
-      phone), and NRC license contact (name, phone, email — for shipping orders).
-- [ ] Institute/lab/PI are locked after account creation — only an admin can
-      change them later, never the customer.
-- [ ] Username = NIH email address. No duplicate-detection needed (email is
-      already unique).
-- [ ] Registration sits as **pending** until an admin approves or rejects
-      (rejection requires a reason).
-- [ ] Admin notifies the customer of approval/rejection **manually, outside
-      the app**, via NIH email. The app itself never sends email.
-- [ ] `reg_status` page: applicant checks status by entering their
-      registration email — no password needed for this lookup.
+- [ ] Collects: institute, investigator (name/email/phone/lab), PI (name/email/phone), NRC contact
+- [ ] Institute/lab/PI locked after creation — admin-only to change
+- [ ] Username = NIH email (unique, no dupe check needed)
+- [ ] Pending until admin approves/rejects (rejection needs a reason)
+- [ ] Admin notifies manually via email — app sends none
+- [ ] `reg_status` lookup by email, no password
 
 **Ordering**
-- [ ] Order flow is **isotope-first**: customer picks an isotope, then only
-      sees compounds compatible with that isotope.
-- [ ] Type A (dose) and Type B (cyclotron) are independent order types, not
-      parent/child.
-- [ ] Type B has two mutually exclusive input modes (beam current x time,
-      or EOB activity + datetime) — only show/validate the active mode's fields.
-- [ ] Lead time is **per-compound**, not global — validate the requested
-      date/time against that specific compound's minimum lead time.
-- [ ] Delivery options are **per-compound** (not a global list) — only show
-      the options that compound allows.
-- [ ] Cost is hidden from customers entirely; visible only to admins (reports).
-- [ ] No quantity limits on orders.
+- [ ] Isotope-first — compounds filtered by isotope
+- [ ] Type A/B independent, not parent/child
+- [ ] Type B: beam-current×time OR EOB-activity+datetime (mutually exclusive)
+- [ ] Lead time + delivery options are per-compound, not global
+- [ ] Cost hidden from customers, admin-only
+- [ ] No quantity limits
 
-**Order status / lifecycle**
-- [ ] Customer can edit/cancel their **own** order only while it's still
-      `pending` — once a user accepts it, the customer loses that right.
-- [ ] Customer can **view** (not edit) all orders belonging to their lab,
-      not just their own.
-- [ ] A user can only process orders in **categories they're assigned to**
-      (e.g., a pharmacist can't complete a cyclotron-only order).
-- [ ] When a user **returns** an order to the customer, it goes back to
-      `pending` status (not a separate "returned" status) — the audit log
-      still shows the transition happened.
-- [ ] **Completed orders are terminal** — no cancellation once completed.
-      Enforce this in the status-transition logic, not just by hiding the
-      button in the UI.
-- [ ] Status changes are logged (who, what status, when) — status-level
-      logging is sufficient, no field-by-field diffing required.
-- [ ] Public comments and internal notes are **separate, append-only
-      threads**, not single overwritable fields.
-- [ ] Customer sees a "modified" indicator on orders changed since they
-      last viewed them.
+**Status/lifecycle**
+- [ ] Customer edits/cancels own order only while `pending`
+- [ ] Customer can view (not edit) all orders in their lab
+- [ ] Staff limited to their assigned categories
+- [ ] Return → back to `pending` (logged, not a separate status)
+- [ ] Completed = terminal, enforced in logic not just UI
+- [ ] Status changes logged (who/what/when), no field-diffing needed
+- [ ] Public comments + internal notes are separate append-only threads
+- [ ] "Modified" indicator for orders changed since last customer view
 
 ---
 
 ## Current status
 
-Foundation is underway. Planning docs, repo, and config are done. Next up:
-Xiaofan on the schema, Allen on base CSS + the login page, Anthony on the
-admin pages. Shared files like `db.php` and `auth.php` get picked up by
-whoever gets there first. We aim to have login working end-to-end before
-moving to the ordering features.
+Foundation mostly done (docs, config, base CSS/sidebar/dark mode). Next:
+Xiaofan on schema, Allen on login then admin setup, Anthony on ordering.
+Goal: login working end-to-end before ordering starts.
