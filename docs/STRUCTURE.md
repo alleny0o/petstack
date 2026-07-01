@@ -1,6 +1,6 @@
 # PETStack: Folder Structure
 
-Vanilla PHP + PDO + MySQL. Apache points at `public/`. Everything else
+Vanilla PHP + PDO + MariaDB. Apache points at `public/`. Everything else
 sits above it and can't be reached from a browser.
 
 > **Decided:** `public/` is flat for pages (no role subfolders). Access is
@@ -31,32 +31,24 @@ public/
 ├── .htaccess         Apache rules (HTTPS, error pages, file blocking)
 ├── index.php         front door, routes you by role
 │
-├── login · logout · register · reg_status
-├── account · change_password
-│
-├── my_orders · new_order · view_order      (customer)
-├── queue · process_order                   (staff)
-│
-├── manage_*          (admin: customers, users, compounds, isotopes...)
+├── login · logout · register · reg_status · account · change_password
+├── customer_home · customer_past_orders · customer_catalog · ...  (customer)
+├── queue · process_order · ...                                    (staff)
+├── manage_*                                                       (admin)
 ├── reports
 ├── 404 · 403 · 500   (error pages)
 │
 ├── assets/
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       └── app.js
+│   ├── css/style.css
+│   └── js/script.js
 │
 └── favicons/
-    ├── favicon.ico
-    ├── favicon-16x16.png · favicon-32x32.png
-    ├── apple-touch-icon.png
-    ├── android-chrome-192x192.png · android-chrome-512x512.png
-    └── site.webmanifest
 ```
 
-Pages stay flat at the top so they're easy to scan. CSS/JS go in
-`assets/`, icons in `favicons/`. One file = one page = one URL.
+Pages stay flat at the top so they're easy to scan — one file, one page,
+one URL. Exact page names will keep shifting as we build; the categories
+above are the stable part. CSS/JS live in `assets/`, icons in `favicons/`.
+
 
 ---
 
@@ -70,9 +62,23 @@ src/
 ├── auth.php            login + require_role() + session guard
 ├── helpers.php         csrf, escaping, redirects
 └── partials/
-    ├── header.php      opening HTML, <head>, nav, favicon + CSS links
-    └── footer.php      closing HTML
+    ├── head.php              <head> contents: title, the dark-mode/sidebar
+    │                         pre-paint script, stylesheet link. Every page
+    │                         sets $pageTitle then includes this.
+    └── sidebar_customer.php  Sidebar nav for the customer role — also
+                              contains the mobile topbar (hamburger) and
+                              the off-canvas backdrop, since those need to
+                              be present on every page the sidebar is on.
+                              Role-specific siblings (sidebar_admin.php,
+                              etc.) get added the same way once those
+                              pages start.
 ```
+
+There's no separate `header.php`/`footer.php` right now. Each page wraps
+its own `<div class="app-shell">` around the sidebar include and `<main>`
+directly — see any `customer_*.php` page for the pattern. `.app-header`
+and `.app-footer` exist as optional CSS components a page can opt into,
+but aren't wired up as automatic partials yet.
 
 ---
 
@@ -87,6 +93,7 @@ src/
    require_role('user', 'admin');
    ```
    Run `grep -n require_role public/*.php` for the full permission map.
+   (Pre-login pages like `login.php`/`register.php` are exempt.)
 
 3. **Always `__DIR__` in require paths.** Relative paths break when
    it moves to RHEL.
@@ -95,10 +102,10 @@ src/
 
 ## Asset paths
 
-Because assets live in subfolders, links in `header.php` point at:
+Because assets live in subfolders, links point at:
 
 ```
 /assets/css/style.css
-/assets/js/app.js
+/assets/js/script.js
 /favicons/favicon.ico   (and the other icon files)
 ```
