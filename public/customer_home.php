@@ -21,7 +21,7 @@ $monthCount    = count(array_filter($orders, fn($o) => str_starts_with($o['place
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/sidebar_customer.php'; ?>
+        <?php include '../src/partials/layout_customer.php'; ?>
 
         <main class="app-main">
 
