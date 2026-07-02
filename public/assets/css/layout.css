@@ -1,0 +1,434 @@
+/* ============================================================
+   PETStack — layout.css
+   Sections: 6. App shell  7. App chrome  8. Sidebar
+   ============================================================ */
+
+
+/* ============================================================
+   6. APP SHELL (grid layout)
+   One shell handles every combination of header/footer being
+   present or absent. Sidebar occupies column 1 and is named in
+   all three rows, so it spans full height automatically no
+   matter which of the other areas exist on a given page.
+
+     "sidebar header"   <- auto height, collapses if no .app-header
+     "sidebar main"     <- 1fr, always present
+     "sidebar footer"   <- auto height, collapses if no .app-footer
+
+   NOTE: sidebar_customer.php now also places .app-topbar in this
+   same "header" area (see section 8) — it's always present via
+   the sidebar include, so on pages using that sidebar this row
+   no longer collapses to 0 the way it would with .app-header
+   alone.
+
+   Usage: wrap sidebar include + main (+ optional header/footer)
+   in a single <div class="app-shell">. Nothing else to toggle —
+   just include or omit the header/footer partials per page.
+
+   Collapsing the sidebar (see section 8) updates --sidebar-width
+   via :has(), which this grid reads directly — so the column
+   and the sidebar's own width always stay in sync.
+   ============================================================ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "sidebar footer";
+  min-height: 100vh;
+  transition: grid-template-columns 0.4s ease;
+}
+
+
+/* ============================================================
+   7. APP CHROME (header / footer)
+   ============================================================ */
+
+.app-header {
+  grid-area: header;
+  background: var(--color-bg-chrome);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+.app-header__inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-5);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 16px;
+}
+.app-header__logo {
+  width: 40px;
+  height: 40px;
+  background: var(--color-logo-bg);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-logo-text);
+  font-weight: 700;
+  font-size: 17px;
+}
+.app-header__user {
+  margin-left: auto;
+  color: var(--color-text-placeholder);
+  font-size: 13px;
+}
+
+.app-main {
+  grid-area: main;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5);
+  width: 100%;
+}
+
+.app-footer {
+  grid-area: footer;
+  border-top: 1px solid var(--color-border-hr);
+}
+.app-footer__inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-5);
+  color: var(--color-text-placeholder);
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   8. SIDEBAR
+   Desktop/tablet (>768px): toggle icon-rail collapse by setting
+   data-sidebar="collapsed" on <html> via JS (see script.js) —
+   same pattern as the dark-mode attribute below.
+
+   Mobile (≤768px): the sidebar becomes an off-canvas panel,
+   toggled via data-sidebar-mobile="open" on <html> instead (a
+   separate attribute — "collapsed" and "open" are independent
+   states, not a spectrum). See the mobile media query at the
+   end of this section for the topbar/backdrop/off-canvas rules.
+
+   Using attributes on <html> (rather than classes on .sidebar)
+   means the pre-paint inline script in <head> can apply saved
+   state before .sidebar even exists in the DOM, avoiding a flash
+   of the wrong state on reload. (Mobile open/close is NOT
+   persisted/pre-painted — it always starts closed on load.)
+   ============================================================ */
+
+.sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+  height: 100vh;
+  width: var(--sidebar-width);
+  background: var(--color-bg-sidebar);
+  border-right: 1px solid var(--color-border-hr);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.4s ease;
+}
+
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .app-shell {
+    --sidebar-width: 76px;
+  }
+}
+
+/* --- Sidebar: header (logo + collapse toggle) --- */
+
+.sidebar .sidebar-header {
+  display: flex;
+  padding: var(--sp-4) var(--sp-5);
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-hr);
+}
+
+.sidebar .sidebar-header .auth-card__logo {
+  transition: opacity 0.3s ease;
+}
+
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .sidebar-header .auth-card__logo {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.sidebar .sidebar-header .sidebar-toggle {
+  height: 40px;
+  width: 40px;
+  position: absolute;
+  right: 18px;
+  border: none;
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-hover-primary);
+  cursor: pointer;
+}
+.sidebar .sidebar-header .sidebar-toggle:hover {
+  background: var(--color-hover-secondary);
+  color: var(--color-text-primary);
+}
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .sidebar-header .sidebar-toggle svg {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+  }
+}
+
+.menu-link .menu-label {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+.menu-link .menu-label__text {
+  white-space: nowrap;
+}
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .menu-link .menu-label {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* --- Sidebar: nav content / menu list --- */
+
+.sidebar .sidebar-content {
+  flex: 1;
+  padding: var(--sp-4) var(--sp-3);
+  overflow: hidden auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-placeholder) transparent;
+}
+
+.sidebar .sidebar-content .menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  list-style: none;
+}
+
+.sidebar .sidebar-content .menu-list li a {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  transition: 0.3s ease;
+}
+.sidebar .sidebar-content .menu-list li a svg {
+  flex-shrink: 0;
+}
+.sidebar .sidebar-content .menu-list li a:hover {
+  background: var(--color-hover-secondary);
+  color: var(--color-text-primary);
+}
+.sidebar .sidebar-content .menu-list li a.active {
+  background: var(--accent-100);
+  color: var(--accent-600);
+  font-weight: bold;
+}
+
+/* --- Sidebar: footer (account / logout block) --- */
+
+.sidebar .sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border-top: 1px solid var(--color-border-hr);
+}
+.sidebar .sidebar-footer .sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.sidebar .sidebar-footer .account-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar .sidebar-footer .account-name {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar .sidebar-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.sidebar .sidebar-footer .theme-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-placeholder);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.sidebar .sidebar-footer .theme-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.sidebar .sidebar-footer .logout-link {
+  flex-shrink: 0;
+  color: var(--color-text-placeholder);
+  display: flex;
+}
+.sidebar .sidebar-footer .logout-link:hover {
+  color: var(--color-error);
+}
+
+/* --- App topbar (always present, all breakpoints) ---
+   Sits in the .app-shell "header" grid area, so it participates
+   in normal flow just like .app-header would. The only thing
+   that's mobile-specific is the hamburger button inside it — the
+   bar itself doesn't come and go with screen size.
+   NOTE: no page currently includes .app-header alongside this —
+   if one ever does, both are targeting the same "header" grid
+   area and will need to be reconciled (likely: move the
+   hamburger into .app-header instead of keeping this separate). */
+
+.app-topbar {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--mobile-topbar-height);
+  padding: 0 var(--sp-4);
+  background: var(--color-bg-chrome);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+
+.app-topbar .hamburger-toggle {
+  display: none;
+  flex-shrink: 0;
+  height: 38px;
+  width: 38px;
+  border: none;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: var(--color-hover-primary);
+  cursor: pointer;
+}
+.app-topbar .hamburger-toggle:hover {
+  background: var(--color-hover-secondary);
+  color: var(--color-text-primary);
+}
+
+/* --- Sidebar: mobile off-canvas (≤768px) ---
+   Above 768px, .sidebar-backdrop stays hidden and this costs
+   nothing. Below 768px, .sidebar becomes a fixed off-canvas
+   panel, the hamburger becomes visible, and the backdrop can
+   activate while the panel is open. */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main"
+      "footer";
+  }
+
+  .app-topbar .hamburger-toggle {
+    display: flex;
+  }
+
+  /* Mobile always opens the panel at full width, regardless of
+     whatever the desktop icon-rail collapsed state happens to be
+     saved as — "collapsed" (desktop) and "open" (mobile) are
+     unrelated states, but they both feed --sidebar-width, so
+     mobile has to explicitly reclaim it here. */
+  .app-shell,
+  [data-sidebar="collapsed"] .app-shell {
+    --sidebar-width: 270px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 12px var(--color-shadow);
+  }
+  [data-sidebar-mobile="open"] .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 40;
+  }
+  [data-sidebar-mobile="open"] .sidebar-backdrop {
+    display: block;
+  }
+}
+
+/* Collapsed: the avatar/name/actions row can't fit at 76px, so
+   the footer restructures to a centered vertical stack. The name
+   is hidden outright (no room for it regardless of animation)
+   while the avatar, theme toggle, and logout icon remain — all
+   three are icon-sized and need no special collapse handling. */
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .sidebar-footer {
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding-left: var(--sp-2);
+    padding-right: var(--sp-2);
+  }
+  [data-sidebar="collapsed"] .sidebar-footer .account-name {
+    display: none;
+  }
+  [data-sidebar="collapsed"] .sidebar-footer-actions {
+    flex-direction: column;
+    margin-left: 0;
+  }
+}

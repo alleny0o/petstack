@@ -1,0 +1,435 @@
+/* ============================================================
+   PETStack — components.css
+   Sections: 9. Auth  10. Forms  11. Buttons  12. Cards
+             13. Tables  14. Alerts  15. Badges  16. Utilities
+             17. Responsive  18. Accessibility
+   ============================================================ */
+
+
+/* ============================================================
+   9. AUTH PAGES (login / register / change-password)
+   A centered, narrow, focused card — separate from the app shell.
+   ============================================================ */
+
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6) var(--sp-4);
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+}
+.auth-card__head {
+  border-top: 3px solid var(--accent-500);
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+.auth-card__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.auth-card__logo {
+  width: 45px;
+  height: 45px;
+  background: var(--color-logo-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-logo-text);
+  font-weight: 700;
+  font-size: 25px;
+  flex-shrink: 0;
+}
+.auth-card__title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.auth-card__subtitle {
+  color: var(--color-text-placeholder);
+  font-size: 12px;
+  margin-top: 1px;
+}
+.auth-card__body {
+  padding: var(--sp-5) var(--sp-6) var(--sp-6);
+}
+.auth-card__foot {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--color-bg-primary);
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+}
+
+
+/* ============================================================
+   10. FORMS
+   ============================================================ */
+
+.field {
+  margin-bottom: var(--sp-4);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-placeholder);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--sp-1);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+  width: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-input);
+  border-radius: 0;
+  padding: 0.55rem 0.7rem;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(105, 92, 254, 0.15);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+
+/* ============================================================
+   11. BUTTONS
+   ============================================================ */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn--primary {
+  background: var(--color-btn-primary-bg);
+  color: var(--color-text-on-accent);
+}
+.btn--primary:hover {
+  background: var(--color-btn-primary-bg-hover);
+  text-decoration: none;
+}
+
+.btn--secondary {
+  background: var(--color-btn-secondary-bg);
+  color: var(--color-btn-secondary-text);
+  border-color: var(--color-border-input);
+}
+.btn--secondary:hover {
+  background: var(--color-btn-secondary-bg-hover);
+  text-decoration: none;
+}
+
+.btn--danger {
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
+}
+
+.btn--block {
+  display: block;
+  width: 100%;
+}
+
+
+/* ============================================================
+   12. CARDS / PANELS
+   ============================================================ */
+
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.card__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--sp-4);
+}
+
+
+/* ============================================================
+   13. TABLES
+   ============================================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+}
+.table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-placeholder);
+  letter-spacing: 0.02em;
+  background: var(--color-bg-primary);
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-hr);
+}
+.table td {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tr:hover td {
+  background: var(--color-bg-primary);
+}
+
+/* --- Table card (title bar + controls above a table) --- */
+
+.table-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-5);
+}
+
+.table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+
+.table-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.table-card-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Compact overrides — undo the global width:100% and shrink padding */
+.table-card-controls select,
+.table-card-controls input[type="text"] {
+  width: auto;
+  font-size: 13px;
+  padding: 0.3rem 0.6rem;
+}
+
+/* Card provides the outer border; remove the table's own */
+.table-card .table {
+  border: none;
+}
+
+/* Action link in table rows */
+.table-action {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+}
+.table-action:hover {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+
+/* ============================================================
+   14. ALERTS / MESSAGES
+   The clear feedback the legacy system lacked.
+   ============================================================ */
+
+.alert {
+  font-size: 13px;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid;
+  margin-bottom: var(--sp-4);
+}
+.alert--error {
+  color: var(--color-error);
+  border-color: var(--color-error);
+  background: rgba(220, 38, 38, 0.1);
+}
+.alert--success {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background: rgba(5, 150, 105, 0.1);
+}
+.alert--warning {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background: rgba(217, 119, 6, 0.1);
+}
+
+
+/* ============================================================
+   15. STATUS BADGES (order states)
+   ============================================================ */
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border-hr);
+  color: var(--color-text-placeholder);
+  background: var(--color-bg-primary);
+}
+.badge--pending {
+  color: var(--color-warning);
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+.badge--accepted {
+  color: var(--accent-600);
+  border-color: var(--accent-100);
+  background: var(--color-bg-secondary);
+}
+.badge--completed {
+  color: var(--color-success);
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+.badge--canceled {
+  color: var(--color-text-placeholder);
+}
+
+[data-theme="dark"] .badge--pending {
+  background: rgba(217, 119, 6, 0.15);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+[data-theme="dark"] .badge--accepted {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+[data-theme="dark"] .badge--completed {
+  background: rgba(5, 150, 105, 0.15);
+  border-color: rgba(5, 150, 105, 0.35);
+}
+
+
+/* ============================================================
+   16. UTILITIES
+   ============================================================ */
+
+.muted   { color: var(--color-text-placeholder); }
+.text-sm { font-size: 13px; }
+.mt-0    { margin-top: 0; }
+.mb-0    { margin-bottom: 0; }
+
+.flex {
+  display: flex;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gap-2 { gap: var(--sp-2); }
+.gap-3 { gap: var(--sp-3); }
+
+
+/* ============================================================
+   17. RESPONSIVE OVERRIDES
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .app-header__inner,
+  .app-main,
+  .app-footer__inner {
+    padding-left: var(--sp-4);
+    padding-right: var(--sp-4);
+  }
+  .table {
+    font-size: 13px;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}
+
+/* Hidden by default, only appears at ≤768px. Add to any element
+   you want mobile-only — e.g. <div class="app-topbar u-mobile-only"> */
+.u-mobile-only {
+  display: none;
+}
+@media (max-width: 768px) {
+  .u-mobile-only {
+    display: flex; /* swap to `block` if the element isn't a flex row */
+  }
+}
+
+
+/* ============================================================
+   18. ACCESSIBILITY
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
