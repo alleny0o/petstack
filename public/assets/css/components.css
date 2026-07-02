@@ -13,6 +13,7 @@
 
 .auth-wrap {
   min-height: 100vh;
+  min-height: 100dvh; /* tracks mobile browser chrome; vh line is the fallback */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,6 +123,41 @@ textarea {
   resize: vertical;
 }
 
+/* Small helper text under a field (lead time notes, format hints) */
+.field-hint {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+
+/* Two fields side by side; stacks on mobile */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Grouped form sections with a small uppercase title */
+.form-section + .form-section {
+  border-top: 1px solid var(--color-border-hr);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-5);
+}
+.form-section__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-4);
+}
+
 
 /* ============================================================
    11. BUTTONS
@@ -178,6 +214,7 @@ textarea {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
   padding: var(--sp-5);
+  margin-top: var(--sp-6);
   margin-bottom: var(--sp-5);
 }
 .card__title {
@@ -185,6 +222,37 @@ textarea {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--sp-4);
+}
+
+/* Definition-list rows for detail views (order detail, staff order view) */
+.detail-list {
+  margin: 0;
+}
+.detail-list__row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+.detail-list__row:last-child {
+  border-bottom: none;
+}
+.detail-list__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-placeholder);
+  letter-spacing: 0.02em;
+}
+.detail-list__value {
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+@media (max-width: 640px) {
+  .detail-list__row {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
 }
 
 
@@ -231,8 +299,10 @@ textarea {
 
 .table-card-header {
   display: flex;
+  flex-wrap: wrap; /* controls drop to a second row on narrow screens */
   align-items: center;
   justify-content: space-between;
+  gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--color-border-hr);
 }
@@ -247,6 +317,9 @@ textarea {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 /* Compact overrides — undo the global width:100% and shrink padding */
@@ -257,9 +330,23 @@ textarea {
   padding: 0.3rem 0.6rem;
 }
 
+/* Search input shrinks on narrow screens instead of widening the page */
+.table-card-controls input[type="text"] {
+  flex: 1 1 130px;
+  min-width: 0;
+  max-width: 240px;
+}
+
 /* Card provides the outer border; remove the table's own */
 .table-card .table {
   border: none;
+}
+
+/* Wide tables scroll inside the card instead of stretching the page
+   (a page-level horizontal scrollbar hides the bottom of the 100vh
+   sidebar behind it) */
+.table-scroll {
+  overflow-x: auto;
 }
 
 /* Action link in table rows */

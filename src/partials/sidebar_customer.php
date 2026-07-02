@@ -45,6 +45,17 @@
         </li>
 
         <li class="menu-item">
+          <a href="/order_form.php" class="menu-link <?= $currentPage === 'order_form' ? 'active' : '' ?>">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <span class="menu-label"><span class="menu-label__text">New Order</span></span>
+          </a>
+        </li>
+
+        <li class="menu-item">
           <a href="/customer_past_orders.php" class="menu-link <?= $currentPage === 'customer_past_orders' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11l3 3L22 4"></path>
