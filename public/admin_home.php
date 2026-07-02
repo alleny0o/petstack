@@ -3,17 +3,17 @@
 <html lang="en">
 
 <head>
-    <?php $pageTitle = 'Past Orders'; $roleCss = 'customer';
+    <?php $pageTitle = 'Home'; $roleCss = 'admin';
     include '../src/partials/head.php'; ?>
 </head>
 
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/sidebar_customer.php'; ?>
+        <!-- TODO: include '../src/partials/sidebar_admin.php' once built -->
 
         <main class="app-main">
-            <h1>Past Orders</h1>
+            <h1>Admin Dashboard</h1>
         </main>
     </div>
 

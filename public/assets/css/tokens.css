@@ -1,0 +1,139 @@
+/* ============================================================
+   PETStack — tokens.css
+   Sections: 1. Raw palette  2. Semantic tokens  3. Dark mode
+   ============================================================ */
+
+
+/* ============================================================
+   1. RAW PALETTE
+   ============================================================ */
+
+:root {
+  /* Named gray scale, lightest to darkest */
+  --bright-snow:    #f8f9fa;
+  --platinum:       #e9ecef;
+  --alabaster-grey: #dee2e6;
+  --pale-slate:     #ced4da;
+  --pale-slate-2:   #adb5bd;
+  --slate-grey:     #6c757d;
+  --iron-grey:      #495057;
+  --gunmetal:       #343a40;
+  --carbon-black:   #212529;
+  --white:          #ffffff;
+
+  /* Accent (blue) */
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-100: #dbeafe;
+
+  /* Status */
+  --status-success: #059669;
+  --status-warning: #d97706;
+  --status-error:   #dc2626;
+
+  /* Shadow — used sparingly, not decorative */
+  --color-shadow: rgba(0, 0, 0, 0.05);
+
+  /* Type */
+  --font:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Spacing scale */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-8: 3rem;
+
+  /* Layout */
+  --content-max:          1200px;
+  --sidebar-width:        270px;
+  --mobile-topbar-height: 56px;
+}
+
+
+/* ============================================================
+   2. SEMANTIC TOKENS (light / default)
+   Components reference ONLY these names, in the
+   --color-{category}-{role} convention. Never reach for the raw
+   palette directly inside a component rule below this point.
+   ============================================================ */
+
+:root {
+  /* Text */
+  --color-text-primary:     var(--gunmetal);
+  --color-text-secondary:   var(--iron-grey);
+  --color-text-placeholder: var(--pale-slate-2);
+  --color-text-on-accent:   var(--white);
+
+  /* Backgrounds */
+  --color-bg-primary:   var(--bright-snow);
+  --color-bg-secondary: var(--alabaster-grey); /* light accent-tinted surface */
+  --color-bg-sidebar:   var(--white);
+  --color-bg-chrome:    var(--white); /* app header — light, no dark chrome */
+  --color-bg-surface:   var(--white); /* elevated: cards, auth panel, table, form fields */
+
+  /* Borders */
+  --color-border-hr:    var(--pale-slate);
+  --color-border-input: var(--pale-slate);
+  --color-border-focus: var(--accent-500);
+
+  /* Hover states */
+  --color-hover-primary:   var(--platinum);
+  --color-hover-secondary: var(--alabaster-grey);
+
+  /* Buttons */
+  --color-btn-primary-bg:         var(--accent-500);
+  --color-btn-primary-bg-hover:   var(--accent-600);
+  --color-btn-secondary-bg:       var(--color-bg-secondary);
+  --color-btn-secondary-bg-hover: var(--color-hover-secondary);
+  --color-btn-secondary-text:     var(--color-text-secondary);
+
+  /* Logo square — its own token. Light chrome now, so the logo is
+     the one place we keep a dark fill so the brand mark still has
+     presence. */
+  --color-logo-bg:   var(--gunmetal);
+  --color-logo-text: var(--white);
+
+  /* Status (success/warning/error) */
+  --color-success: var(--status-success);
+  --color-warning: var(--status-warning);
+  --color-error:   var(--status-error);
+}
+
+
+/* ============================================================
+   3. DARK MODE TOKENS (scaffolded, not wired to a toggle yet)
+   Rough starting point — revisit once dark mode is actually built.
+   ============================================================ */
+
+[data-theme="dark"] {
+  --color-text-primary:     var(--bright-snow);
+  --color-text-secondary:   var(--pale-slate);
+  --color-text-placeholder: var(--pale-slate-2);
+  --color-text-on-accent:   var(--white);
+
+  --color-bg-primary:   var(--carbon-black);
+  --color-bg-secondary: var(--carbon-black);
+  --color-bg-sidebar:   var(--gunmetal);
+  --color-bg-chrome:    var(--gunmetal);
+  --color-bg-surface:   var(--gunmetal); /* elevated surfaces one step lighter than the page */
+
+  --color-border-hr:    var(--iron-grey);
+  --color-border-input: var(--iron-grey);
+  --color-border-focus: var(--accent-500);
+
+  --color-hover-primary:   var(--carbon-black);
+  --color-hover-secondary: var(--iron-grey);
+
+  --color-btn-primary-bg:         var(--accent-500);
+  --color-btn-primary-bg-hover:   var(--accent-600);
+  --color-btn-secondary-bg:       var(--gunmetal);
+  --color-btn-secondary-bg-hover: var(--iron-grey);
+  --color-btn-secondary-text:     var(--pale-slate);
+
+  --color-logo-bg:   var(--accent-500);
+  --color-logo-text: var(--white);
+}

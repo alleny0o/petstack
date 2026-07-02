@@ -1,0 +1,39 @@
+/* ============================================================
+   PETStack — admin.css
+   Page-specific styles for admin-role pages only.
+   Shared components (cards, buttons, tables, badges, etc.)
+   live in components.css. Put styles here when they only
+   make sense on admin pages.
+
+   SECTIONS
+     1. Home / dashboard
+     2. Manage compounds, isotopes, categories, delivery options
+     3. Manage users and customers
+     4. Manage institutes, labs, PIs
+     5. Reports
+   ============================================================ */
+
+
+/* ============================================================
+   1. HOME / DASHBOARD
+   ============================================================ */
+
+
+/* ============================================================
+   2. MANAGE COMPOUNDS / ISOTOPES / CATEGORIES / DELIVERY
+   ============================================================ */
+
+
+/* ============================================================
+   3. MANAGE USERS AND CUSTOMERS
+   ============================================================ */
+
+
+/* ============================================================
+   4. MANAGE INSTITUTES / LABS / PIs
+   ============================================================ */
+
+
+/* ============================================================
+   5. REPORTS
+   ============================================================ */

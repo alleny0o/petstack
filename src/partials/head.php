@@ -21,4 +21,10 @@
     }
 </script>
 
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/layout.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<?php if (!empty($roleCss)): ?>
+<link rel="stylesheet" href="assets/css/<?= htmlspecialchars($roleCss) ?>.css">
+<?php endif; ?>

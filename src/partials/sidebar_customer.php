@@ -13,6 +13,7 @@
 <!-- Backdrop: only shown while the mobile sidebar is open -->
 <div class="sidebar-backdrop"></div>
 
+<?php $currentPage = basename($_SERVER['PHP_SELF'], '.php'); ?>
 <aside class="sidebar">
   <!-- Sidebar Header -->
   <header class="sidebar-header">
@@ -32,7 +33,7 @@
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/customer_home.php" class="menu-link active">
+          <a href="/customer_home.php" class="menu-link <?= $currentPage === 'customer_home' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -44,7 +45,7 @@
         </li>
 
         <li class="menu-item">
-          <a href="/customer_past_orders.php" class="menu-link">
+          <a href="/customer_past_orders.php" class="menu-link <?= $currentPage === 'customer_past_orders' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11l3 3L22 4"></path>
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
@@ -54,7 +55,7 @@
         </li>
 
         <li class="menu-item">
-          <a href="/customer_catalog.php" class="menu-link">
+          <a href="/customer_catalog.php" class="menu-link <?= $currentPage === 'customer_catalog' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="10" cy="10" r="7"></circle>
               <line x1="21" y1="21" x2="15" y2="15"></line>
