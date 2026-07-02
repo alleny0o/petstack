@@ -11,7 +11,7 @@ require __DIR__ . '/../src/demo_orders.php';
  * edit-while-pending, public comment thread, and CSRF on the cancel POST.
  */
 
-$id = (int)($_GET['id'] ?? 0);
+$id = (int) ($_GET['id'] ?? 0);
 
 $notice = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel') {
@@ -27,14 +27,15 @@ $placed = isset($_GET['placed']);
 <html lang="en">
 
 <head>
-    <?php $pageTitle = $order ? 'Order #' . $order['id'] : 'Order not found'; $roleCss = 'customer';
+    <?php $pageTitle = $order ? 'Order #' . $order['id'] : 'Order not found';
+    $roleCss = 'customer';
     include '../src/partials/head.php'; ?>
 </head>
 
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/sidebar_customer.php'; ?>
+        <?php include '../src/partials/layout_customer.php'; ?>
 
         <main class="app-main">
 
@@ -48,10 +49,17 @@ $placed = isset($_GET['placed']);
 
                 <div class="flex-between">
                     <div>
-                        <h1 class="mb-0">Order #<?= $order['id'] ?>
-                            <span class="badge badge--<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span>
-                        </h1>
-                        <span class="text-sm muted">Placed <?= htmlspecialchars($order['placed_at']) ?></span>
+                        <div class="mb-2">
+                            <span class="badge badge--<?= $order['status'] ?>">
+                                <?= ucfirst($order['status']) ?>
+                            </span>
+                        </div>
+
+                        <h1 class="mb-0">Order #<?= $order['id'] ?></h1>
+
+                        <span class="text-sm muted">
+                            Placed <?= htmlspecialchars($order['placed_at']) ?>
+                        </span>
                     </div>
                     <a href="customer_home.php" class="btn btn--secondary">&larr; Back</a>
                 </div>
@@ -93,7 +101,8 @@ $placed = isset($_GET['placed']);
                         <?php elseif ($order['b_mode'] === 'beam'): ?>
                             <div class="detail-list__row">
                                 <span class="detail-list__label">Beam current</span>
-                                <span class="detail-list__value tabular"><?= htmlspecialchars($order['b_current']) ?> &micro;A</span>
+                                <span class="detail-list__value tabular"><?= htmlspecialchars($order['b_current']) ?>
+                                    &micro;A</span>
                             </div>
                             <div class="detail-list__row">
                                 <span class="detail-list__label">Beam time</span>
@@ -102,7 +111,8 @@ $placed = isset($_GET['placed']);
                         <?php else: ?>
                             <div class="detail-list__row">
                                 <span class="detail-list__label">EOB activity</span>
-                                <span class="detail-list__value tabular"><?= htmlspecialchars($order['b_activity']) ?> mCi</span>
+                                <span class="detail-list__value tabular"><?= htmlspecialchars($order['b_activity']) ?>
+                                    mCi</span>
                             </div>
                             <div class="detail-list__row">
                                 <span class="detail-list__label">EOB date &amp; time</span>
@@ -125,7 +135,7 @@ $placed = isset($_GET['placed']);
 
                 <?php if ($order['status'] === 'pending'): ?>
                     <form method="post" action="order_detail.php?id=<?= $order['id'] ?>"
-                          onsubmit="return confirm('Cancel order #<?= $order['id'] ?>? This cannot be undone.');">
+                        onsubmit="return confirm('Cancel order #<?= $order['id'] ?>? This cannot be undone.');">
                         <input type="hidden" name="action" value="cancel">
                         <button type="submit" class="btn btn--danger">Cancel Order</button>
                     </form>

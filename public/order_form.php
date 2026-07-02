@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/sidebar_customer.php'; ?>
+        <?php include '../src/partials/layout_customer.php'; ?>
 
         <main class="app-main">
 
