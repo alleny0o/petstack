@@ -23,6 +23,11 @@
 html {
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
+  /* Guard: stray wide content gets clipped instead of widening the page,
+     which on mobile zooms the layout out and breaks 100vh elements like
+     the sidebar. `clip` (not `hidden`) so no scroll container is created
+     and position:sticky keeps working. */
+  overflow-x: clip;
 }
 
 body {

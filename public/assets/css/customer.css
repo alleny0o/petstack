@@ -22,7 +22,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-4);
-  margin-top: var(--sp-8);
+  margin-top: var(--sp-6);
   margin-bottom: var(--sp-5);
 }
 
@@ -66,6 +66,55 @@
 /* ============================================================
    4. ORDER FORM
    ============================================================ */
+
+.order-form {
+  max-width: 710px;
+  margin-top: var(--sp-6);
+}
+
+/* Info strip shown once a compound is chosen: type + lead time */
+.compound-meta {
+  font-size: 13px;
+  line-height: 1.45;
+  padding: var(--sp-3);
+  border: 1px solid var(--color-border-hr);
+  border-left: 3px solid var(--accent-500);
+  color: var(--color-text-secondary);
+  margin-top: var(--sp-2);
+}
+.compound-meta strong {
+  color: var(--color-text-primary);
+}
+
+/* Type B mutually-exclusive mode rows (beam-current×time vs EOB) */
+.order-form .radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-3);
+}
+.order-form .radio-option:has(input:checked) {
+  border-color: var(--color-border-focus);
+}
+.order-form .radio-option input[type="radio"] {
+  width: auto;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.order-form .radio-option__body {
+  flex: 1;
+  min-width: 0;
+}
+.order-form .radio-option__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-2);
+  cursor: pointer;
+}
 
 
 /* ============================================================
