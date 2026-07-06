@@ -1,5 +1,7 @@
 /* ============================================================
    PETStack — tokens.css
+   "Instrument panel": cool graphite neutrals, one Cherenkov-blue
+   accent, IBM Plex Sans for UI + IBM Plex Mono as the data voice.
    Sections: 1. Raw palette  2. Semantic tokens  3. Dark mode
    ============================================================ */
 
@@ -9,34 +11,41 @@
    ============================================================ */
 
 :root {
-  /* Named gray scale, lightest to darkest */
-  --bright-snow:    #f8f9fa;
-  --platinum:       #e9ecef;
-  --alabaster-grey: #dee2e6;
-  --pale-slate:     #ced4da;
-  --pale-slate-2:   #adb5bd;
-  --slate-grey:     #6c757d;
-  --iron-grey:      #495057;
-  --gunmetal:       #343a40;
-  --carbon-black:   #212529;
-  --white:          #ffffff;
+  /* Cool graphite scale, lightest to darkest */
+  --ice:       #f3f5f8;
+  --frost:     #e8ecf1;
+  --mist:      #d6dce4;
+  --haze:      #b6bfcb;
+  --steel:     #8a94a4;
+  --slate:     #535e6d;
+  --graphite:  #232a34;
+  --charcoal:  #1c2129;
+  --carbon:    #14181e;
+  --white:     #ffffff;
 
-  /* Accent (blue) */
-  --accent-500: #3b82f6;
-  --accent-600: #2563eb;
-  --accent-100: #dbeafe;
+  /* Accent — Cherenkov blue (the glow of a reactor pool) */
+  --cherenkov-100: #e3f4fc;
+  --cherenkov-500: #0d9fd8;
+  --cherenkov-600: #0b7fb4;
 
   /* Status */
-  --status-success: #059669;
-  --status-warning: #d97706;
-  --status-error:   #dc2626;
+  --status-success: #0f9d6c;
+  --status-warning: #c47f17;
+  --status-error:   #d64545;
 
   /* Shadow — used sparingly, not decorative */
-  --color-shadow: rgba(0, 0, 0, 0.05);
+  --color-shadow: rgba(20, 24, 30, 0.06);
 
   /* Type */
   --font:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+
+  /* Shape — one radius everywhere; anything rounder is a pill on purpose */
+  --radius: 4px;
 
   /* Spacing scale */
   --sp-1: 0.25rem;
@@ -63,77 +72,101 @@
 
 :root {
   /* Text */
-  --color-text-primary:     var(--gunmetal);
-  --color-text-secondary:   var(--iron-grey);
-  --color-text-placeholder: var(--pale-slate-2);
+  --color-text-primary:     var(--graphite);
+  --color-text-secondary:   var(--slate);
+  --color-text-placeholder: var(--steel);
   --color-text-on-accent:   var(--white);
 
   /* Backgrounds */
-  --color-bg-primary:   var(--bright-snow);
-  --color-bg-secondary: var(--alabaster-grey); /* light accent-tinted surface */
+  --color-bg-primary:   var(--ice);
+  --color-bg-secondary: var(--frost);
   --color-bg-sidebar:   var(--white);
-  --color-bg-chrome:    var(--white); /* app header — light, no dark chrome */
+  --color-bg-chrome:    var(--white);
   --color-bg-surface:   var(--white); /* elevated: cards, auth panel, table, form fields */
 
   /* Borders */
-  --color-border-hr:    var(--pale-slate);
-  --color-border-input: var(--pale-slate);
-  --color-border-focus: var(--accent-500);
+  --color-border-hr:    var(--mist);
+  --color-border-input: var(--haze);
+  --color-border-focus: var(--cherenkov-500);
+
+  /* Accent */
+  --color-accent:       var(--cherenkov-500);
+  --color-accent-deep:  var(--cherenkov-600);
+  --color-accent-tint:  var(--cherenkov-100);
+  --color-focus-ring:   rgba(13, 159, 216, 0.22);
 
   /* Hover states */
-  --color-hover-primary:   var(--platinum);
-  --color-hover-secondary: var(--alabaster-grey);
+  --color-hover-primary:   var(--frost);
+  --color-hover-secondary: var(--mist);
 
   /* Buttons */
-  --color-btn-primary-bg:         var(--accent-500);
-  --color-btn-primary-bg-hover:   var(--accent-600);
-  --color-btn-secondary-bg:       var(--color-bg-secondary);
-  --color-btn-secondary-bg-hover: var(--color-hover-secondary);
-  --color-btn-secondary-text:     var(--color-text-secondary);
+  --color-btn-primary-bg:         var(--cherenkov-500);
+  --color-btn-primary-bg-hover:   var(--cherenkov-600);
+  --color-btn-secondary-bg:       var(--white);
+  --color-btn-secondary-bg-hover: var(--frost);
+  --color-btn-secondary-text:     var(--slate);
 
-  /* Logo square — its own token. Light chrome now, so the logo is
-     the one place we keep a dark fill so the brand mark still has
-     presence. */
-  --color-logo-bg:   var(--gunmetal);
+  /* Logo square — the one dark fill in the light chrome so the
+     brand mark keeps presence. */
+  --color-logo-bg:   var(--graphite);
   --color-logo-text: var(--white);
 
   /* Status (success/warning/error) */
   --color-success: var(--status-success);
   --color-warning: var(--status-warning);
   --color-error:   var(--status-error);
+
+  /* Status tints (badge/alert washes) */
+  --color-success-tint: rgba(15, 157, 108, 0.10);
+  --color-warning-tint: rgba(196, 127, 23, 0.10);
+  --color-error-tint:   rgba(214, 69, 69, 0.10);
+  --color-accent-wash:  rgba(13, 159, 216, 0.08);
 }
 
 
 /* ============================================================
-   3. DARK MODE TOKENS (scaffolded, not wired to a toggle yet)
-   Rough starting point — revisit once dark mode is actually built.
+   3. DARK MODE TOKENS
+   Carbon panel, same hairline discipline. Cherenkov reads even
+   better on dark — don't brighten it.
    ============================================================ */
 
 [data-theme="dark"] {
-  --color-text-primary:     var(--bright-snow);
-  --color-text-secondary:   var(--pale-slate);
-  --color-text-placeholder: var(--pale-slate-2);
+  --color-text-primary:     var(--ice);
+  --color-text-secondary:   var(--haze);
+  --color-text-placeholder: var(--steel);
   --color-text-on-accent:   var(--white);
 
-  --color-bg-primary:   var(--carbon-black);
-  --color-bg-secondary: var(--carbon-black);
-  --color-bg-sidebar:   var(--gunmetal);
-  --color-bg-chrome:    var(--gunmetal);
-  --color-bg-surface:   var(--gunmetal); /* elevated surfaces one step lighter than the page */
+  --color-bg-primary:   var(--carbon);
+  --color-bg-secondary: var(--charcoal);
+  --color-bg-sidebar:   var(--charcoal);
+  --color-bg-chrome:    var(--charcoal);
+  --color-bg-surface:   var(--charcoal); /* elevated surfaces one step lighter than the page */
 
-  --color-border-hr:    var(--iron-grey);
-  --color-border-input: var(--iron-grey);
-  --color-border-focus: var(--accent-500);
+  --color-border-hr:    #2e3641;
+  --color-border-input: #3a4450;
+  --color-border-focus: var(--cherenkov-500);
 
-  --color-hover-primary:   var(--carbon-black);
-  --color-hover-secondary: var(--iron-grey);
+  --color-accent:       var(--cherenkov-500);
+  --color-accent-deep:  #3db7e6; /* hover heads lighter on dark, not darker */
+  --color-accent-tint:  rgba(13, 159, 216, 0.16);
+  --color-focus-ring:   rgba(13, 159, 216, 0.30);
 
-  --color-btn-primary-bg:         var(--accent-500);
-  --color-btn-primary-bg-hover:   var(--accent-600);
-  --color-btn-secondary-bg:       var(--gunmetal);
-  --color-btn-secondary-bg-hover: var(--iron-grey);
-  --color-btn-secondary-text:     var(--pale-slate);
+  --color-hover-primary:   #242b34;
+  --color-hover-secondary: #2e3641;
 
-  --color-logo-bg:   var(--accent-500);
+  --color-btn-primary-bg:         var(--cherenkov-500);
+  --color-btn-primary-bg-hover:   #3db7e6;
+  --color-btn-secondary-bg:       var(--charcoal);
+  --color-btn-secondary-bg-hover: #2e3641;
+  --color-btn-secondary-text:     var(--haze);
+
+  --color-logo-bg:   var(--cherenkov-500);
   --color-logo-text: var(--white);
+
+  --color-shadow: rgba(0, 0, 0, 0.35);
+
+  --color-success-tint: rgba(15, 157, 108, 0.16);
+  --color-warning-tint: rgba(196, 127, 23, 0.16);
+  --color-error-tint:   rgba(214, 69, 69, 0.16);
+  --color-accent-wash:  rgba(13, 159, 216, 0.10);
 }

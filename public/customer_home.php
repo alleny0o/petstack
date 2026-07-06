@@ -1,6 +1,7 @@
 <?php
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
+require __DIR__ . '/../src/partials/ui.php';
 
 // TODO(db): scope to the logged-in customer's lab + compute "Updates"
 // from the audit log once auth and MariaDB exist.
@@ -25,20 +26,22 @@ $monthCount    = count(array_filter($orders, fn($o) => strpos($o['placed_at'], d
 
         <main class="app-main">
 
-            <div class="flex-between">
+            <header class="page-header">
                 <div>
-                    <h1 class="mb-0">Home</h1>
-                    <span class="text-sm muted">[INST] &middot; [LAB]</span>
+                    <span class="page-header__eyebrow">Customer &middot; [INST] / [LAB]</span>
+                    <h1>Home</h1>
                 </div>
-                <a href="order_form.php" class="btn btn--primary">+ New Order</a>
-            </div>
+                <div class="page-header__actions">
+                    <a href="order_form.php" class="btn btn--primary">+ New Order</a>
+                </div>
+            </header>
 
             <div class="dashboard-grid">
-                <div class="stat-card">
+                <div class="stat-card stat-card--pending">
                     <span class="stat-card__value tabular"><?= $pendingCount ?></span>
                     <span class="stat-card__label">Pending</span>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-card--accepted">
                     <span class="stat-card__value tabular"><?= $acceptedCount ?></span>
                     <span class="stat-card__label">In Progress</span>
                 </div>
@@ -83,7 +86,7 @@ $monthCount    = count(array_filter($orders, fn($o) => strpos($o['placed_at'], d
                             <tr data-status="<?= $o['status'] ?>">
                                 <td class="muted tabular"><?= $o['id'] ?></td>
                                 <td><?= htmlspecialchars($o['compound']) ?></td>
-                                <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
+                                <td><?= ui_nuclide($o['isotope']) ?></td>
                                 <td class="muted tabular"><?= htmlspecialchars($o['requested'] ?? $o['b_datetime'] ?? '—') ?></td>
                                 <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>
                                 <td><a href="order_detail.php?id=<?= $o['id'] ?>" class="table-action">View →</a></td>

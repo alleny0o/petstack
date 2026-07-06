@@ -1,6 +1,7 @@
 <?php
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
+require __DIR__ . '/../src/partials/ui.php';
 
 /**
  * Staff order processing view.
@@ -72,22 +73,21 @@ $internalNotes  = demo_order_thread($id, 'internal');
 
             <?php else: ?>
 
-                <div class="flex-between">
+                <header class="page-header">
                     <div>
-                        <div class="mb-2">
-                            <span class="badge badge--<?= $order['status'] ?>">
-                                <?= ucfirst($order['status']) ?>
-                            </span>
-                        </div>
-
-                        <h1 class="mb-0">Order #<?= $order['id'] ?></h1>
-
-                        <span class="text-sm muted">
-                            Placed <?= htmlspecialchars($order['placed_at']) ?>
+                        <span class="page-header__eyebrow">Staff &middot; Order</span>
+                        <h1>
+                            <span class="tabular">#<?= $order['id'] ?></span>
+                            <span class="badge badge--<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span>
+                        </h1>
+                        <span class="page-header__meta">
+                            Placed <span class="tabular"><?= htmlspecialchars($order['placed_at']) ?></span>
                         </span>
                     </div>
-                    <a href="staff_home.php" class="btn btn--secondary">&larr; Back</a>
-                </div>
+                    <div class="page-header__actions">
+                        <a href="staff_home.php" class="btn btn--secondary">&larr; Back</a>
+                    </div>
+                </header>
 
                 <?php if ($notice): ?>
                     <div class="alert alert--<?= $noticeKind ?>"><?= htmlspecialchars($notice) ?></div>
@@ -101,7 +101,7 @@ $internalNotes  = demo_order_thread($id, 'internal');
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Isotope</span>
-                            <span class="detail-list__value"><?= htmlspecialchars($order['isotope']) ?></span>
+                            <span class="detail-list__value"><?= ui_nuclide($order['isotope'], true) ?></span>
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Order type</span>

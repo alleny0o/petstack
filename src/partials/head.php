@@ -19,6 +19,9 @@
     }
 </script>
 
+<link rel="preload" href="assets/fonts/plex-sans-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/plex-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+
 <link rel="stylesheet" href="assets/css/tokens.css">
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/layout.css">

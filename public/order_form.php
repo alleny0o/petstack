@@ -91,10 +91,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <main class="app-main">
 
-            <div>
-                <h1 class="mb-0">New Order</h1>
-                <span class="text-sm muted">[INST] &middot; [LAB]</span>
-            </div>
+            <header class="page-header">
+                <div>
+                    <span class="page-header__eyebrow">Customer &middot; [INST] / [LAB]</span>
+                    <h1>New Order</h1>
+                </div>
+            </header>
 
             <form method="post" action="order_form.php" class="order-form">
 

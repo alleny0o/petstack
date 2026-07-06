@@ -1,7 +1,8 @@
 /* ============================================================
    PETStack — components.css
-   Sections: 9. Auth  10. Forms  11. Buttons  12. Cards
-             13. Tables  14. Alerts  15. Badges  16. Utilities
+   Sections: 9. Auth  9b. Page header  10. Forms  11. Buttons
+             12. Cards  12b. Nuclide tile  13. Tables
+             14. Alerts  15. Badges  16. Utilities
              17. Responsive  18. Accessibility
    ============================================================ */
 
@@ -24,21 +25,26 @@
   max-width: 360px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 .auth-card__head {
-  border-top: 3px solid var(--accent-500);
+  border-top: 3px solid var(--color-accent);
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
   padding: var(--sp-6) var(--sp-6) var(--sp-5);
-  border-bottom: 1px solid var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-hr);
 }
 .auth-card__brand {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 }
 .auth-card__logo {
   width: 45px;
   height: 45px;
-  background: var(--color-bg-sidebar);
+  border-radius: var(--radius);
+  background: var(--color-logo-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,9 +61,12 @@
   line-height: 1.1;
 }
 .auth-card__subtitle {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   color: var(--color-text-placeholder);
-  font-size: 12px;
-  margin-top: 1px;
+  margin-top: 3px;
 }
 .auth-card__body {
   padding: var(--sp-5) var(--sp-6) var(--sp-6);
@@ -65,10 +74,54 @@
 .auth-card__foot {
   margin-top: var(--sp-5);
   padding-top: var(--sp-4);
-  border-top: 1px solid var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-hr);
   text-align: center;
   font-size: 13px;
   color: var(--color-text-placeholder);
+}
+
+
+/* ============================================================
+   9b. PAGE HEADER (eyebrow + title + right-aligned actions)
+   Every main page opens with one of these.
+   ============================================================ */
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-5);
+}
+.page-header__eyebrow {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-2);
+}
+.page-header h1 {
+  margin-bottom: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.page-header__meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+.page-header__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--sp-2);
 }
 
 
@@ -84,7 +137,7 @@ label {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-secondary);
   letter-spacing: 0.02em;
   margin-bottom: var(--sp-1);
 }
@@ -103,15 +156,24 @@ textarea {
   color: var(--color-text-primary);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-input);
-  border-radius: 0;
+  border-radius: var(--radius);
   padding: 0.55rem 0.7rem;
 }
+
+/* Quantities, dates, and times are data — set them in the data voice */
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"] {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(105, 92, 254, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 input::placeholder,
 textarea::placeholder {
@@ -142,7 +204,7 @@ textarea {
   }
 }
 
-/* Grouped form sections with a small uppercase title */
+/* Grouped form sections with a small mono title */
 .form-section + .form-section {
   border-top: 1px solid var(--color-border-hr);
   padding-top: var(--sp-5);
@@ -150,9 +212,10 @@ textarea {
 }
 .form-section__title {
   display: block;
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-placeholder);
   margin-bottom: var(--sp-4);
@@ -168,12 +231,15 @@ textarea {
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  padding: 0.6rem 1.1rem;
+  letter-spacing: 0.01em;
+  padding: 0.55rem 1.1rem;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: var(--radius);
   cursor: pointer;
   text-align: center;
+}
+.btn:active {
+  transform: translateY(1px);
 }
 
 .btn--primary {
@@ -182,6 +248,7 @@ textarea {
 }
 .btn--primary:hover {
   background: var(--color-btn-primary-bg-hover);
+  color: var(--color-text-on-accent);
   text-decoration: none;
 }
 
@@ -192,12 +259,17 @@ textarea {
 }
 .btn--secondary:hover {
   background: var(--color-btn-secondary-bg-hover);
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
 .btn--danger {
-  background: var(--color-error);
-  color: var(--color-text-on-accent);
+  background: none;
+  color: var(--color-error);
+  border-color: currentColor;
+}
+.btn--danger:hover {
+  background: var(--color-error-tint);
 }
 
 .btn--block {
@@ -213,15 +285,66 @@ textarea {
 .card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px var(--color-shadow);
   padding: var(--sp-5);
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
 }
 .card__title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 var(--sp-4);
+  margin: 0 0 var(--sp-1);
+  display: block;
+}
+
+/* --- Stat cards (dashboard summary row) ---
+   Shared by all three dashboards, so they live here, not in a
+   role sheet. Value in the data voice; label as a mono micro-label.
+   Optional status accent via .stat-card--{pending,accepted}. */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-top: 2px solid var(--color-border-hr);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px var(--color-shadow);
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.stat-card--pending  { border-top-color: var(--color-warning); }
+.stat-card--accepted { border-top-color: var(--color-accent); }
+
+.stat-card__value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+.stat-card__label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
 }
 
 /* Definition-list rows for detail views (order detail, staff order view) */
@@ -230,19 +353,22 @@ textarea {
 }
 .detail-list__row {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 160px 1fr;
   gap: var(--sp-3);
   padding: var(--sp-3) 0;
-  border-bottom: 1px solid var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-hr);
 }
 .detail-list__row:last-child {
   border-bottom: none;
 }
 .detail-list__label {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   color: var(--color-text-placeholder);
-  letter-spacing: 0.02em;
+  padding-top: 3px;
 }
 .detail-list__value {
   font-size: 14px;
@@ -253,6 +379,54 @@ textarea {
     grid-template-columns: 1fr;
     gap: var(--sp-1);
   }
+}
+
+
+/* ============================================================
+   12b. NUCLIDE TILE — the signature mark.
+   Isotopes are drawn as chart-of-nuclides tiles: mass number
+   superscripted before the element symbol (¹⁸F), mono, in a
+   small bordered square. Markup: ui_nuclide() in src/partials/ui.php.
+   ============================================================ */
+
+.nuclide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 5px;
+  border: 1px solid var(--color-border-hr);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--color-bg-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.nuclide sup {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-right: 1px;
+  line-height: 1;
+  align-self: flex-start;   /* mass number rides top-left, chart-of-nuclides style */
+  margin-top: 4px;
+}
+
+/* Larger variant for detail views */
+.nuclide--lg {
+  min-width: 44px;
+  height: 34px;
+  font-size: 16px;
+}
+.nuclide--lg sup {
+  font-size: 10.5px;
+  margin-top: 5px;
 }
 
 
@@ -268,10 +442,12 @@ textarea {
 }
 .table th {
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
   color: var(--color-text-placeholder);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   background: var(--color-bg-primary);
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--color-border-hr);
@@ -280,13 +456,13 @@ textarea {
   font-size: 14px;
   color: var(--color-text-secondary);
   padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-hr);
 }
 .table tr:last-child td {
   border-bottom: none;
 }
-.table tr:hover td {
-  background: var(--color-bg-primary);
+.table tbody tr:hover td {
+  background: var(--color-accent-wash);
 }
 
 /* --- Table card (title bar + controls above a table) --- */
@@ -294,6 +470,9 @@ textarea {
 .table-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px var(--color-shadow);
+  overflow: hidden; /* clips the inner table's square corners */
   margin-bottom: var(--sp-5);
 }
 
@@ -308,7 +487,7 @@ textarea {
 }
 
 .table-card-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -351,15 +530,16 @@ textarea {
 
 /* Action link in table rows */
 .table-action {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--color-text-placeholder);
+  color: var(--color-accent-deep);
   white-space: nowrap;
 }
 .table-action:hover {
-  color: var(--color-text-primary);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
@@ -373,70 +553,61 @@ textarea {
   font-size: 13px;
   padding: 0.7rem 0.9rem;
   border-left: 3px solid;
+  border-radius: 0 var(--radius) var(--radius) 0;
   margin-bottom: var(--sp-4);
 }
 .alert--error {
   color: var(--color-error);
   border-color: var(--color-error);
-  background: rgba(220, 38, 38, 0.1);
+  background: var(--color-error-tint);
 }
 .alert--success {
   color: var(--color-success);
   border-color: var(--color-success);
-  background: rgba(5, 150, 105, 0.1);
+  background: var(--color-success-tint);
 }
 .alert--warning {
   color: var(--color-warning);
   border-color: var(--color-warning);
-  background: rgba(217, 119, 6, 0.1);
+  background: var(--color-warning-tint);
 }
 
 
 /* ============================================================
    15. STATUS BADGES (order states)
+   Dot + mono label — status reads as an indicator light, not a
+   boxed shout. Same .badge--{status} API as before.
    ============================================================ */
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.15rem 0.5rem;
-  border: 1px solid var(--color-border-hr);
   color: var(--color-text-placeholder);
-  background: var(--color-bg-primary);
+  white-space: nowrap;
 }
-.badge--pending {
-  color: var(--color-warning);
-  border-color: #fde68a;
-  background: #fffbeb;
+.badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
 }
-.badge--accepted {
-  color: var(--accent-600);
-  border-color: var(--accent-100);
-  background: var(--color-bg-secondary);
-}
-.badge--completed {
-  color: var(--color-success);
-  border-color: #a7f3d0;
-  background: #ecfdf5;
-}
-.badge--canceled {
-  color: var(--color-text-placeholder);
-}
-
-[data-theme="dark"] .badge--pending {
-  background: rgba(217, 119, 6, 0.15);
-  border-color: rgba(217, 119, 6, 0.35);
-}
-[data-theme="dark"] .badge--accepted {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-}
-[data-theme="dark"] .badge--completed {
-  background: rgba(5, 150, 105, 0.15);
-  border-color: rgba(5, 150, 105, 0.35);
+.badge--pending   { color: var(--color-warning); }
+.badge--accepted  { color: var(--color-accent-deep); }
+.badge--completed { color: var(--color-success); }
+.badge--canceled  { color: var(--color-text-placeholder); }
+.badge--canceled::before {
+  background: none;
+  border: 1px solid currentColor; /* hollow dot — the state that never ran */
+  width: 5px;
+  height: 5px;
 }
 
 
@@ -479,6 +650,10 @@ textarea {
   .table th,
   .table td {
     padding: 0.5rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

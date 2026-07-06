@@ -1,6 +1,7 @@
 <?php
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
+require __DIR__ . '/../src/partials/ui.php';
 
 /**
  * Staff past orders — completed and canceled orders, all labs.
@@ -24,7 +25,12 @@ $past = array_filter(demo_orders(), fn($o) => in_array($o['status'], ['completed
 
         <main class="app-main">
 
-            <h1>Past Orders</h1>
+            <header class="page-header">
+                <div>
+                    <span class="page-header__eyebrow">Staff</span>
+                    <h1>Past Orders</h1>
+                </div>
+            </header>
 
             <div class="table-card">
                 <div class="table-card-header">
@@ -56,7 +62,7 @@ $past = array_filter(demo_orders(), fn($o) => in_array($o['status'], ['completed
                             <tr data-status="<?= $o['status'] ?>">
                                 <td class="muted tabular"><?= $o['id'] ?></td>
                                 <td><?= htmlspecialchars($o['compound']) ?></td>
-                                <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
+                                <td><?= ui_nuclide($o['isotope']) ?></td>
                                 <td class="muted"><?= $o['type'] ?></td>
                                 <td class="muted tabular"><?= htmlspecialchars($o['placed_at']) ?></td>
                                 <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>

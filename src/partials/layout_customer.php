@@ -75,18 +75,16 @@
           </a>
         </li>
 
-        <li class="menu-item">
-          <a href="/staff_home.php" class="menu-link <?= $currentPage === 'staff_home' ? 'active' : '' ?>">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="forward-arrow-icon">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-            <span class="menu-label"><span class="menu-label__text">Staff Dashboard</span></span>
-          </a>
-        </li>
-
       </ul>
     </nav>
+  </div>
+
+  <!-- Dev preview switcher: jump between role dashboards until auth exists -->
+  <div class="role-switch">
+    <span class="role-switch__label">Preview</span>
+    <a href="/customer_home.php" class="role-switch__chip active" title="Customer dashboard">C</a>
+    <a href="/staff_home.php" class="role-switch__chip" title="Staff dashboard">S</a>
+    <a href="/admin_home.php" class="role-switch__chip" title="Admin dashboard">A</a>
   </div>
 
   <!-- Sidebar Footer -->

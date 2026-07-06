@@ -1,6 +1,7 @@
 <?php
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
+require __DIR__ . '/../src/partials/ui.php';
 
 /**
  * Staff order queue.
@@ -33,19 +34,19 @@ $completedMonth = count(array_filter(
 
         <main class="app-main">
 
-            <div class="flex-between">
+            <header class="page-header">
                 <div>
-                    <h1 class="mb-0">Order Queue</h1>
-                    <span class="text-sm muted">Orders awaiting action</span>
+                    <span class="page-header__eyebrow">Staff</span>
+                    <h1>Order Queue</h1>
                 </div>
-            </div>
+            </header>
 
             <div class="dashboard-grid">
-                <div class="stat-card">
+                <div class="stat-card stat-card--pending">
                     <span class="stat-card__value tabular"><?= $pendingCount ?></span>
                     <span class="stat-card__label">Pending</span>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-card--accepted">
                     <span class="stat-card__value tabular"><?= $acceptedCount ?></span>
                     <span class="stat-card__label">In Progress</span>
                 </div>
@@ -85,7 +86,7 @@ $completedMonth = count(array_filter(
                             <tr data-status="<?= $o['status'] ?>">
                                 <td class="muted tabular"><?= $o['id'] ?></td>
                                 <td><?= htmlspecialchars($o['compound']) ?></td>
-                                <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
+                                <td><?= ui_nuclide($o['isotope']) ?></td>
                                 <td class="muted"><?= $o['type'] ?></td>
                                 <td class="muted tabular"><?= htmlspecialchars($o['requested'] ?? $o['b_datetime'] ?? '—') ?></td>
                                 <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>

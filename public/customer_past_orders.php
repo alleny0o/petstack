@@ -13,7 +13,12 @@
         <?php include '../src/partials/layout_customer.php'; ?>
 
         <main class="app-main">
-            <h1>Past Orders</h1>
+            <header class="page-header">
+                <div>
+                    <span class="page-header__eyebrow">Customer</span>
+                    <h1>Past Orders</h1>
+                </div>
+            </header>
         </main>
     </div>
 

@@ -1,7 +1,7 @@
 /* ============================================================
    PETStack — customer.css
    Page-specific styles for customer-role pages only.
-   Shared components (cards, buttons, tables, badges, etc.)
+   Shared components (cards, buttons, tables, badges, stat cards)
    live in components.css. Put styles here when they only
    make sense on customer pages.
 
@@ -16,41 +16,8 @@
 
 /* ============================================================
    1. HOME / DASHBOARD
+   (stat cards moved to components.css — all dashboards use them)
    ============================================================ */
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-4);
-  margin-top: var(--sp-6);
-  margin-bottom: var(--sp-5);
-}
-
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.stat-card {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-hr);
-  padding: var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.stat-card__label {
-  font-size: 13px;
-  color: var(--color-text-placeholder);
-}
 
 
 /* ============================================================
@@ -69,7 +36,7 @@
 
 .order-form {
   max-width: 710px;
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-5);
 }
 
 /* Info strip shown once a compound is chosen: type + lead time */
@@ -78,7 +45,9 @@
   line-height: 1.45;
   padding: var(--sp-3);
   border: 1px solid var(--color-border-hr);
-  border-left: 3px solid var(--accent-500);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--color-accent-wash);
   color: var(--color-text-secondary);
   margin-top: var(--sp-2);
 }
@@ -93,15 +62,18 @@
   gap: var(--sp-3);
   padding: var(--sp-4);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius);
   margin-bottom: var(--sp-3);
 }
 .order-form .radio-option:has(input:checked) {
   border-color: var(--color-border-focus);
+  background: var(--color-accent-wash);
 }
 .order-form .radio-option input[type="radio"] {
   width: auto;
   margin-top: 3px;
   flex-shrink: 0;
+  accent-color: var(--color-accent);
 }
 .order-form .radio-option__body {
   flex: 1;

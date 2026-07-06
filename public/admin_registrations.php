@@ -13,7 +13,12 @@
         <?php include '../src/partials/layout_admin.php'; ?>
 
         <main class="app-main">
-            <h1>Registrations</h1>
+            <header class="page-header">
+                <div>
+                    <span class="page-header__eyebrow">Admin</span>
+                    <h1>Registrations</h1>
+                </div>
+            </header>
         </main>
     </div>
 

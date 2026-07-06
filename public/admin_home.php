@@ -30,19 +30,19 @@ $monthCount    = count(array_filter($orders, fn($o) => strpos($o['placed_at'], d
 
         <main class="app-main">
 
-            <div class="flex-between">
+            <header class="page-header">
                 <div>
-                    <h1 class="mb-0">Admin Home</h1>
-                    <span class="text-sm muted">System overview</span>
+                    <span class="page-header__eyebrow">Admin</span>
+                    <h1>System Overview</h1>
                 </div>
-            </div>
+            </header>
 
             <div class="dashboard-grid">
-                <div class="stat-card">
+                <div class="stat-card stat-card--pending">
                     <span class="stat-card__value tabular"><?= $pendingRegs ?></span>
                     <span class="stat-card__label">Pending registrations</span>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-card--pending">
                     <span class="stat-card__value tabular"><?= $pendingOrders ?></span>
                     <span class="stat-card__label">Pending orders</span>
                 </div>
