@@ -10,10 +10,10 @@
 <body>
 
     <div class="app-shell">
-        <!-- TODO: include '../src/partials/sidebar_admin.php' once built -->
+    <?php include '../src/partials/sidebar_staff.php'; ?>
 
         <main class="app-main">
-            <h1>Admin Dashboard</h1>
+            <h1>Staff Dashboard</h1>
         </main>
     </div>
 

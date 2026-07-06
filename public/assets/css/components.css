@@ -38,7 +38,7 @@
 .auth-card__logo {
   width: 45px;
   height: 45px;
-  background: var(--color-logo-bg);
+  background: var(--color-bg-sidebar);
   display: flex;
   align-items: center;
   justify-content: center;
