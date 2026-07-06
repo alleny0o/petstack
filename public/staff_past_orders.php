@@ -3,26 +3,17 @@ session_start();
 require __DIR__ . '/../src/demo_orders.php';
 
 /**
- * Staff order queue.
- *
- * TODO(db): require_role('staff', 'admin'), and scope the queue to
- * compounds in the staff member's assigned categories only.
+ * Staff past orders — completed and canceled orders, all labs.
+ * TODO(db): require_role('staff', 'admin'), paginate once real data
+ * exists, scope to the staff member's categories.
  */
-$orders = demo_orders();
-$queue  = array_filter($orders, fn($o) => in_array($o['status'], ['pending', 'accepted'], true));
-
-$pendingCount   = count(array_filter($orders, fn($o) => $o['status'] === 'pending'));
-$acceptedCount  = count(array_filter($orders, fn($o) => $o['status'] === 'accepted'));
-$completedMonth = count(array_filter(
-    $orders,
-    fn($o) => $o['status'] === 'completed' && strpos($o['placed_at'], date('Y-m')) === 0
-));
+$past = array_filter(demo_orders(), fn($o) => in_array($o['status'], ['completed', 'canceled'], true));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <?php $pageTitle = 'Order Queue'; $roleCss = 'staff';
+    <?php $pageTitle = 'Past Orders'; $roleCss = 'staff';
     include '../src/partials/head.php'; ?>
 </head>
 
@@ -33,36 +24,16 @@ $completedMonth = count(array_filter(
 
         <main class="app-main">
 
-            <div class="flex-between">
-                <div>
-                    <h1 class="mb-0">Order Queue</h1>
-                    <span class="text-sm muted">Orders awaiting action</span>
-                </div>
-            </div>
-
-            <div class="dashboard-grid">
-                <div class="stat-card">
-                    <span class="stat-card__value tabular"><?= $pendingCount ?></span>
-                    <span class="stat-card__label">Pending</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-card__value tabular"><?= $acceptedCount ?></span>
-                    <span class="stat-card__label">In Progress</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-card__value tabular"><?= $completedMonth ?></span>
-                    <span class="stat-card__label">Completed this month</span>
-                </div>
-            </div>
+            <h1>Past Orders</h1>
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">Queue</span>
+                    <span class="table-card-title">Completed &amp; Canceled</span>
                     <div class="table-card-controls">
                         <select id="filter-status">
                             <option value="">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="accepted">Accepted</option>
+                            <option value="completed">Completed</option>
+                            <option value="canceled">Canceled</option>
                         </select>
                         <input type="text" id="filter-search" placeholder="Order # or compound…">
                     </div>
@@ -75,21 +46,21 @@ $completedMonth = count(array_filter(
                             <th>Compound</th>
                             <th>Isotope</th>
                             <th>Type</th>
-                            <th>Requested</th>
+                            <th>Placed</th>
                             <th>Status</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($queue as $o): ?>
+                        <?php foreach ($past as $o): ?>
                             <tr data-status="<?= $o['status'] ?>">
                                 <td class="muted tabular"><?= $o['id'] ?></td>
                                 <td><?= htmlspecialchars($o['compound']) ?></td>
                                 <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
                                 <td class="muted"><?= $o['type'] ?></td>
-                                <td class="muted tabular"><?= htmlspecialchars($o['requested'] ?? $o['b_datetime'] ?? '—') ?></td>
+                                <td class="muted tabular"><?= htmlspecialchars($o['placed_at']) ?></td>
                                 <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>
-                                <td><a href="staff_order_detail.php?id=<?= $o['id'] ?>" class="table-action">Process →</a></td>
+                                <td><a href="staff_order_detail.php?id=<?= $o['id'] ?>" class="table-action">View →</a></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

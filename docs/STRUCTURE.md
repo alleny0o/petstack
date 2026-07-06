@@ -33,8 +33,8 @@ public/
 │
 ├── login · logout · register · reg_status · account · change_password
 ├── customer_home · customer_past_orders · customer_catalog · ...  (customer)
-├── queue · process_order · ...                                    (staff)
-├── manage_*                                                       (admin)
+├── staff_home · staff_order_detail · staff_past_orders · ...      (staff)
+├── admin_home · admin_registrations · admin_catalog · ...         (admin)
 ├── reports
 ├── 404 · 403 · 500   (error pages)
 │
@@ -65,13 +65,12 @@ src/
     ├── head.php              <head> contents: title, the dark-mode/sidebar
     │                         pre-paint script, stylesheet link. Every page
     │                         sets $pageTitle then includes this.
-    └── sidebar_customer.php  Sidebar nav for the customer role — also
+    └── layout_customer.php   Sidebar nav for the customer role — also
                               contains the mobile topbar (hamburger) and
                               the off-canvas backdrop, since those need to
                               be present on every page the sidebar is on.
-                              Role-specific siblings (sidebar_admin.php,
-                              etc.) get added the same way once those
-                              pages start.
+                              Role-specific siblings (layout_staff.php,
+                              layout_admin.php) follow the same pattern.
 ```
 
 There's no separate `header.php`/`footer.php` right now. Each page wraps
@@ -90,7 +89,7 @@ but aren't wired up as automatic partials yet.
 2. **Every protected page gates itself on line two:**
    ```php
    require __DIR__ . '/../src/auth.php';
-   require_role('user', 'admin');
+   require_role('staff', 'admin');
    ```
    Run `grep -n require_role public/*.php` for the full permission map.
    (Pre-login pages like `login.php`/`register.php` are exempt.)

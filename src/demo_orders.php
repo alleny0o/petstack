@@ -114,3 +114,70 @@ function demo_order_cancel(int $id): bool
     $_SESSION['demo_orders'][$id]['status'] = 'canceled';
     return true;
 }
+
+/**
+ * Staff status transition. Mirrors the future status-transition function:
+ * completed and canceled are terminal, "return" is accepted -> pending
+ * (no separate status — the audit log records the return).
+ * TODO(db): also write an order_audit_log row (who, when, from -> to).
+ */
+function demo_order_set_status(int $id, string $to): bool
+{
+    $allowed = [
+        'pending'  => ['accepted', 'canceled'],
+        'accepted' => ['completed', 'pending', 'canceled'],
+    ];
+    $order = demo_order_find($id);
+    if ($order === null || !in_array($to, $allowed[$order['status']] ?? [], true)) {
+        return false;
+    }
+    $_SESSION['demo_orders'][$id]['status'] = $to;
+    return true;
+}
+
+/**
+ * Append-only comment threads per order. $thread is 'public' (customer +
+ * staff) or 'internal' (staff only — customers must never see these).
+ * Mirrors order_public_comments / order_internal_notes.
+ */
+function demo_order_thread(int $id, string $thread): array
+{
+    if (!isset($_SESSION['demo_order_threads'])) {
+        $_SESSION['demo_order_threads'] = [
+            1039 => [
+                'public' => [
+                    ['author' => 'C. Rivera (customer)', 'body' => 'Any chance pickup could move to 10:00?', 'at' => '2026-06-26 08:15'],
+                    ['author' => 'M. Okafor (staff)',    'body' => 'Yes — updated the schedule, 10:00 works.', 'at' => '2026-06-26 09:02'],
+                ],
+                'internal' => [
+                    ['author' => 'M. Okafor (staff)', 'body' => 'Synthesis slot confirmed with radiopharmacy.', 'at' => '2026-06-26 09:05'],
+                ],
+            ],
+        ];
+    }
+    return $_SESSION['demo_order_threads'][$id][$thread] ?? [];
+}
+
+function demo_order_thread_add(int $id, string $thread, string $author, string $body): void
+{
+    demo_order_thread($id, $thread); // ensure seeded
+    $_SESSION['demo_order_threads'][$id][$thread][] = [
+        'author' => $author,
+        'body'   => $body,
+        'at'     => date('Y-m-d H:i'),
+    ];
+}
+
+/**
+ * Pending customer registration requests, newest first. Mirrors
+ * customer_registration_requests. Read-only demo data for the admin
+ * dashboard; approve/reject actions come with the DB.
+ */
+function demo_registrations(): array
+{
+    return [
+        ['id' => 7, 'name' => 'Dana Whitfield', 'email' => 'dana.whitfield@nih.gov', 'institute' => 'NCI',  'lab' => 'Molecular Imaging Lab', 'pi' => 'R. Chen',    'submitted_at' => '2026-07-05 16:40'],
+        ['id' => 6, 'name' => 'Sam Ortiz',      'email' => 'sam.ortiz@nih.gov',      'institute' => 'NIMH', 'lab' => 'Neuroimaging Core',     'pi' => 'L. Adeyemi', 'submitted_at' => '2026-07-03 11:22'],
+        ['id' => 5, 'name' => 'Priya Nair',     'email' => 'priya.nair@nih.gov',     'institute' => 'NCI',  'lab' => 'Radiochemistry Unit',   'pi' => 'R. Chen',    'submitted_at' => '2026-07-01 09:05'],
+    ];
+}

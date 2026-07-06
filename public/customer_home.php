@@ -8,7 +8,7 @@ $orders = demo_orders();
 
 $pendingCount  = count(array_filter($orders, fn($o) => $o['status'] === 'pending'));
 $acceptedCount = count(array_filter($orders, fn($o) => $o['status'] === 'accepted'));
-$monthCount    = count(array_filter($orders, fn($o) => str_starts_with($o['placed_at'], date('Y-m'))));
+$monthCount    = count(array_filter($orders, fn($o) => strpos($o['placed_at'], date('Y-m')) === 0));
 ?>
 <!DOCTYPE html>
 <html lang="en">

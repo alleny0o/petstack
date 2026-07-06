@@ -1,6 +1,6 @@
 /* ============================================================
    PETStack — staff.css
-   Page-specific styles for staff (user)-role pages only.
+   Page-specific styles for staff-role pages only.
    Shared components (cards, buttons, tables, badges, etc.)
    live in components.css. Put styles here when they only
    make sense on staff pages.
@@ -32,6 +32,53 @@
 /* ============================================================
    4. ORDER DETAIL
    ============================================================ */
+
+/* Append-only comment threads (public comments + internal notes)
+   on staff_order_detail.php. */
+.comment-thread {
+  list-style: none;
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+}
+
+.comment {
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--color-border-hr);
+}
+
+.comment:last-child {
+  border-bottom: none;
+}
+
+.comment__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: 2px;
+}
+
+.comment__author {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.comment__time {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.comment__body {
+  margin: 0;
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+/* Internal notes get a subtle left rule so they read as staff-only
+   even at a glance. */
+.comment--internal {
+  border-left: 3px solid var(--color-warning);
+  padding-left: var(--sp-2);
+}
 
 
 /* ============================================================

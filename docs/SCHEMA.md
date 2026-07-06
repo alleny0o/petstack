@@ -48,7 +48,11 @@ ORDER also has:
 ```
 
 - **A-details** = activity (mCi) + requested date/time. (Type A = dose order)
-- **B-details** = beam-current x time OR EOB activity + date/time. (Type B = cyclotron)
+- **B-details** = beam-current x time OR EOB activity + date/time, never both
+  (enforced by a `CHECK` constraint on `order_type_b_details`). (Type B = cyclotron)
+- No phone-in / staff-on-behalf-of-customer path. This was cut for complexity
+  per `PLAN.md`; a business-rules note elsewhere describing phone-in orders is
+  stale and should be reconciled by the team, not the schema.
 - Order IDs always increment, never reused.
 - `cost_snapshot` is copied onto the order when placed, so old reports stay
   correct if a compound's cost changes later.
@@ -66,7 +70,9 @@ CATEGORY                          (e.g. Radiopharmacy, Cyclotron)
 ```
 
 `compound` also stores: standard cost, minimum lead time, order type (A/B),
-active/inactive flag.
+active/inactive flag. Category lives on the compound itself, not on the
+compound-isotope pairing — a compound has exactly one category regardless of
+which isotope it's ordered with.
 
 ---
 
@@ -79,8 +85,10 @@ little table in the middle lists which goes with which.
 LAB_PIS              =  (lab, pi) pairs
                         a lab can have many PIs, a PI can cover many labs
 
-USER_CATEGORIES      =  (user, category) pairs
+STAFF_CATEGORIES     =  (staff, category) pairs
                         controls who is allowed to process what  <- important
+                        (note: sql/schema.sql currently models this as a
+                        single `category` column on `staff` instead)
 
 COMPOUND_ISOTOPES    =  (compound, isotope) pairs
                         which isotopes a compound is allowed to use
@@ -95,8 +103,8 @@ COMPOUND_DELIVERY    =  (compound, delivery_option) pairs
 
 ```
 CUSTOMERS   : tied into the org side (lab, institute, PI). Self-register, admin approves.
-USERS       : staff. Not tied to a lab. Linked to categories they can process.
-ADMINS      : super-users. Everything a user does, plus all config + reports.
+STAFF       : not tied to a lab. Linked to categories they can process.
+ADMINS      : super-users. Everything staff can do, plus all config + reports.
 ```
 
 All three hold: login, password hash, must-change-password flag,
@@ -127,7 +135,7 @@ exist yet:
 10. compound_delivery_options
 11. users
 12. admins
-13. user_categories
+13. staff_categories
 14. customers
 15. customer_registration_requests
 16. orders
