@@ -3,22 +3,18 @@
 <html lang="en">
 
 <head>
-    <?php $pageTitle = 'Catalog'; $roleCss = 'customer';
+    <?php $pageTitle = 'Home'; $roleCss = 'admin';
     include '../src/partials/head.php'; ?>
 </head>
 
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/layout_customer.php'; ?>
+    <?php include '../src/partials/sidebar_staff.php'; ?>
 
         <main class="app-main">
-            <h1>Catalog</h1>
+            <h1>Order History</h1>
         </main>
-
-        <div class="catalog-main">
-            
-        </div>
     </div>
 
 </body>

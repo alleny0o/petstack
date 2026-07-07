@@ -40,15 +40,15 @@ $monthCount    = count(array_filter($orders, fn($o) => str_starts_with($o['place
                 </div>
                 <div class="stat-card">
                     <span class="stat-card__value tabular"><?= $acceptedCount ?></span>
-                    <span class="stat-card__label">In Progress</span>
+                    <span class="stat-card__label">Accepted</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-card__value">—</span>
-                    <span class="stat-card__label">Updates</span>
+                    <span class="stat-card__label">Ready for Pickup</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-card__value tabular"><?= $monthCount ?></span>
-                    <span class="stat-card__label">Lab orders this month</span>
+                    <span class="stat-card__label">Delivered</span>
                 </div>
             </div>
 
