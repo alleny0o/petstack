@@ -8,7 +8,7 @@ function isMobileViewport() {
 // ===== Sidebar collapse toggle (desktop/tablet, >768px) =========
 // Collapses/expands the sidebar to an icon rail by flipping
 // data-sidebar="collapsed" on <html>. CSS reacts to that attribute
-// (see style.css section 8). State is persisted in localStorage so
+// (see layout.css section 8). State is persisted in localStorage so
 // it survives page reloads.
 // Using an <html> attribute (not a class on .sidebar) means the
 // pre-paint snippet in <head> can apply it before .sidebar even
@@ -101,37 +101,9 @@ function initSidebarMobileSafety() {
 }
 
 
-// ===== Dark mode toggle ==========================================
-// Flips data-theme="dark" on <html>. CSS reads that attribute in
-// the [data-theme="dark"] token block (see style.css section 3).
-// State is persisted the same way as the sidebar.
-
-const THEME_STORAGE_KEY = 'petstack:theme';
-
-function initThemeToggle() {
-  const themeBtn = document.querySelector('.theme-toggle');
-  if (!themeBtn) return;
-
-  themeBtn.addEventListener('click', () => {
-    const isDark = document.documentElement.dataset.theme === 'dark';
-    setTheme(isDark ? 'light' : 'dark');
-  });
-}
-
-function setTheme(theme) {
-  if (theme === 'dark') {
-    document.documentElement.dataset.theme = 'dark';
-  } else {
-    delete document.documentElement.dataset.theme;
-  }
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
-}
-
-
 document.addEventListener('DOMContentLoaded', () => {
   initSidebarToggle();
   initHamburgerToggle();
   initSidebarBackdrop();
   initSidebarMobileSafety();
-  initThemeToggle();
 });

@@ -1,382 +1,286 @@
-/*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.18-MariaDB, for Linux (x86_64)
+-- ============================================================
+-- PETStack — schema.sql
+-- All 20 tables. InnoDB, utf8mb4. Load into an empty `petstack`
+-- database, then load seed.sql.
 --
--- Host: bute    Database: petorders
--- ------------------------------------------------------
--- Server version	10.11.18-MariaDB
+-- Build order is FK-safe, not the narrative order in CLAUDE.md:
+--   institutes -> labs -> pis -> lab_pis -> categories -> isotopes
+--   -> delivery_options -> compounds -> compound_isotopes
+--   -> compound_delivery_options -> users -> admins -> staff
+--   -> customers -> orders -> order_type_a_details
+--   -> order_type_b_details -> order_public_comments
+--   -> order_internal_notes -> order_audit_log
+-- (categories has to exist before staff/compounds reference it,
+-- which is earlier than CLAUDE.md's identity-then-menu grouping.)
+-- ============================================================
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET NAMES utf8mb4;
 
---
--- Table structure for table `admins`
---
+DROP TABLE IF EXISTS order_audit_log;
+DROP TABLE IF EXISTS order_internal_notes;
+DROP TABLE IF EXISTS order_public_comments;
+DROP TABLE IF EXISTS order_type_b_details;
+DROP TABLE IF EXISTS order_type_a_details;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS compound_delivery_options;
+DROP TABLE IF EXISTS compound_isotopes;
+DROP TABLE IF EXISTS compounds;
+DROP TABLE IF EXISTS delivery_options;
+DROP TABLE IF EXISTS isotopes;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS lab_pis;
+DROP TABLE IF EXISTS pis;
+DROP TABLE IF EXISTS labs;
+DROP TABLE IF EXISTS institutes;
 
-DROP TABLE IF EXISTS `admins`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `admins` (
-  `user_id` int(11) NOT NULL,
-  PRIMARY KEY (`user_id`),
-  CONSTRAINT `fk_admins_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `categories`
---
+-- ============================================================
+-- Identity
+-- ============================================================
 
-DROP TABLE IF EXISTS `categories`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `categories` (
-  `category_name` varchar(30) NOT NULL,
-  PRIMARY KEY (`category_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+CREATE TABLE institutes (
+  institute_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name           VARCHAR(255) NOT NULL,
+  shorthand_name VARCHAR(10),
+  active         TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_institutes_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `compound_isotopes`
---
+CREATE TABLE labs (
+  lab_id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  institute_id  INT UNSIGNED NOT NULL,
+  lab_name      VARCHAR(100) NOT NULL,
+  building      VARCHAR(50),
+  room          VARCHAR(20),
+  active        TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_labs_institute FOREIGN KEY (institute_id) REFERENCES institutes (institute_id),
+  KEY idx_labs_institute_id (institute_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `compound_isotopes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `compound_isotopes` (
-  `isotope_name` varchar(30) NOT NULL,
-  `compound_id` int(11) NOT NULL,
-  `category` varchar(30) NOT NULL,
-  PRIMARY KEY (`isotope_name`,`compound_id`),
-  KEY `fk_compounds` (`compound_id`),
-  KEY `fk_compound_isotope_category` (`category`),
-  CONSTRAINT `fk_compound_isotope_category` FOREIGN KEY (`category`) REFERENCES `categories` (`category_name`),
-  CONSTRAINT `fk_compounds` FOREIGN KEY (`compound_id`) REFERENCES `compounds` (`compound_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_isotopes` FOREIGN KEY (`isotope_name`) REFERENCES `isotopes` (`isotope_name`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+CREATE TABLE pis (
+  pi_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  pi_name  VARCHAR(100) NOT NULL,
+  email    VARCHAR(254),
+  phone    VARCHAR(20),
+  active   TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `compounds`
---
+-- Join table: a lab can have multiple PIs, a PI can oversee multiple labs.
+CREATE TABLE lab_pis (
+  lab_id  INT UNSIGNED NOT NULL,
+  pi_id   INT UNSIGNED NOT NULL,
+  PRIMARY KEY (lab_id, pi_id),
+  CONSTRAINT fk_lab_pis_lab FOREIGN KEY (lab_id) REFERENCES labs (lab_id) ON DELETE CASCADE,
+  CONSTRAINT fk_lab_pis_pi  FOREIGN KEY (pi_id)  REFERENCES pis (pi_id)   ON DELETE CASCADE,
+  KEY idx_lab_pis_pi_id (pi_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `compounds`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `compounds` (
-  `compound_id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `standard_cost` decimal(10,0) NOT NULL,
-  `min_lead_time_hours` decimal(10,0) NOT NULL DEFAULT 0,
-  `order_type` char(1) DEFAULT NULL,
-  `active` int(11) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`compound_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- Categories built here (not with the rest of the menu tables below)
+-- because staff.category_id needs it to already exist.
+CREATE TABLE categories (
+  category_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  category_name VARCHAR(50) NOT NULL,
+  UNIQUE KEY uq_categories_name (category_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `customers`
---
+CREATE TABLE isotopes (
+  isotope_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  isotope_name VARCHAR(30) NOT NULL,
+  active       TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_isotopes_name (isotope_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `customers`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `customers` (
-  `user_id` int(11) NOT NULL,
-  `institute` varchar(255) DEFAULT NULL,
-  `supervisor_id` int(11) DEFAULT NULL,
-  `approved_by` int(11) NOT NULL,
-  `approved_at` datetime NOT NULL,
-  `lab_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`user_id`),
-  UNIQUE KEY `user_id` (`user_id`),
-  KEY `fk_customers_pi` (`supervisor_id`),
-  KEY `fk_customers_lab` (`lab_id`),
-  KEY `fk_customers_institute` (`institute`),
-  CONSTRAINT `fk_customers_institute` FOREIGN KEY (`institute`) REFERENCES `institutes` (`name`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_customers_lab` FOREIGN KEY (`lab_id`) REFERENCES `labs` (`lab_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_customers_pi` FOREIGN KEY (`supervisor_id`) REFERENCES `pis` (`pi_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_customers_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+CREATE TABLE delivery_options (
+  delivery_option_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name                VARCHAR(50) NOT NULL,
+  UNIQUE KEY uq_delivery_options_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `cyclotron_deliveries`
---
+-- A compound has exactly one category regardless of which isotope
+-- it's ordered with, so category lives here, not on compound_isotopes.
+CREATE TABLE compounds (
+  compound_id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  category_id         INT UNSIGNED NOT NULL,
+  name                VARCHAR(255) NOT NULL,
+  order_type          ENUM('A', 'B') NOT NULL,
+  standard_cost       DECIMAL(10,2) NOT NULL,
+  min_lead_time_hours DECIMAL(6,1) NOT NULL DEFAULT 0,
+  active              TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_compounds_category FOREIGN KEY (category_id) REFERENCES categories (category_id),
+  KEY idx_compounds_category_id (category_id),
+  KEY idx_compounds_active (active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `cyclotron_deliveries`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cyclotron_deliveries` (
-  `order_id` int(11) NOT NULL,
-  `mode` varchar(20) DEFAULT NULL,
-  `bean_current` int(11) NOT NULL,
-  `bombardment_minutes` int(11) NOT NULL,
-  `eob_activity_mci` decimal(10,0) NOT NULL,
-  `eob_date_time` timestamp NOT NULL,
-  `destination` varchar(50) NOT NULL,
-  PRIMARY KEY (`order_id`),
-  CONSTRAINT `fk_delivery_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- Usually 1:1, occasionally a compound allows multiple isotopes.
+CREATE TABLE compound_isotopes (
+  compound_id INT UNSIGNED NOT NULL,
+  isotope_id  INT UNSIGNED NOT NULL,
+  PRIMARY KEY (compound_id, isotope_id),
+  CONSTRAINT fk_compound_isotopes_compound FOREIGN KEY (compound_id) REFERENCES compounds (compound_id) ON DELETE CASCADE,
+  CONSTRAINT fk_compound_isotopes_isotope  FOREIGN KEY (isotope_id)  REFERENCES isotopes (isotope_id)   ON DELETE CASCADE,
+  KEY idx_compound_isotopes_isotope_id (isotope_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `deliveries`
---
+-- Each compound lists its own allowed delivery methods, not a global list.
+CREATE TABLE compound_delivery_options (
+  compound_id         INT UNSIGNED NOT NULL,
+  delivery_option_id  INT UNSIGNED NOT NULL,
+  PRIMARY KEY (compound_id, delivery_option_id),
+  CONSTRAINT fk_cdo_compound         FOREIGN KEY (compound_id)        REFERENCES compounds (compound_id)               ON DELETE CASCADE,
+  CONSTRAINT fk_cdo_delivery_option  FOREIGN KEY (delivery_option_id) REFERENCES delivery_options (delivery_option_id) ON DELETE CASCADE,
+  KEY idx_cdo_delivery_option_id (delivery_option_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `deliveries`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `deliveries` (
-  `compound_id` int(11) DEFAULT NULL,
-  `isotope_name` varchar(30) DEFAULT NULL,
-  `delivery_option` varchar(20) DEFAULT NULL,
-  KEY `fk_compound_isotope` (`isotope_name`,`compound_id`),
-  KEY `fk_delivery_option` (`delivery_option`),
-  CONSTRAINT `fk_compound_isotope` FOREIGN KEY (`isotope_name`, `compound_id`) REFERENCES `compound_isotopes` (`isotope_name`, `compound_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_delivery_option` FOREIGN KEY (`delivery_option`) REFERENCES `delivery_options` (`name`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- Shared login table for all three roles. Role is determined by which
+-- of admins/staff/customers a user_id appears in — no role column here.
+CREATE TABLE users (
+  user_id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username              VARCHAR(50) NOT NULL,
+  password_hash         VARCHAR(255) NOT NULL,
+  must_change_password  TINYINT(1) NOT NULL DEFAULT 1,
+  failed_login_count    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  locked_until          DATETIME NULL,
+  active                TINYINT(1) NOT NULL DEFAULT 1,
+  created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_users_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `delivery_options`
---
+CREATE TABLE admins (
+  user_id INT UNSIGNED PRIMARY KEY,
+  CONSTRAINT fk_admins_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `delivery_options`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `delivery_options` (
-  `name` varchar(20) NOT NULL,
-  PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- One category per staff member, not a junction table.
+CREATE TABLE staff (
+  user_id     INT UNSIGNED PRIMARY KEY,
+  category_id INT UNSIGNED NOT NULL,
+  CONSTRAINT fk_staff_user     FOREIGN KEY (user_id)     REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_staff_category FOREIGN KEY (category_id) REFERENCES categories (category_id),
+  KEY idx_staff_category_id (category_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `institutes`
---
+-- Institute/lab/supervising PI are locked at approval time.
+-- registration_status lives directly here — no separate requests table.
+CREATE TABLE customers (
+  user_id              INT UNSIGNED PRIMARY KEY,
+  institute_id         INT UNSIGNED NULL,
+  lab_id               INT UNSIGNED NULL,
+  supervising_pi_id    INT UNSIGNED NULL,
+  registration_status  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  approved_by          INT UNSIGNED NULL,
+  approved_at          DATETIME NULL,
+  CONSTRAINT fk_customers_user         FOREIGN KEY (user_id)           REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_customers_institute    FOREIGN KEY (institute_id)      REFERENCES institutes (institute_id) ON DELETE SET NULL,
+  CONSTRAINT fk_customers_lab          FOREIGN KEY (lab_id)            REFERENCES labs (lab_id)             ON DELETE SET NULL,
+  CONSTRAINT fk_customers_pi           FOREIGN KEY (supervising_pi_id) REFERENCES pis (pi_id)               ON DELETE SET NULL,
+  CONSTRAINT fk_customers_approved_by  FOREIGN KEY (approved_by)       REFERENCES users (user_id)           ON DELETE SET NULL,
+  KEY idx_customers_registration_status (registration_status),
+  KEY idx_customers_institute_id (institute_id),
+  KEY idx_customers_lab_id (lab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `institutes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `institutes` (
-  `name` varchar(255) NOT NULL,
-  `shorthand_name` varchar(10) DEFAULT NULL,
-  PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `isotopes`
---
+-- ============================================================
+-- Orders
+-- ============================================================
 
-DROP TABLE IF EXISTS `isotopes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `isotopes` (
-  `isotope_name` varchar(30) NOT NULL,
-  `active` int(11) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`isotope_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- cost_snapshot is set at creation and never recalculated from
+-- compounds.standard_cost — historical orders/reports stay accurate
+-- even after prices change. No "returned" status: returns go back to
+-- pending, and order_audit_log is what records that a return happened.
+CREATE TABLE orders (
+  order_id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  customer_id          INT UNSIGNED NOT NULL,
+  compound_id          INT UNSIGNED NOT NULL,
+  isotope_id           INT UNSIGNED NOT NULL,
+  delivery_option_id   INT UNSIGNED NOT NULL,
+  status               ENUM('pending', 'accepted', 'completed', 'canceled') NOT NULL DEFAULT 'pending',
+  cost_snapshot        DECIMAL(10,2) NOT NULL,
+  created_by           INT UNSIGNED NOT NULL,
+  created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  processed_by         INT UNSIGNED NULL,
+  processed_at         DATETIME NULL,
+  last_modified_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_orders_customer         FOREIGN KEY (customer_id)        REFERENCES customers (user_id),
+  CONSTRAINT fk_orders_compound         FOREIGN KEY (compound_id)        REFERENCES compounds (compound_id),
+  CONSTRAINT fk_orders_isotope          FOREIGN KEY (isotope_id)         REFERENCES isotopes (isotope_id),
+  CONSTRAINT fk_orders_delivery_option  FOREIGN KEY (delivery_option_id) REFERENCES delivery_options (delivery_option_id),
+  CONSTRAINT fk_orders_created_by       FOREIGN KEY (created_by)         REFERENCES users (user_id),
+  CONSTRAINT fk_orders_processed_by     FOREIGN KEY (processed_by)       REFERENCES users (user_id),
+  KEY idx_orders_status (status),
+  KEY idx_orders_customer_id (customer_id),
+  KEY idx_orders_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `lab_pis`
---
+-- Dose orders. Independent of order_type_b_details — never model one
+-- as parent/child of the other.
+CREATE TABLE order_type_a_details (
+  order_id            INT UNSIGNED PRIMARY KEY,
+  activity_mci        DECIMAL(8,2) NOT NULL,
+  requested_datetime  DATETIME NOT NULL,
+  CONSTRAINT fk_order_type_a_order FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `lab_pis`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `lab_pis` (
-  `lab_id` int(11) NOT NULL,
-  `pi_id` int(11) NOT NULL,
-  KEY `fk_lab` (`lab_id`),
-  KEY `fk_pi` (`pi_id`),
-  CONSTRAINT `fk_lab` FOREIGN KEY (`lab_id`) REFERENCES `labs` (`lab_id`),
-  CONSTRAINT `fk_pi` FOREIGN KEY (`pi_id`) REFERENCES `pis` (`pi_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- Cyclotron orders: either beam_current+bombardment_minutes OR
+-- eob_activity_mci+eob_datetime, never both — enforced by the CHECK
+-- below. Delivery destination is orders.delivery_option_id; no
+-- separate destination column here.
+CREATE TABLE order_type_b_details (
+  order_id             INT UNSIGNED PRIMARY KEY,
+  mode                 ENUM('beam', 'eob') NOT NULL,
+  beam_current         DECIMAL(6,2) NULL,
+  bombardment_minutes  SMALLINT UNSIGNED NULL,
+  eob_activity_mci     DECIMAL(8,2) NULL,
+  eob_datetime         DATETIME NULL,
+  CONSTRAINT fk_order_type_b_order FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
+  CONSTRAINT chk_order_type_b_mode CHECK (
+    (mode = 'beam' AND beam_current IS NOT NULL AND bombardment_minutes IS NOT NULL
+       AND eob_activity_mci IS NULL AND eob_datetime IS NULL)
+    OR
+    (mode = 'eob' AND eob_activity_mci IS NOT NULL AND eob_datetime IS NOT NULL
+       AND beam_current IS NULL AND bombardment_minutes IS NULL)
+  )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `labs`
---
+-- Append-only, visible to customer + staff.
+CREATE TABLE order_public_comments (
+  comment_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id    INT UNSIGNED NOT NULL,
+  author_id   INT UNSIGNED NOT NULL,
+  body        VARCHAR(1000) NOT NULL,
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_opc_order  FOREIGN KEY (order_id)  REFERENCES orders (order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_opc_author FOREIGN KEY (author_id) REFERENCES users (user_id),
+  KEY idx_opc_order_id (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `labs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `labs` (
-  `lab_id` int(11) NOT NULL AUTO_INCREMENT,
-  `lab_name` varchar(50) DEFAULT NULL,
-  `building` varchar(50) DEFAULT NULL,
-  `room` varchar(20) DEFAULT NULL,
-  `active` int(11) NOT NULL DEFAULT 1,
-  `institute` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`lab_id`),
-  KEY `fk_institute_lab` (`institute`),
-  CONSTRAINT `fk_institute_lab` FOREIGN KEY (`institute`) REFERENCES `institutes` (`name`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+-- Append-only, staff-only (enforced in app logic, not schema).
+CREATE TABLE order_internal_notes (
+  note_id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id    INT UNSIGNED NOT NULL,
+  author_id   INT UNSIGNED NOT NULL,
+  body        VARCHAR(1000) NOT NULL,
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_oin_order  FOREIGN KEY (order_id)  REFERENCES orders (order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_oin_author FOREIGN KEY (author_id) REFERENCES users (user_id),
+  KEY idx_oin_order_id (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Table structure for table `messages`
---
-
-DROP TABLE IF EXISTS `messages`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `messages` (
-  `msg_id` int(11) NOT NULL AUTO_INCREMENT,
-  `sent_by` int(11) DEFAULT NULL,
-  `sent_to` int(11) DEFAULT NULL,
-  `msg` varchar(500) DEFAULT NULL,
-  PRIMARY KEY (`msg_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `order_notes`
---
-
-DROP TABLE IF EXISTS `order_notes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `order_notes` (
-  `note_id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) DEFAULT NULL,
-  `author_id` int(11) DEFAULT NULL,
-  `text` varchar(500) DEFAULT NULL,
-  `time` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`note_id`),
-  KEY `fk_note_order` (`order_id`),
-  KEY `fk_note_author` (`author_id`),
-  CONSTRAINT `fk_note_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_note_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `orders`
---
-
-DROP TABLE IF EXISTS `orders`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `orders` (
-  `order_id` int(11) NOT NULL AUTO_INCREMENT,
-  `customer_id` int(11) NOT NULL,
-  `compound_id` int(11) NOT NULL,
-  `isotope` varchar(30) NOT NULL,
-  `status` varchar(20) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `created_by` int(11) NOT NULL,
-  `delivery_option` varchar(20) NOT NULL,
-  `processed_by` int(11) NOT NULL,
-  `processed_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `cost_snapshot` decimal(10,0) NOT NULL,
-  `last_modified_at` timestamp NULL DEFAULT current_timestamp(),
-  `last_modified_by` int(11) NOT NULL,
-  `notes` varchar(500) DEFAULT NULL,
-  PRIMARY KEY (`order_id`),
-  KEY `fk_customer` (`customer_id`),
-  KEY `fk_compound_id` (`compound_id`),
-  KEY `fk_isotope_name` (`isotope`),
-  KEY `fk_processed_by` (`processed_by`),
-  KEY `fk_modified_by` (`last_modified_by`),
-  CONSTRAINT `fk_compound_id` FOREIGN KEY (`compound_id`) REFERENCES `compounds` (`compound_id`),
-  CONSTRAINT `fk_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`user_id`),
-  CONSTRAINT `fk_isotope_name` FOREIGN KEY (`isotope`) REFERENCES `isotopes` (`isotope_name`),
-  CONSTRAINT `fk_modified_by` FOREIGN KEY (`last_modified_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_processed_by` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `pis`
---
-
-DROP TABLE IF EXISTS `pis`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pis` (
-  `pi_id` int(11) NOT NULL AUTO_INCREMENT,
-  `pi_name` varchar(50) NOT NULL,
-  `email` varchar(254) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `active` int(11) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`pi_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `radiotracer_doses`
---
-
-DROP TABLE IF EXISTS `radiotracer_doses`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `radiotracer_doses` (
-  `order_id` int(11) NOT NULL,
-  `unit_amt` decimal(10,0) NOT NULL,
-  `activity_mci` decimal(10,0) NOT NULL DEFAULT 0,
-  `requested_datetime` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`order_id`),
-  CONSTRAINT `fk_parent_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `staff`
---
-
-DROP TABLE IF EXISTS `staff`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `staff` (
-  `user_id` int(11) NOT NULL,
-  `category` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`user_id`),
-  KEY `fk_staffs_category` (`category`),
-  CONSTRAINT `fk_staffs_category` FOREIGN KEY (`category`) REFERENCES `categories` (`category_name`),
-  CONSTRAINT `fk_staffs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `users`
---
-
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `users` (
-  `user_id` int(11) NOT NULL AUTO_INCREMENT,
-  `username` varchar(30) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `must_change_pass` int(11) NOT NULL DEFAULT 1,
-  `active` int(11) NOT NULL DEFAULT 1,
-  `failed_login_count` int(11) NOT NULL DEFAULT 0,
-  `locked_until` datetime DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `email` varchar(254) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`user_id`),
-  UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
--- Dump completed on 2026-07-06  9:47:22
+-- Status changes only (pending -> accepted -> completed/canceled,
+-- timestamp, who) — not field-level diffing. status_from is NULL for
+-- the initial pending row written at order creation.
+CREATE TABLE order_audit_log (
+  log_id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id     INT UNSIGNED NOT NULL,
+  changed_by   INT UNSIGNED NOT NULL,
+  status_from  ENUM('pending', 'accepted', 'completed', 'canceled') NULL,
+  status_to    ENUM('pending', 'accepted', 'completed', 'canceled') NOT NULL,
+  changed_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_oal_order       FOREIGN KEY (order_id)   REFERENCES orders (order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_oal_changed_by  FOREIGN KEY (changed_by) REFERENCES users (user_id),
+  KEY idx_oal_order_id (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

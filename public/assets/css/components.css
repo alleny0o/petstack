@@ -1,8 +1,9 @@
 /* ============================================================
    PETStack — components.css
-   Sections: 9. Auth  10. Forms  11. Buttons  12. Cards
-             13. Tables  14. Alerts  15. Badges  16. Utilities
-             17. Responsive  18. Accessibility
+   Sections: 9. Auth  9b. Page header  10. Forms  11. Buttons
+             12. Cards  12b. Stat cards  13. Tables  14. Alerts
+             15. Badges  16. Utilities  17. Responsive
+             18. Accessibility
    ============================================================ */
 
 
@@ -73,6 +74,49 @@
 
 
 /* ============================================================
+   9b. PAGE HEADER (eyebrow + title + right-aligned actions)
+   Every main page opens with one of these.
+   ============================================================ */
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-5);
+}
+.page-header__eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-1);
+}
+.page-header h1 {
+  margin-bottom: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.page-header__meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+.page-header__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--sp-2);
+}
+
+
+/* ============================================================
    10. FORMS
    ============================================================ */
 
@@ -111,11 +155,19 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(105, 92, 254, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 input::placeholder,
 textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-bg-primary);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
 }
 
 textarea {
@@ -127,6 +179,13 @@ textarea {
 .field-hint {
   font-size: 12px;
   color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+
+/* Inline validation message under a field */
+.field-error {
+  font-size: 12px;
+  color: var(--color-error);
   margin-top: var(--sp-1);
 }
 
@@ -182,6 +241,7 @@ textarea {
 }
 .btn--primary:hover {
   background: var(--color-btn-primary-bg-hover);
+  color: var(--color-text-on-accent);
   text-decoration: none;
 }
 
@@ -205,6 +265,11 @@ textarea {
   width: 100%;
 }
 
+.btn--sm {
+  font-size: 13px;
+  padding: 0.35rem 0.7rem;
+}
+
 
 /* ============================================================
    12. CARDS / PANELS
@@ -214,7 +279,7 @@ textarea {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
   padding: var(--sp-5);
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
 }
 .card__title {
@@ -222,6 +287,7 @@ textarea {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--sp-4);
+  display: block;
 }
 
 /* Definition-list rows for detail views (order detail, staff order view) */
@@ -257,6 +323,47 @@ textarea {
 
 
 /* ============================================================
+   12b. STAT CARDS (dashboard summary row)
+   Shared by all three dashboards, so they live here, not in a
+   role sheet.
+   ============================================================ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.stat-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-card__label {
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+}
+
+
+/* ============================================================
    13. TABLES
    ============================================================ */
 
@@ -285,8 +392,19 @@ textarea {
 .table tr:last-child td {
   border-bottom: none;
 }
-.table tr:hover td {
+.table tbody tr:hover td {
   background: var(--color-bg-primary);
+}
+
+/* Friendly empty state inside a table card */
+.table-empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: 14px;
+}
+.table-empty .btn {
+  margin-top: var(--sp-3);
 }
 
 /* --- Table card (title bar + controls above a table) --- */
@@ -315,6 +433,7 @@ textarea {
 
 .table-card-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
   flex: 1 1 auto;
@@ -324,7 +443,8 @@ textarea {
 
 /* Compact overrides — undo the global width:100% and shrink padding */
 .table-card-controls select,
-.table-card-controls input[type="text"] {
+.table-card-controls input[type="text"],
+.table-card-controls input[type="date"] {
   width: auto;
   font-size: 13px;
   padding: 0.3rem 0.6rem;
@@ -363,6 +483,16 @@ textarea {
   text-decoration: none;
 }
 
+/* "Updated since you last looked" marker on order rows */
+.updated-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent-500);
+  vertical-align: middle;
+}
+
 
 /* ============================================================
    14. ALERTS / MESSAGES
@@ -394,6 +524,7 @@ textarea {
 
 /* ============================================================
    15. STATUS BADGES (order states)
+   Subtle tint + text color, not solid loud fills.
    ============================================================ */
 
 .badge {
@@ -426,19 +557,6 @@ textarea {
   color: var(--color-text-placeholder);
 }
 
-[data-theme="dark"] .badge--pending {
-  background: rgba(217, 119, 6, 0.15);
-  border-color: rgba(217, 119, 6, 0.35);
-}
-[data-theme="dark"] .badge--accepted {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-}
-[data-theme="dark"] .badge--completed {
-  background: rgba(5, 150, 105, 0.15);
-  border-color: rgba(5, 150, 105, 0.35);
-}
-
 
 /* ============================================================
    16. UTILITIES
@@ -467,9 +585,7 @@ textarea {
    ============================================================ */
 
 @media (max-width: 640px) {
-  .app-header__inner,
-  .app-main,
-  .app-footer__inner {
+  .app-main {
     padding-left: var(--sp-4);
     padding-right: var(--sp-4);
   }
@@ -479,6 +595,10 @@ textarea {
   .table th,
   .table td {
     padding: 0.5rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
