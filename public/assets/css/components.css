@@ -1,9 +1,9 @@
 /* ============================================================
    PETStack — components.css
    Sections: 9. Auth  9b. Page header  10. Forms  11. Buttons
-             12. Cards  12b. Nuclide tile  13. Tables
-             14. Alerts  15. Badges  16. Utilities
-             17. Responsive  18. Accessibility
+             12. Cards  12b. Stat cards  13. Tables  14. Alerts
+             15. Badges  16. Utilities  17. Responsive
+             18. Accessibility
    ============================================================ */
 
 
@@ -25,26 +25,21 @@
   max-width: 360px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px var(--color-shadow);
 }
 .auth-card__head {
-  border-top: 3px solid var(--color-accent);
-  border-top-left-radius: var(--radius);
-  border-top-right-radius: var(--radius);
+  border-top: 3px solid var(--accent-500);
   padding: var(--sp-6) var(--sp-6) var(--sp-5);
-  border-bottom: 1px solid var(--color-border-hr);
+  border-bottom: 1px solid var(--color-bg-primary);
 }
 .auth-card__brand {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
 }
 .auth-card__logo {
   width: 45px;
   height: 45px;
-  border-radius: var(--radius);
-  background: var(--color-logo-bg);
+  background: var(--color-bg-sidebar);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,12 +56,9 @@
   line-height: 1.1;
 }
 .auth-card__subtitle {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   color: var(--color-text-placeholder);
-  margin-top: 3px;
+  font-size: 12px;
+  margin-top: 1px;
 }
 .auth-card__body {
   padding: var(--sp-5) var(--sp-6) var(--sp-6);
@@ -74,7 +66,7 @@
 .auth-card__foot {
   margin-top: var(--sp-5);
   padding-top: var(--sp-4);
-  border-top: 1px solid var(--color-border-hr);
+  border-top: 1px solid var(--color-bg-primary);
   text-align: center;
   font-size: 13px;
   color: var(--color-text-placeholder);
@@ -97,13 +89,12 @@
 }
 .page-header__eyebrow {
   display: block;
-  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-placeholder);
-  margin-bottom: var(--sp-2);
+  margin-bottom: var(--sp-1);
 }
 .page-header h1 {
   margin-bottom: 0;
@@ -137,7 +128,7 @@ label {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--color-text-placeholder);
   letter-spacing: 0.02em;
   margin-bottom: var(--sp-1);
 }
@@ -156,28 +147,27 @@ textarea {
   color: var(--color-text-primary);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-input);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 0.55rem 0.7rem;
 }
-
-/* Quantities, dates, and times are data — set them in the data voice */
-input[type="number"],
-input[type="date"],
-input[type="datetime-local"] {
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-}
-
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 input::placeholder,
 textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-bg-primary);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
 }
 
 textarea {
@@ -189,6 +179,13 @@ textarea {
 .field-hint {
   font-size: 12px;
   color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+
+/* Inline validation message under a field */
+.field-error {
+  font-size: 12px;
+  color: var(--color-error);
   margin-top: var(--sp-1);
 }
 
@@ -204,7 +201,7 @@ textarea {
   }
 }
 
-/* Grouped form sections with a small mono title */
+/* Grouped form sections with a small uppercase title */
 .form-section + .form-section {
   border-top: 1px solid var(--color-border-hr);
   padding-top: var(--sp-5);
@@ -212,10 +209,9 @@ textarea {
 }
 .form-section__title {
   display: block;
-  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-placeholder);
   margin-bottom: var(--sp-4);
@@ -231,15 +227,12 @@ textarea {
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.01em;
-  padding: 0.55rem 1.1rem;
+  letter-spacing: 0.02em;
+  padding: 0.6rem 1.1rem;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 0;
   cursor: pointer;
   text-align: center;
-}
-.btn:active {
-  transform: translateY(1px);
 }
 
 .btn--primary {
@@ -259,22 +252,22 @@ textarea {
 }
 .btn--secondary:hover {
   background: var(--color-btn-secondary-bg-hover);
-  color: var(--color-text-primary);
   text-decoration: none;
 }
 
 .btn--danger {
-  background: none;
-  color: var(--color-error);
-  border-color: currentColor;
-}
-.btn--danger:hover {
-  background: var(--color-error-tint);
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
 }
 
 .btn--block {
   display: block;
   width: 100%;
+}
+
+.btn--sm {
+  font-size: 13px;
+  padding: 0.35rem 0.7rem;
 }
 
 
@@ -285,66 +278,16 @@ textarea {
 .card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px var(--color-shadow);
   padding: var(--sp-5);
   margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
 }
 .card__title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 var(--sp-1);
+  margin: 0 0 var(--sp-4);
   display: block;
-}
-
-/* --- Stat cards (dashboard summary row) ---
-   Shared by all three dashboards, so they live here, not in a
-   role sheet. Value in the data voice; label as a mono micro-label.
-   Optional status accent via .stat-card--{pending,accepted}. */
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-4);
-  margin-top: var(--sp-5);
-  margin-bottom: var(--sp-5);
-}
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.stat-card {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-hr);
-  border-top: 2px solid var(--color-border-hr);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px var(--color-shadow);
-  padding: var(--sp-4) var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-.stat-card--pending  { border-top-color: var(--color-warning); }
-.stat-card--accepted { border-top-color: var(--color-accent); }
-
-.stat-card__value {
-  font-family: var(--font-mono);
-  font-size: 26px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  line-height: 1.2;
-}
-.stat-card__label {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--color-text-placeholder);
 }
 
 /* Definition-list rows for detail views (order detail, staff order view) */
@@ -353,22 +296,19 @@ textarea {
 }
 .detail-list__row {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 150px 1fr;
   gap: var(--sp-3);
   padding: var(--sp-3) 0;
-  border-bottom: 1px solid var(--color-border-hr);
+  border-bottom: 1px solid var(--color-bg-primary);
 }
 .detail-list__row:last-child {
   border-bottom: none;
 }
 .detail-list__label {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   color: var(--color-text-placeholder);
-  padding-top: 3px;
+  letter-spacing: 0.02em;
 }
 .detail-list__value {
   font-size: 14px;
@@ -383,50 +323,43 @@ textarea {
 
 
 /* ============================================================
-   12b. NUCLIDE TILE — the signature mark.
-   Isotopes are drawn as chart-of-nuclides tiles: mass number
-   superscripted before the element symbol (¹⁸F), mono, in a
-   small bordered square. Markup: ui_nuclide() in src/partials/ui.php.
+   12b. STAT CARDS (dashboard summary row)
+   Shared by all three dashboards, so they live here, not in a
+   role sheet.
    ============================================================ */
 
-.nuclide {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 26px;
-  padding: 0 5px;
-  border: 1px solid var(--color-border-hr);
-  border-bottom-width: 2px;
-  border-radius: 3px;
-  background: var(--color-bg-primary);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  line-height: 1;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.nuclide sup {
-  font-size: 9px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-  margin-right: 1px;
-  line-height: 1;
-  align-self: flex-start;   /* mass number rides top-left, chart-of-nuclides style */
-  margin-top: 4px;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+  margin-bottom: var(--sp-5);
 }
 
-/* Larger variant for detail views */
-.nuclide--lg {
-  min-width: 44px;
-  height: 34px;
-  font-size: 16px;
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
-.nuclide--lg sup {
-  font-size: 10.5px;
-  margin-top: 5px;
+
+.stat-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.stat-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-card__label {
+  font-size: 13px;
+  color: var(--color-text-placeholder);
 }
 
 
@@ -442,12 +375,10 @@ textarea {
 }
 .table th {
   text-align: left;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-placeholder);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   background: var(--color-bg-primary);
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--color-border-hr);
@@ -456,13 +387,24 @@ textarea {
   font-size: 14px;
   color: var(--color-text-secondary);
   padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid var(--color-border-hr);
+  border-bottom: 1px solid var(--color-bg-primary);
 }
 .table tr:last-child td {
   border-bottom: none;
 }
 .table tbody tr:hover td {
-  background: var(--color-accent-wash);
+  background: var(--color-bg-primary);
+}
+
+/* Friendly empty state inside a table card */
+.table-empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: 14px;
+}
+.table-empty .btn {
+  margin-top: var(--sp-3);
 }
 
 /* --- Table card (title bar + controls above a table) --- */
@@ -470,9 +412,6 @@ textarea {
 .table-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px var(--color-shadow);
-  overflow: hidden; /* clips the inner table's square corners */
   margin-bottom: var(--sp-5);
 }
 
@@ -487,13 +426,14 @@ textarea {
 }
 
 .table-card-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
 .table-card-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
   flex: 1 1 auto;
@@ -503,7 +443,8 @@ textarea {
 
 /* Compact overrides — undo the global width:100% and shrink padding */
 .table-card-controls select,
-.table-card-controls input[type="text"] {
+.table-card-controls input[type="text"],
+.table-card-controls input[type="date"] {
   width: auto;
   font-size: 13px;
   padding: 0.3rem 0.6rem;
@@ -530,17 +471,26 @@ textarea {
 
 /* Action link in table rows */
 .table-action {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-accent-deep);
+  color: var(--color-text-placeholder);
   white-space: nowrap;
 }
 .table-action:hover {
-  color: var(--color-accent);
+  color: var(--color-text-primary);
   text-decoration: none;
+}
+
+/* "Updated since you last looked" marker on order rows */
+.updated-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent-500);
+  vertical-align: middle;
 }
 
 
@@ -553,61 +503,58 @@ textarea {
   font-size: 13px;
   padding: 0.7rem 0.9rem;
   border-left: 3px solid;
-  border-radius: 0 var(--radius) var(--radius) 0;
   margin-bottom: var(--sp-4);
 }
 .alert--error {
   color: var(--color-error);
   border-color: var(--color-error);
-  background: var(--color-error-tint);
+  background: rgba(220, 38, 38, 0.1);
 }
 .alert--success {
   color: var(--color-success);
   border-color: var(--color-success);
-  background: var(--color-success-tint);
+  background: rgba(5, 150, 105, 0.1);
 }
 .alert--warning {
   color: var(--color-warning);
   border-color: var(--color-warning);
-  background: var(--color-warning-tint);
+  background: rgba(217, 119, 6, 0.1);
 }
 
 
 /* ============================================================
    15. STATUS BADGES (order states)
-   Dot + mono label — status reads as an indicator light, not a
-   boxed shout. Same .badge--{status} API as before.
+   Subtle tint + text color, not solid loud fills.
    ============================================================ */
 
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
+  display: inline-block;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border-hr);
   color: var(--color-text-placeholder);
-  white-space: nowrap;
+  background: var(--color-bg-primary);
 }
-.badge::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: currentColor;
-  flex-shrink: 0;
+.badge--pending {
+  color: var(--color-warning);
+  border-color: #fde68a;
+  background: #fffbeb;
 }
-.badge--pending   { color: var(--color-warning); }
-.badge--accepted  { color: var(--color-accent-deep); }
-.badge--completed { color: var(--color-success); }
-.badge--canceled  { color: var(--color-text-placeholder); }
-.badge--canceled::before {
-  background: none;
-  border: 1px solid currentColor; /* hollow dot — the state that never ran */
-  width: 5px;
-  height: 5px;
+.badge--accepted {
+  color: var(--accent-600);
+  border-color: var(--accent-100);
+  background: var(--color-bg-secondary);
+}
+.badge--completed {
+  color: var(--color-success);
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+.badge--canceled {
+  color: var(--color-text-placeholder);
 }
 
 
@@ -638,9 +585,7 @@ textarea {
    ============================================================ */
 
 @media (max-width: 640px) {
-  .app-header__inner,
-  .app-main,
-  .app-footer__inner {
+  .app-main {
     padding-left: var(--sp-4);
     padding-right: var(--sp-4);
   }

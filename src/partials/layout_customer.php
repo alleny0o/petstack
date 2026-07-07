@@ -1,4 +1,13 @@
-<!-- App topbar: always present (see style.css section 8). The
+<?php
+// TODO(auth): read the logged-in customer instead of this placeholder.
+$accountName = 'Jane Doe';
+$accountInitials = implode('', array_map(
+    fn($w) => mb_substr($w, 0, 1),
+    array_slice(explode(' ', $accountName), 0, 2)
+));
+$currentPage = basename($_SERVER['PHP_SELF'], '.php');
+?>
+<!-- App topbar: always present (see layout.css section 8). The
      hamburger button inside it is the only mobile-specific part. -->
 <div class="app-topbar u-mobile-only">
   <button class="hamburger-toggle" type="button" aria-label="Open menu">
@@ -13,7 +22,6 @@
 <!-- Backdrop: only shown while the mobile sidebar is open -->
 <div class="sidebar-backdrop"></div>
 
-<?php $currentPage = basename($_SERVER['PHP_SELF'], '.php'); ?>
 <aside class="sidebar">
   <!-- Sidebar Header -->
   <header class="sidebar-header">
@@ -33,7 +41,7 @@
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/customer_home.php" class="menu-link <?= $currentPage === 'customer_home' ? 'active' : '' ?>">
+          <a href="/customer_home.php" class="menu-link <?= in_array($currentPage, ['customer_home', 'customer_order_detail'], true) ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -45,7 +53,7 @@
         </li>
 
         <li class="menu-item">
-          <a href="/order_form.php" class="menu-link <?= $currentPage === 'order_form' ? 'active' : '' ?>">
+          <a href="/customer_new_order.php" class="menu-link <?= $currentPage === 'customer_new_order' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -75,40 +83,28 @@
           </a>
         </li>
 
+        <li class="menu-item">
+          <a href="/customer_account.php" class="menu-link <?= $currentPage === 'customer_account' ? 'active' : '' ?>">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="menu-label"><span class="menu-label__text">Account</span></span>
+          </a>
+        </li>
+
       </ul>
     </nav>
   </div>
 
-  <!-- Dev preview switcher: jump between role dashboards until auth exists -->
-  <div class="role-switch">
-    <span class="role-switch__label">Preview</span>
-    <a href="/customer_home.php" class="role-switch__chip active" title="Customer dashboard">C</a>
-    <a href="/staff_home.php" class="role-switch__chip" title="Staff dashboard">S</a>
-    <a href="/admin_home.php" class="role-switch__chip" title="Admin dashboard">A</a>
-  </div>
-
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
-    <div class="sidebar-account">
-      <div class="account-avatar">JD</div>
-      <span class="account-name">John Doe</span>
-    </div>
+    <a href="/customer_account.php" class="sidebar-account">
+      <div class="account-avatar"><?= htmlspecialchars($accountInitials) ?></div>
+      <span class="account-name"><?= htmlspecialchars($accountName) ?></span>
+    </a>
 
     <div class="sidebar-footer-actions">
-      <button class="theme-toggle" type="button" aria-label="Toggle dark mode">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-      </button>
-
       <a href="/logout.php" class="logout-link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

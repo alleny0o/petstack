@@ -1,65 +1,87 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working on PETStack.
 
 ## Stack
 
-Vanilla PHP + PDO + MariaDB. No framework, no Composer, no build step. `node_modules/lucide` is present as an icon reference but SVGs are inlined directly — there are no npm scripts to run.
+- **PHP 7.4** (RHEL 8 compatible)
+- **MySQL 8.0 / MariaDB 10.11** (wire-compatible via PDO)
+- **PDO** with prepared statements (no ORM, no framework)
+- **Vanilla CSS** (system fonts only, no external dependencies)
+- **Vanilla JavaScript** (no framework, minimal)
+- **No Composer, no npm, no external packages**
 
-## Target server (confirmed via SSH)
+## Local Dev Setup
 
-- **RHEL 8**
-- **PHP 7.4.33** (cli, NTS)
-- **MariaDB 10.11** (server version; client tool reports a different `15.1-distrib` number — that's normal, the server version is what matters)
-- No root/sudo access on this server — deployment must be handed off as a self-contained package (schema file + app files + config + docs), not installed by us directly.
+1. Create `petstack` database and load `sql/schema.sql`, then `sql/seed.sql`
+2. Copy `src/config.sample.php` → `src/config.php` and fill in your DB credentials
+3. Run `tools/set_temp_passwords.php` once to set temp passwords for seeded accounts
+4. Point Apache document root at `public/`
+5. Log in at `/login.php`
 
-**Important: write PHP 7.4-compatible code only.** No PHP 8+ syntax — that means no named arguments, no enums, no `match` expressions, no constructor property promotion, no union types, no nullsafe operator (`?->`). If in doubt, target 7.4.
+**MAMP on Mac:** DB port is `8889`. Set `REQUIRE_SECURE_COOKIES = false` locally, `true` on RHEL (HTTPS only).
 
-## Local dev setup
+## Directory Layout
 
-MAMP (Mac) or XAMPP (Windows) — both bundle Apache + PHP + a database as self-contained binaries, so local setup doesn't depend on what's already installed on your machine or your OS version.
+```
+petstack/
+  public/              # Only web-reachable folder (Apache doc root)
+    login.php
+    customer/
+    staff/
+    admin/
+    assets/
+      css/
+        style.css      (tokens + base + typography)
+        components.css (forms, buttons, cards, tables, alerts)
+        layout.css      (sidebar, topbar, grid)
+      js/
+        script.js      (sidebar toggle, theme toggle, form validation)
 
-1. Create a `petstack` database and load `sql/schema.sql`, then `sql/seed.sql`.
-2. Copy `src/config.sample.php` → `src/config.php` and fill in your values (`src/config.php` is gitignored).
-3. Run `tools/set_temp_passwords.php` once to set temp passwords for seeded accounts.
-4. Point Apache's document root at `public/`. PHP's built-in server ignores `.htaccess` — use Apache (via MAMP/XAMPP), not `php -S`.
-5. Log in at `/login.php`.
+  src/                 # Above web root — never servable by URL
+    config.php          (DB credentials, gitignored)
+    config.sample.php   (template)
+    db.php              (PDO connection)
+    auth.php            (login, require_role(), session guard)
+    helpers.php          (CSRF, escaping, redirects)
+    partials/
+      head.php
+      layout_customer.php
+      layout_staff.php
+      layout_admin.php
 
-**When installing MAMP/XAMPP, select PHP 7.4.x** to match the RHEL server. Don't default to the newest bundled version.
+  sql/
+    schema.sql          (all 20 tables)
+    seed.sql            (test data)
 
-Config ports: MAMP uses DB port `8889`; XAMPP and the NIH server use `3306`. Set `REQUIRE_SECURE_COOKIES` to `false` locally, `true` on the NIH server (HTTPS only).
+  tools/
+    set_temp_passwords.php (one-time setup for seeded accounts)
 
-MAMP's bundled database is MySQL, not MariaDB — this is fine, they're wire-compatible for standard SQL/PDO usage at the level this project uses. Just avoid reaching for anything MariaDB-10.11-specific or MySQL-8-specific, since neither is guaranteed to exist on the other.
+  docs/
+    SCHEMA.md            (table descriptions in plain English)
+    DEPLOY.md            (RHEL 8 deployment steps)
+```
 
-## Architecture
+## Three Security Rules
 
-### Directory layout
+1. **Only `public/` is servable.** DB credentials live in `src/`.
+2. **Every protected page gates itself near the top:**
+   ```php
+   session_start();
+   require __DIR__ . '/../src/auth.php';
+   require_role('customer'); // or 'staff', 'admin'
+   ```
+   Public pages (login.php, register.php) don't call `require_role()`.
+3. **Always use `__DIR__` in require paths** — relative paths break when deployed to RHEL.
 
-- `public/` — the only web-reachable folder (Apache doc root). Pages are flat (no role subfolders). Static assets in `assets/css/` and `assets/js/`.
-- `src/` — above the web root; never servable by URL. Holds config, DB connection, auth, helpers, and partials.
-- `sql/` — schema and seed data.
-- `docs/STRUCTURE.md` — folder rules. `docs/SCHEMA.md` — database in plain English.
-
-### src/ files
-
-| File | Purpose |
-|------|---------|
-| `config.php` | DB credentials (gitignored) |
-| `config.sample.php` | Template teammates copy |
-| `db.php` | PDO connection (not yet created) |
-| `auth.php` | Login, `require_role()`, session guard (not yet created) |
-| `helpers.php` | CSRF, escaping, redirects (not yet created) |
-| `partials/head.php` | `<head>` contents + pre-paint dark-mode/sidebar script |
-| `partials/layout_customer.php` | Customer sidebar, mobile topbar (hamburger), backdrop |
-| `partials/layout_staff.php` | Staff sidebar (same structure) |
-| `partials/layout_admin.php` | Admin sidebar (same structure) |
-
-### Page template pattern
-
-Every page with a sidebar follows this structure:
+## Page Template Pattern
 
 ```php
-<?php session_start(); ?>
+<?php
+session_start();
+require __DIR__ . '/../src/auth.php';
+require_role('customer');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,97 +91,122 @@ Every page with a sidebar follows this structure:
     <div class="app-shell">
         <?php include '../src/partials/layout_customer.php'; ?>
         <main class="app-main">
-            <!-- content -->
+            <!-- content here -->
         </main>
     </div>
 </body>
-<script src="assets/js/script.js" defer></script>
+<script src="/assets/js/script.js" defer></script>
 </html>
 ```
 
-Role-specific sidebar partials (`layout_staff.php`, `layout_admin.php`) follow the same pattern as `layout_customer.php`.
+## Database — 20 Tables
 
-### Three security rules
+Built in this order (foreign keys matter):
 
-1. **Only `public/` is servable.** DB credentials live in `src/`.
-2. **Every protected page gates itself near the top:**
-   ```php
-   require __DIR__ . '/../src/auth.php';
-   require_role('customer'); // or 'staff', 'admin'
-   ```
-   Pre-login pages (`login.php`, `register.php`, `reg_status.php`) are exempt. Check the permission map with: `grep -n require_role public/*.php`
-3. **Always use `__DIR__` in require paths** — relative paths break on RHEL.
+**Identity (8 tables):**
+1. `institutes`
+2. `labs`
+3. `pis`
+4. `lab_pis` (join: a lab can have multiple PIs, a PI can oversee multiple labs)
+5. `users` (shared login table: username, password_hash, must_change_password, failed_login_count, locked_until — used by all three roles)
+6. `customers` (extends `users` via `user_id`; institute/lab/supervising_pi locked at approval)
+7. `staff` (extends `users` via `user_id`; has a single `category_id` — one category per staff member, not a junction table)
+8. `admins` (extends `users` via `user_id`)
 
-### Dark mode and sidebar state
+**Menu (6 tables):**
+9. `isotopes`
+10. `categories` (e.g. Radiopharmacy, Cyclotron — real table, admin-editable, referenced by both `staff.category_id` and `compounds.category_id`)
+11. `compounds`
+12. `compound_isotopes` (join: usually 1:1, occasionally a compound allows multiple isotopes)
+13. `delivery_options`
+14. `compound_delivery_options` (join: each compound lists its own allowed delivery methods)
 
-`head.php` injects a pre-paint script that reads `localStorage` and applies data attributes on `<html>` before the page renders:
+**Orders (6 tables):**
+15. `orders`
+16. `order_type_a_details` (dose orders: activity_mci, requested_datetime)
+17. `order_type_b_details` (cyclotron orders: either beam_current+bombardment_minutes OR eob_activity_mci+eob_datetime, never both)
+18. `order_public_comments` (append-only, visible to customer + staff)
+19. `order_internal_notes` (append-only, staff-only)
+20. `order_audit_log` (status changes only — pending→accepted→completed/canceled, timestamp, who — not field-level diffing)
 
-- `localStorage['petstack:theme'] === 'dark'` → `document.documentElement.dataset.theme = 'dark'`
-- `localStorage['petstack:sidebar'] === 'collapsed'` → `document.documentElement.dataset.sidebar = 'collapsed'`
+See `sql/schema.sql` for exact columns and constraints.
 
-CSS uses these attributes (`[data-theme="dark"]`, `[data-sidebar="collapsed"]`) for all theme and sidebar-collapse styling.
+## Business Rules (Non-Negotiable)
 
-## Database
+These came from the requirements interview. Don't simplify them.
 
-21 tables in MariaDB. Build order matters for foreign keys — see `docs/SCHEMA.md`. Key relationships:
-
-- `institutes` → `labs` → `customers` → `orders`
-- `orders` pick one `compound`, one `isotope`, one `delivery_option`
-- `orders` have either `order_type_a_details` (dose) or `order_type_b_details` (cyclotron), never both
-- Identity: one shared `users` account table (login, password hash, lockout), extended by the role tables `customers` (self-register, admin approves), `staff`, and `admins` via `user_id`
-- Junction tables: `lab_pis`, `compound_isotopes`. A staff member's category is a column on `staff`, not a junction table
-
-Status values: `pending` → `accepted` → `completed` / `canceled`. Return sends back to `pending` (audit log records it).
+- **No phone-in orders.** Customers place their own orders only. No `is_phone_in` field, no attestation.
+- **No separate registration-requests table.** Registration status lives directly on `customers` (`registration_status`: pending/approved/rejected).
+- **Type A and Type B are independent.** Never model one as parent/child.
+- **Completed orders are terminal.** No edits, no cancels after `status = completed`.
+- **Returned orders go back to `pending`.** No separate "returned" status — the audit log preserves that a return happened.
+- **Cost is snapshotted.** `orders.cost_snapshot` is set at creation time. If a compound's standard cost changes later, historical orders/reports are unaffected.
+- **Isotope first, then compound.** Customer picks isotope, then sees only compatible compounds — not the reverse.
+- **Delivery options are per-compound.** Each compound lists its own allowed delivery methods, not a global list.
+- **Audit log is status-only.** Not field-level diffing — just status_from, status_to, timestamp, who.
+- **Comments are append-only threads.** Public (customer + staff) and internal (staff-only) are separate tables, never a single overwritable field.
+- **No email from the app, ever.** Admins relay approvals/resets via NIH's internal email manually. No SMTP, no mail-sending code.
+- **Session timeout: 15 minutes idle.** Lockout: 5 failed login attempts → 15-minute lockout.
+- **Order IDs are sequential, never reused**, even for canceled orders.
+- **No per-order/per-period quantity limits.**
+- **Deactivating a customer never hides historical orders.** Pending orders at deactivation are left alone for staff to handle manually — never auto-canceled.
+- **Admin can trigger password resets but never views or sets the actual password.** Reset generates a one-time temp password that forces a change + strength check on next login.
 
 ## Roles
 
-| Role | Description |
-|------|-------------|
-| `customer` | Places and views orders for their lab |
-| `staff` | Processes orders in their assigned categories only |
-| `admin` | Everything + config, reports, account management |
+| Role | Access |
+|------|--------|
+| `customer` | Place orders, view own lab's orders, add public comments, cancel own pending orders |
+| `staff` | Process orders in their assigned category only, accept/modify/complete/cancel/return, add public comments + internal notes |
+| `admin` | Everything staff can do, plus manage compounds/categories/isotopes/delivery options/customers/staff/institutes, run reports, approve registrations |
 
-(In the database, `users` is the shared account table all three roles extend — it is not a role name. The staff role's table is `staff`.)
+Role is determined by which table a `user_id` appears in (`customers`, `staff`, `admins`) — `users` itself has no role column.
 
-## Domain / business rules
+## CSS Architecture
 
-These decisions came out of a detailed requirements interview and aren't obvious from the schema alone. Treat them as intentional constraints, not things to "clean up" or simplify.
+- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, color tokens, typography
+- **components.css:** Forms, buttons, cards, tables, alerts, badges, utilities, responsive breakpoints, accessibility
+- **layout.css:** Sidebar (sticky, collapse on desktop, off-canvas on mobile), topbar, grid layout, dark mode hooks
 
-**Orders**
-- Type A (finished dose, mCi, needed at a specific pickup date/time) and Type B (cyclotron target run, either beam-current×time OR EOB-activity+date/time — never both) are fully independent order types. Never model one as a parent/child of the other.
-- Order IDs are a single sequential counter across both types, always incrementing, **never reused**, even for canceled orders.
-- Activity entered on a Type A order means "activity in hand at pickup time." The system does **not** do decay back-calculation — that's a manual/staff task outside the software.
-- Each compound has its own minimum lead time (hours), not a global one. Validate the requested date/time against the specific compound's lead time at order submission.
-- **Completed orders are terminal.** They cannot be canceled or modified. Enforce this in application logic (the status-transition function), not just by hiding UI buttons.
-- **Returning an order sends it back to `pending`** — there is no separate "returned" status. The audit log is what preserves the fact that a return happened.
-- No per-order or per-period quantity limits. The processing staff member can adjust amounts as needed.
+**No role-specific CSS files.** All three roles share the same component library.
 
-**Ordering flow**
-- Customer picks an **isotope first**, then sees only compounds compatible with that isotope — not the reverse.
-- Delivery options are **per-compound**, not global. Each compound has its own allowed subset (will-call, direct-to-lab, through pharmacy, etc.).
+**Dark mode:** Not implemented right now. Tokens may exist in CSS for future use but no toggle is wired up.
 
-**Cost**
-- Each compound has a standard cost (flat, per order/per compound — not multiplied by quantity).
-- Cost is **snapshotted onto the order at creation time** (`orders.cost_snapshot`). If a compound's standard cost changes later, historical orders and reports must **not** be affected.
-- Cost is hidden from customers everywhere, including exports. Cost/accounting reports are admin-only.
+**Sidebar collapse (desktop only):** Pre-paint script reads `localStorage['petstack:sidebar']` and sets `data-sidebar="collapsed"` on `<html>`. CSS changes `--sidebar-width`. Mobile sidebar (off-canvas) uses `data-sidebar-mobile="open"` on `<html>` instead — a separate, independent state.
 
-**Comments and audit**
-- Two separate, append-only comment threads per order: `order_public_comments` (visible to customer and staff — used for in-system back-and-forth) and `order_internal_notes` (staff-only, customer never sees these). Neither is a single overwritable field — both are running histories.
-- Audit logging is **status-change level only** (pending → accepted → completed/canceled, timestamp, who) — not field-by-field diffing. This was a deliberate simplicity tradeoff; don't expand it without checking first.
-- "Order modified by staff" notification to the customer is just a visible indicator (e.g. comparing `last_modified_at` to when the customer last viewed the order) — no explicit read-acknowledgment tracking needed.
-
-**Accounts and access**
-- Customers self-register via a form; the request sits pending until an admin manually verifies and approves it. Institute/lab/PI affiliation is locked at approval and can only be changed later by an admin — never editable by the customer themselves, including at order time.
-- Each customer has exactly one `supervising_pi`. If the customer is themselves a PI, their own supervisor goes in that field instead.
-- Staff are granted permissions by **category** (e.g. "Radiopharmacy," "Cyclotron"), not per-item. A staff member can only process orders for compounds in their assigned categories.
-- Admins are super-users: everything staff can do, plus config/account/report management.
-- Deactivating a customer blocks new orders but must **never** hide their historical orders from reports. If they have pending orders when deactivated, leave those orders alone for staff to handle manually — don't auto-cancel.
-- Passwords: admin can trigger a reset (generates a one-time temp password) but can **never** view or set the actual password. Temp passwords force a change + strength check on next login, then are invalidated.
-- Session timeout: 15 minutes idle. Lockout: 5 failed login attempts.
-
-**No email integration, ever**
-- The application must never attempt to send email (no SMTP, no mail relay). Registration approval/rejection and password resets are relayed to customers manually by an admin using NIH's own internal email system, entirely outside this app. Don't add email-sending code even as a "nice to have."
-
-## Git workflow
+## Git Workflow
 
 Branch → PR → merge. Never push directly to `main`.
+
+## Deployment Target
+
+- **RHEL 8** (PHP 7.4, MariaDB 10.11)
+- **No root access.** Hand off as a package: schema file + app files + config template + deployment doc.
+- **HTTPS with self-signed cert locally; real cert on RHEL (handed off by IT).**
+- **No external CDN.** All assets (CSS, JS, icons) inlined or local.
+
+## Phase 1 (Current — Building Now)
+
+Build and test, in order:
+1. `sql/schema.sql` — all 20 tables
+2. `sql/seed.sql` — minimal test data (2 institutes, 3 labs, 2 PIs, 1 admin, 2 staff in different categories, 3 customers, a handful of compounds/isotopes/delivery options)
+3. `src/config.sample.php`, `src/db.php` — PDO connection
+4. `src/auth.php` — login (checks `users` + role tables), `require_role()`, session timeout (15 min), lockout (5 attempts)
+5. `src/helpers.php` — CSRF tokens, HTML escaping, redirects
+6. `public/login.php` — login form, redirects to correct role dashboard
+7. Forced password change on first login (`must_change_password` flag), strong password validation
+8. `tools/set_temp_passwords.php` — one-time bcrypt hash setup for seeded accounts
+
+**No mock data. No stub pages beyond what's needed to prove login works end-to-end.**
+
+## Phases 2–6 (Future — Not Yet Started)
+
+2. Customer order form (Type A & B, isotope-first filtering, lead-time validation)
+3. Staff processing queue + accept/modify/complete/cancel/return actions
+4. Admin panels (compounds, categories, isotopes, delivery options, institutes, labs, PIs, staff, customer approval)
+5. Reports (order history, cost/accounting, audit trail, pending orders, user activity, compound usage — CSV export)
+6. Polish (mobile CSS pass, HTTPS self-signed cert, RHEL deployment docs)
+
+---
+
+**Before building anything:** This file is the source of truth. If something in code contradicts it, fix the file first, then the code.
