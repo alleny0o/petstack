@@ -135,3 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSidebarMobileSafety();
   initThemeToggle();
 });
+
+// ===== Hide/Show Staff Panel Button ==========================================
+// TODO: Hide or show the staff panel button depending on if the user is logged in or not.

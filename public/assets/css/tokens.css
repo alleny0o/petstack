@@ -90,6 +90,8 @@
   --color-btn-secondary-bg:       var(--color-bg-secondary);
   --color-btn-secondary-bg-hover: var(--color-hover-secondary);
   --color-btn-secondary-text:     var(--color-text-secondary);
+  --color-btn-active-bg:          var(--accent-100);
+  --color-btn-active-text:        var(--accent-600);
 
   /* Logo square — its own token. Light chrome now, so the logo is
      the one place we keep a dark fill so the brand mark still has
@@ -136,4 +138,15 @@
 
   --color-logo-bg:   var(--accent-500);
   --color-logo-text: var(--white);
+}
+
+/* ============================================================
+   4. STAFF PANEL TOKENS 
+   Slightly modified colors to indicate a user is in the staff panel
+   ============================================================ */
+
+:root {
+   --staff-accent-500: #f63b3b;
+   --staff-accent-600: #eb2525;
+   --staff-accent-100: #fedbdb;
 }

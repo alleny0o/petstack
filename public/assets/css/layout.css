@@ -247,8 +247,16 @@
   color: var(--color-text-primary);
 }
 .sidebar .sidebar-content .menu-list li a.active {
-  background: var(--accent-100);
-  color: var(--accent-600);
+  background: var(--color-btn-active-bg);
+  color: var(--color-btn-active-text);
+  font-weight: bold;
+}
+
+/* --- Staff sidebar button --- */
+
+.sidebar .sidebar-content .menu-list .staff-menu-item a.active {
+  background: var(--staff-accent-100);
+  color: var(--staff-accent-500);
   font-weight: bold;
 }
 
