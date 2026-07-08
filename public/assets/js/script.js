@@ -14,7 +14,7 @@ function isMobileViewport() {
 // pre-paint snippet in <head> can apply it before .sidebar even
 // exists in the DOM — no flash of the wrong state on load.
 
-const SIDEBAR_STORAGE_KEY = 'petstack:sidebar';
+const SIDEBAR_STORAGE_KEY = 'petcom:sidebar';
 
 function setSidebarState(collapsed) {
   if (collapsed) {

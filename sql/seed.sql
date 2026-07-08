@@ -1,7 +1,7 @@
 -- ============================================================
--- PETStack — seed.sql
+-- PETCOM — seed.sql
 -- Minimal test data. Load after schema.sql, into an empty
--- `petstack` database (relies on AUTO_INCREMENT starting at 1).
+-- `petcom` database (relies on AUTO_INCREMENT starting at 1).
 --
 -- password_hash values below are placeholders, not real bcrypt
 -- hashes — run tools/set_temp_passwords.php once to replace them

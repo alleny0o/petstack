@@ -1,6 +1,6 @@
 -- ============================================================
--- PETStack — schema.sql
--- All 20 tables. InnoDB, utf8mb4. Load into an empty `petstack`
+-- PETCOM — schema.sql
+-- All 20 tables. InnoDB, utf8mb4. Load into an empty `petcom`
 -- database, then load seed.sql.
 --
 -- Build order is FK-safe, not the narrative order in CLAUDE.md:

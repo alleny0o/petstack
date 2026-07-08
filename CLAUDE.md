@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working on PETStack.
+Guidance for Claude Code when working on PETCOM.
 
 ## Stack
 
@@ -13,7 +13,7 @@ Guidance for Claude Code when working on PETStack.
 
 ## Local Dev Setup
 
-1. Create `petstack` database and load `sql/schema.sql`, then `sql/seed.sql`
+1. Create `petcom` database and load `sql/schema.sql`, then `sql/seed.sql`
 2. Copy `src/config.sample.php` → `src/config.php` and fill in your DB credentials
 3. Run `tools/set_temp_passwords.php` once to set temp passwords for seeded accounts
 4. Point Apache document root at `public/`
@@ -24,7 +24,7 @@ Guidance for Claude Code when working on PETStack.
 ## Directory Layout
 
 ```
-petstack/
+petcom/
   public/              # Only web-reachable folder (Apache doc root)
     login.php
     customer/
@@ -172,7 +172,7 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 
 **Dark mode:** Not implemented right now. Tokens may exist in CSS for future use but no toggle is wired up.
 
-**Sidebar collapse (desktop only):** Pre-paint script reads `localStorage['petstack:sidebar']` and sets `data-sidebar="collapsed"` on `<html>`. CSS changes `--sidebar-width`. Mobile sidebar (off-canvas) uses `data-sidebar-mobile="open"` on `<html>` instead — a separate, independent state.
+**Sidebar collapse (desktop only):** Pre-paint script reads `localStorage['petcom:sidebar']` and sets `data-sidebar="collapsed"` on `<html>`. CSS changes `--sidebar-width`. Mobile sidebar (off-canvas) uses `data-sidebar-mobile="open"` on `<html>` instead — a separate, independent state.
 
 ## Git Workflow
 
