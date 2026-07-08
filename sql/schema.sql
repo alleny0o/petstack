@@ -1,6 +1,6 @@
 -- ============================================================
--- PETStack — schema.sql
--- All 20 tables. InnoDB, utf8mb4. Load into an empty `petstack`
+-- PETCOM — schema.sql
+-- All 20 tables. InnoDB, utf8mb4. Load into an empty `petcom`
 -- database, then load seed.sql.
 --
 -- Build order is FK-safe, not the narrative order in CLAUDE.md:
@@ -163,13 +163,16 @@ CREATE TABLE staff (
   KEY idx_staff_category_id (category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Institute/lab/supervising PI are locked at approval time.
+-- Institute is NOT stored here — always derived via
+-- lab_id -> labs.institute_id, since a lab belongs to exactly one
+-- institute and storing it twice risks the two facts disagreeing.
+-- Lab/supervising PI are locked at approval time.
 -- registration_status lives directly here — no separate requests table.
 CREATE TABLE customers (
   user_id              INT UNSIGNED PRIMARY KEY,
-  full_name            VARCHAR(255) NULL,
+  first_name           VARCHAR(100) NOT NULL,
+  last_name            VARCHAR(100) NOT NULL,
   phone                VARCHAR(20) NULL,
-  institute_id         INT UNSIGNED NULL,
   lab_id               INT UNSIGNED NULL,
   supervising_pi_id    INT UNSIGNED NULL,
   registration_status  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
@@ -179,12 +182,10 @@ CREATE TABLE customers (
   nrc_contact_phone    VARCHAR(20) NULL,
   nrc_contact_email    VARCHAR(255) NULL,
   CONSTRAINT fk_customers_user         FOREIGN KEY (user_id)           REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_customers_institute    FOREIGN KEY (institute_id)      REFERENCES institutes (institute_id) ON DELETE SET NULL,
   CONSTRAINT fk_customers_lab          FOREIGN KEY (lab_id)            REFERENCES labs (lab_id)             ON DELETE SET NULL,
   CONSTRAINT fk_customers_pi           FOREIGN KEY (supervising_pi_id) REFERENCES pis (pi_id)               ON DELETE SET NULL,
   CONSTRAINT fk_customers_approved_by  FOREIGN KEY (approved_by)       REFERENCES users (user_id)           ON DELETE SET NULL,
   KEY idx_customers_registration_status (registration_status),
-  KEY idx_customers_institute_id (institute_id),
   KEY idx_customers_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -251,7 +252,9 @@ CREATE TABLE order_type_b_details (
   )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Append-only, visible to customer + staff.
+-- Append-only, visible to customer + staff. Posting is restricted to
+-- the order's own customer (enforced in app logic, not schema) plus
+-- staff/admin — viewing is lab-wide for customers.
 CREATE TABLE order_public_comments (
   comment_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   order_id    INT UNSIGNED NOT NULL,

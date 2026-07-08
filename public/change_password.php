@@ -54,10 +54,10 @@ $pageTitle = 'Change Password';
         <div class="auth-card__head">
           <div class="auth-card__brand">
             <div class="auth-card__logo">
-              <img src="/favicons/android-chrome-192x192.png" alt="PETStack">
+              <img src="/favicons/android-chrome-192x192.png" alt="PETCOM">
             </div>
             <div>
-              <div class="auth-card__title">PETStack</div>
+              <div class="auth-card__title">PETCOM</div>
               <div class="auth-card__subtitle">Change Password</div>
             </div>
           </div>

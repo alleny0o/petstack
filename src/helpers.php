@@ -53,3 +53,18 @@ function redirect(string $path): void
     header('Location: ' . $path);
     exit;
 }
+
+/**
+ * Builds a display name like "Alice Carter" from a customer's
+ * first/last name. Falls back to the username when the customer has no
+ * name on file (not-yet-approved rows) or the joined row belongs to a
+ * non-customer (staff/admin authors on a shared comment thread).
+ */
+function customer_display_name(?string $firstName, ?string $lastName, string $usernameFallback): string
+{
+    if ($firstName === null || $firstName === '' || $lastName === null || $lastName === '') {
+        return $usernameFallback;
+    }
+
+    return $firstName . ' ' . $lastName;
+}

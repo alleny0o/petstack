@@ -3,7 +3,7 @@
 //   <?php $pageTitle = 'Home'; include '../src/partials/head.php'; ?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= htmlspecialchars($pageTitle) ?> | PETStack</title>
+<title><?= htmlspecialchars($pageTitle) ?> | PETCOM</title>
 
 <!-- Favicons: static files in public/favicons/, no PHP processing needed -->
 <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
@@ -12,7 +12,7 @@
 <link rel="manifest" href="/favicons/site.webmanifest">
 
 <script>
-    if (localStorage.getItem('petstack:sidebar') === 'collapsed') {
+    if (localStorage.getItem('petcom:sidebar') === 'collapsed') {
         document.documentElement.dataset.sidebar = 'collapsed';
     }
 </script>

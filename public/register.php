@@ -13,7 +13,8 @@ $submitted = false;
 $old = [
     'institute_id'      => '',
     'lab_id'            => '',
-    'full_name'         => '',
+    'first_name'        => '',
+    'last_name'         => '',
     'email'             => '',
     'phone'             => '',
     'pi_id'             => '',
@@ -27,7 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $old['institute_id']      = $_POST['institute_id'] ?? '';
     $old['lab_id']            = $_POST['lab_id'] ?? '';
-    $old['full_name']         = trim($_POST['full_name'] ?? '');
+    $old['first_name']        = trim($_POST['first_name'] ?? '');
+    $old['last_name']         = trim($_POST['last_name'] ?? '');
     $old['email']             = trim($_POST['email'] ?? '');
     $old['phone']             = trim($_POST['phone'] ?? '');
     $old['pi_id']             = $_POST['pi_id'] ?? '';
@@ -41,8 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($old['lab_id'] === '') {
         $errors[] = 'Lab is required.';
     }
-    if ($old['full_name'] === '') {
-        $errors[] = 'Full name is required.';
+    if ($old['first_name'] === '') {
+        $errors[] = 'First name is required.';
+    }
+    if ($old['last_name'] === '') {
+        $errors[] = 'Last name is required.';
     }
     if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'A valid email is required.';
@@ -111,14 +116,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->prepare(
                 'INSERT INTO customers
-                    (user_id, full_name, phone, institute_id, lab_id, supervising_pi_id,
+                    (user_id, first_name, last_name, phone, lab_id, supervising_pi_id,
                      registration_status, nrc_contact_name, nrc_contact_phone, nrc_contact_email)
                  VALUES (?, ?, ?, ?, ?, ?, \'pending\', ?, ?, ?)'
             )->execute([
                 $userId,
-                $old['full_name'],
+                $old['first_name'],
+                $old['last_name'],
                 $old['phone'],
-                $old['institute_id'],
                 $old['lab_id'],
                 $old['pi_id'],
                 $old['nrc_contact_name'] !== '' ? $old['nrc_contact_name'] : null,
@@ -153,10 +158,10 @@ $pageTitle = 'Register';
         <div class="auth-card__head">
           <div class="auth-card__brand">
             <div class="auth-card__logo">
-              <img src="/favicons/android-chrome-192x192.png" alt="PETStack">
+              <img src="/favicons/android-chrome-192x192.png" alt="PETCOM">
             </div>
             <div>
-              <div class="auth-card__title">PETStack</div>
+              <div class="auth-card__title">PETCOM</div>
               <div class="auth-card__subtitle">Customer Registration</div>
             </div>
           </div>
@@ -182,7 +187,7 @@ $pageTitle = 'Register';
                 <span class="form-section__title">Institute &amp; Lab</span>
 
                 <div class="field">
-                  <label for="institute_id">Institute</label>
+                  <label for="institute_id">Institute <span class="required-mark">*</span></label>
                   <select id="institute_id" name="institute_id" required>
                     <option value="">Select institute…</option>
                     <?php foreach ($institutes as $institute): ?>
@@ -192,7 +197,7 @@ $pageTitle = 'Register';
                 </div>
 
                 <div class="field mb-0">
-                  <label for="lab_id">Lab</label>
+                  <label for="lab_id">Lab <span class="required-mark">*</span></label>
                   <select id="lab_id" name="lab_id" required>
                     <option value="">Select institute first…</option>
                     <?php foreach ($labs as $lab): ?>
@@ -205,25 +210,31 @@ $pageTitle = 'Register';
               <div class="form-section">
                 <span class="form-section__title">Investigator</span>
 
-                <div class="field">
-                  <label for="full_name">Full name</label>
-                  <input type="text" id="full_name" name="full_name" value="<?= e($old['full_name']) ?>" required>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="first_name">First name <span class="required-mark">*</span></label>
+                    <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                  </div>
+                  <div class="field">
+                    <label for="last_name">Last name <span class="required-mark">*</span></label>
+                    <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                  </div>
                 </div>
 
                 <div class="field-row">
                   <div class="field">
-                    <label for="email">Email</label>
+                    <label for="email">Email <span class="required-mark">*</span></label>
                     <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
                     <span class="field-hint">This becomes your username.</span>
                   </div>
                   <div class="field">
-                    <label for="phone">Phone</label>
+                    <label for="phone">Phone <span class="required-mark">*</span></label>
                     <input type="text" id="phone" name="phone" value="<?= e($old['phone']) ?>" required>
                   </div>
                 </div>
 
                 <div class="field mb-0">
-                  <label for="pi_id">Supervising PI</label>
+                  <label for="pi_id">Supervising PI <span class="required-mark">*</span></label>
                   <select id="pi_id" name="pi_id" required>
                     <option value="">Select PI…</option>
                     <?php foreach ($pis as $pi): ?>
