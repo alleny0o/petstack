@@ -6,7 +6,6 @@
              18. Accessibility
    ============================================================ */
 
-
 /* ============================================================
    9. AUTH PAGES (login / register / change-password)
    A centered, focused card — separate from the app shell.
@@ -27,7 +26,9 @@
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
   border-radius: 8px;
-  box-shadow: 0 1px 2px var(--color-shadow), 0 8px 24px var(--color-shadow);
+  box-shadow:
+    0 1px 2px var(--color-shadow),
+    0 8px 24px var(--color-shadow);
   overflow: hidden;
 }
 
@@ -108,7 +109,6 @@
   font-size: 12px;
 }
 
-
 /* ============================================================
    9b. PAGE HEADER (eyebrow + title + right-aligned actions)
    Every main page opens with one of these.
@@ -132,12 +132,32 @@
   color: var(--color-text-placeholder);
   margin-bottom: var(--sp-1);
 }
+/* Small muted link above the title (e.g. "back to dashboard").
+   Block so it, the status badge, and the title stack as separate
+   lines instead of running inline together. */
+.page-header__back {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-2);
+}
+.page-header__back:hover {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+/* Status badge shown above the title, on its own line */
+.page-header__status {
+  margin-bottom: var(--sp-2);
+}
 .page-header h1 {
   margin-bottom: 0;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--sp-3);
   flex-wrap: wrap;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 .page-header__meta {
   display: block;
@@ -150,54 +170,13 @@
   display: flex;
   gap: var(--sp-2);
 }
-
-
-/* ============================================================
-   9b. PAGE HEADER (eyebrow + title + right-aligned actions)
-   Every main page opens with one of these.
-   ============================================================ */
-
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding-bottom: var(--sp-4);
-  border-bottom: 1px solid var(--color-border-hr);
-  margin-bottom: var(--sp-5);
-}
-.page-header__eyebrow {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-placeholder);
-  margin-bottom: var(--sp-1);
-}
-.page-header h1 {
-  margin-bottom: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
-.page-header__meta {
-  display: block;
-  font-size: 13px;
-  color: var(--color-text-placeholder);
-  margin-top: var(--sp-1);
-}
-.page-header__actions {
-  flex-shrink: 0;
-  display: flex;
-  gap: var(--sp-2);
-}
-
 
 /* ============================================================
    10. FORMS
    ============================================================ */
+.customer-order-form-card {
+  max-width: 640px;
+}
 
 .field {
   margin-bottom: var(--sp-4);
@@ -280,6 +259,11 @@ textarea {
   }
 }
 
+/* Asterisk marking a required field's label */
+.required-mark {
+  color: var(--color-error);
+}
+
 /* Grouped form sections with a small uppercase title */
 .form-section + .form-section {
   border-top: 1px solid var(--color-border-hr);
@@ -296,6 +280,56 @@ textarea {
   margin-bottom: var(--sp-4);
 }
 
+/* ============================================================
+   10b. RADIO CARDS
+   Two-option toggle (e.g. Type B beam/eob mode) styled like a
+   selectable .card rather than a bare radio input.
+   ============================================================ */
+
+.radio-card-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+@media (max-width: 640px) {
+  .radio-card-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+.radio-card {
+  position: relative;
+  display: block;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-4);
+  padding-right: var(--sp-6);
+  cursor: pointer;
+  margin-bottom: 0;
+}
+.radio-card input[type="radio"] {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  width: auto;
+}
+.radio-card__title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-1);
+}
+.radio-card__desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+}
+.radio-card--selected {
+  border-color: var(--accent-500);
+  background: var(--color-bg-secondary);
+}
 
 /* ============================================================
    11. BUTTONS
@@ -349,7 +383,6 @@ textarea {
   padding: 0.35rem 0.7rem;
 }
 
-
 /* ============================================================
    12. CARDS / PANELS
    ============================================================ */
@@ -360,6 +393,14 @@ textarea {
   padding: var(--sp-5);
   margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
+  transition: border-color 0.15s ease;
+}
+/* Unmistakable "you're editing this" signal while the inline edit form
+   is open, so the state change reads as more than just the Edit
+   button quietly vanishing. */
+.card.is-editing {
+  border-color: var(--accent-500);
+  border-left-width: 3px;
 }
 .card__title {
   font-size: 16px;
@@ -398,6 +439,104 @@ textarea {
     grid-template-columns: 1fr;
     gap: var(--sp-1);
   }
+}
+
+/* ============================================================
+   12c. STATUS TIMELINE / COMMENT THREAD (order detail)
+   ============================================================ */
+
+.status-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.status-timeline__item {
+  position: relative;
+  padding: 0 0 var(--sp-5) var(--sp-6);
+}
+.status-timeline__item:last-child {
+  padding-bottom: 0;
+}
+/* The dot */
+.status-timeline__item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border-hr);
+}
+/* The connecting line down to the next dot */
+.status-timeline__item::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 15px;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border-hr);
+}
+.status-timeline__item:last-child::after {
+  display: none;
+}
+.status-timeline__item--current::before {
+  background: var(--accent-500);
+  border-color: var(--accent-500);
+}
+.status-timeline__label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.status-timeline__item--current .status-timeline__label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.status-timeline__meta {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: 2px;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.comment-item {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+.comment-item:last-child {
+  border-bottom: none;
+}
+.comment-item__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+.comment-item__author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.comment-item__timestamp {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+}
+.comment-item__body {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }
 
 
@@ -440,7 +579,6 @@ textarea {
   font-size: 13px;
   color: var(--color-text-placeholder);
 }
-
 
 /* ============================================================
    13. TABLES
@@ -562,6 +700,26 @@ textarea {
   text-decoration: none;
 }
 
+/* Prev/Next + "Page X of Y" strip below a paginated table */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-top: 1px solid var(--color-border-hr);
+}
+.table-pagination__status {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.table-pagination .btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* "Updated since you last looked" marker on order rows */
 .updated-dot {
   display: inline-block;
@@ -571,7 +729,6 @@ textarea {
   background: var(--accent-500);
   vertical-align: middle;
 }
-
 
 /* ============================================================
    14. ALERTS / MESSAGES
@@ -599,7 +756,6 @@ textarea {
   border-color: var(--color-warning);
   background: rgba(217, 119, 6, 0.1);
 }
-
 
 /* ============================================================
    15. STATUS BADGES (order states)
@@ -636,16 +792,28 @@ textarea {
   color: var(--color-text-placeholder);
 }
 
-
 /* ============================================================
    16. UTILITIES
    ============================================================ */
 
-.muted   { color: var(--color-text-placeholder); }
-.text-sm { font-size: 13px; }
-.mt-0    { margin-top: 0; }
-.mb-0    { margin-bottom: 0; }
-.mb-2    { margin-bottom: var(--sp-2); }
+.muted {
+  color: var(--color-text-placeholder);
+}
+.text-sm {
+  font-size: 13px;
+}
+.mt-0 {
+  margin-top: 0;
+}
+.mb-0 {
+  margin-bottom: 0;
+}
+.mb-2 {
+  margin-bottom: var(--sp-2);
+}
+.mb-4 {
+  margin-bottom: var(--sp-4);
+}
 
 .flex {
   display: flex;
@@ -655,9 +823,12 @@ textarea {
   align-items: center;
   justify-content: space-between;
 }
-.gap-2 { gap: var(--sp-2); }
-.gap-3 { gap: var(--sp-3); }
-
+.gap-2 {
+  gap: var(--sp-2);
+}
+.gap-3 {
+  gap: var(--sp-3);
+}
 
 /* ============================================================
    17. RESPONSIVE OVERRIDES
@@ -691,7 +862,6 @@ textarea {
     display: flex; /* swap to `block` if the element isn't a flex row */
   }
 }
-
 
 /* ============================================================
    18. ACCESSIBILITY
