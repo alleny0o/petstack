@@ -107,8 +107,8 @@ CREATE TABLE `customers` (
   `lab_id` int(11) DEFAULT NULL,
   `supervisor_id` int(11) DEFAULT NULL,
   `registration_status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-  `approved_by` int(11) NOT NULL,
-  `approved_at` datetime NOT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `user_id` (`user_id`),
   KEY `fk_customers_pi` (`supervisor_id`),
@@ -128,35 +128,6 @@ CREATE TABLE `customers` (
 LOCK TABLES `customers` WRITE;
 /*!40000 ALTER TABLE `customers` DISABLE KEYS */;
 /*!40000 ALTER TABLE `customers` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `cyclotron_deliveries`
---
-
-DROP TABLE IF EXISTS `cyclotron_deliveries`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cyclotron_deliveries` (
-  `order_id` int(11) NOT NULL,
-  `mode` varchar(20) DEFAULT NULL,
-  `bean_current` int(11) DEFAULT NULL,
-  `bombardment_minutes` int(11) NOT NULL,
-  `eob_activity_mci` decimal(10,0) NOT NULL,
-  `eob_date_time` timestamp NOT NULL,
-  `destination` varchar(50) NOT NULL,
-  PRIMARY KEY (`order_id`),
-  CONSTRAINT `fk_delivery_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `cyclotron_deliveries`
---
-
-LOCK TABLES `cyclotron_deliveries` WRITE;
-/*!40000 ALTER TABLE `cyclotron_deliveries` DISABLE KEYS */;
-/*!40000 ALTER TABLE `cyclotron_deliveries` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -262,6 +233,60 @@ LOCK TABLES `labs` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `order_audit_log`
+--
+
+DROP TABLE IF EXISTS `order_audit_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `order_audit_log` (
+  `log_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` int(11) NOT NULL,
+  `changed_by` int(11) NOT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`log_id`),
+  KEY `fk_log_order` (`order_id`),
+  KEY `fk_log_changed_by` (`changed_by`),
+  CONSTRAINT `fk_log_changed_by` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_log_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `order_audit_log`
+--
+
+LOCK TABLES `order_audit_log` WRITE;
+/*!40000 ALTER TABLE `order_audit_log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `order_audit_log` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `order_dose`
+--
+
+DROP TABLE IF EXISTS `order_dose`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `order_dose` (
+  `order_id` int(11) NOT NULL,
+  `dose_number` int(11) NOT NULL DEFAULT 1,
+  `delivery_time` timestamp NOT NULL,
+  KEY `fk_dose_order_id` (`order_id`),
+  CONSTRAINT `fk_dose_order_id` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `order_dose`
+--
+
+LOCK TABLES `order_dose` WRITE;
+/*!40000 ALTER TABLE `order_dose` DISABLE KEYS */;
+/*!40000 ALTER TABLE `order_dose` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `order_internal_notes`
 --
 
@@ -303,16 +328,17 @@ CREATE TABLE `orders` (
   `customer_id` int(11) NOT NULL,
   `compound_id` int(11) NOT NULL,
   `isotope` varchar(30) NOT NULL,
+  `activity_mci` decimal(10,1) DEFAULT NULL,
   `status` varchar(20) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `created_by` int(11) NOT NULL,
   `delivery_option` varchar(20) NOT NULL,
-  `processed_by` int(11) NOT NULL,
+  `processed_by` int(11) DEFAULT NULL,
   `processed_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `cost_snapshot` decimal(10,2) NOT NULL,
   `last_modified_at` timestamp NULL DEFAULT current_timestamp(),
   `last_modified_by` int(11) NOT NULL,
-  `comments` varchar(500) DEFAULT NULL,
+  `special_instructions` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`order_id`),
   KEY `fk_customer` (`customer_id`),
   KEY `fk_compound_id` (`compound_id`),
@@ -322,8 +348,7 @@ CREATE TABLE `orders` (
   CONSTRAINT `fk_compound_id` FOREIGN KEY (`compound_id`) REFERENCES `compounds` (`compound_id`),
   CONSTRAINT `fk_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`user_id`),
   CONSTRAINT `fk_isotope_name` FOREIGN KEY (`isotope`) REFERENCES `isotopes` (`isotope_name`),
-  CONSTRAINT `fk_modified_by` FOREIGN KEY (`last_modified_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_processed_by` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`)
+  CONSTRAINT `fk_modified_by` FOREIGN KEY (`last_modified_by`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -360,31 +385,6 @@ CREATE TABLE `pis` (
 LOCK TABLES `pis` WRITE;
 /*!40000 ALTER TABLE `pis` DISABLE KEYS */;
 /*!40000 ALTER TABLE `pis` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `radiotracer_doses`
---
-
-DROP TABLE IF EXISTS `radiotracer_doses`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `radiotracer_doses` (
-  `order_id` int(11) NOT NULL,
-  `activity_mci` decimal(10,1) DEFAULT NULL,
-  `requested_datetime` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`order_id`),
-  CONSTRAINT `fk_parent_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `radiotracer_doses`
---
-
-LOCK TABLES `radiotracer_doses` WRITE;
-/*!40000 ALTER TABLE `radiotracer_doses` DISABLE KEYS */;
-/*!40000 ALTER TABLE `radiotracer_doses` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -455,4 +455,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-07 14:41:47
+-- Dump completed on 2026-07-08 13:02:17
