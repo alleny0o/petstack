@@ -6,6 +6,7 @@ $accountInitials = implode('', array_map(
     array_slice(explode(' ', $accountName), 0, 2)
 ));
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
+$ordersSectionPages = ['dashboard', 'order_detail'];
 ?>
 <!-- App topbar: always present (see layout.css section 8). The
      hamburger button inside it is the only mobile-specific part. -->
@@ -41,19 +42,19 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/customer/dashboard.php" class="menu-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
+          <a href="/customer/dashboard.php" class="menu-link <?= in_array($currentPage, $ordersSectionPages, true) ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Home</span></span>
+            <span class="menu-label"><span class="menu-label__text">Dashboard</span></span>
           </a>
         </li>
 
         <li class="menu-item">
-          <a href="/customer_new_order.php" class="menu-link <?= $currentPage === 'customer_new_order' ? 'active' : '' ?>">
+          <a href="/customer/new_order.php" class="menu-link <?= $currentPage === 'new_order' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -64,32 +65,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         </li>
 
         <li class="menu-item">
-          <a href="/customer_past_orders.php" class="menu-link <?= $currentPage === 'customer_past_orders' ? 'active' : '' ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 11l3 3L22 4"></path>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-            </svg>
-            <span class="menu-label"><span class="menu-label__text">Past Orders</span></span>
-          </a>
-        </li>
-
-        <li class="menu-item">
           <a href="/customer_catalog.php" class="menu-link <?= $currentPage === 'customer_catalog' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="10" cy="10" r="7"></circle>
               <line x1="21" y1="21" x2="15" y2="15"></line>
             </svg>
             <span class="menu-label"><span class="menu-label__text">Catalog</span></span>
-          </a>
-        </li>
-
-        <li class="menu-item">
-          <a href="/customer_account.php" class="menu-link <?= $currentPage === 'customer_account' ? 'active' : '' ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <span class="menu-label"><span class="menu-label__text">Account</span></span>
           </a>
         </li>
 

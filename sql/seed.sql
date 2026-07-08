@@ -113,3 +113,47 @@ INSERT INTO customers (user_id, first_name, last_name, lab_id, supervising_pi_id
   (6, 'Deepa', 'Patel',  3, 2, 'approved', 1, '2026-06-03 09:00:00'), -- NINDS / Cerebrovascular Imaging Lab / Dr. Ellison
   (7, 'Evan',  'Feng',   1, 1, 'approved', 1, '2026-06-04 09:00:00'); -- NCI / Molecular Imaging Lab / Dr. Carter (lab-mate of Alice)
 
+
+-- ============================================================
+-- Orders (test data)
+-- Mostly in Molecular Imaging Lab (lab 1: Alice + Evan) since
+-- that's the lab used to develop/verify the customer dashboard.
+-- One order in a different lab (lab 2) to prove lab isolation.
+-- ============================================================
+
+INSERT INTO orders (order_id, customer_id, compound_id, isotope_id, delivery_option_id, status, cost_snapshot, created_by, created_at, processed_by, processed_at, last_modified_at) VALUES
+  (1, 4, 1, 4, 1, 'pending',   450.00, 4, '2026-07-05 10:00:00', NULL, NULL,                  '2026-07-05 10:00:00'), -- Alice: FDG, pending, recent
+  (2, 4, 2, 2, 2, 'pending',   300.00, 4, '2026-06-20 08:00:00', NULL, NULL,                  '2026-06-20 08:00:00'), -- Alice: Ammonia N-13, >48h old -> stale
+  (3, 4, 3, 1, 1, 'accepted',  850.00, 4, '2026-07-01 09:00:00', 3,    '2026-07-02 11:00:00',  '2026-07-02 11:00:00'), -- Alice: C-11 Target Run, beam mode
+  (4, 4, 4, 3, 1, 'completed', 500.00, 4, '2026-06-15 09:00:00', 3,    '2026-06-16 09:00:00',  '2026-06-16 09:00:00'), -- Alice: O-15 Water Production, eob mode, completed
+  (5, 4, 1, 4, 2, 'canceled',  450.00, 4, '2026-06-10 09:00:00', NULL, NULL,                  '2026-06-11 09:00:00'), -- Alice: FDG, canceled
+  (6, 7, 1, 4, 1, 'pending',   450.00, 7, '2026-07-06 14:00:00', NULL, NULL,                  '2026-07-06 14:00:00'), -- Evan (lab-mate): FDG, pending, recent
+  (7, 7, 3, 1, 1, 'accepted',  850.00, 7, '2026-07-03 09:00:00', 3,    '2026-07-04 08:00:00',  '2026-07-04 08:00:00'), -- Evan (lab-mate): C-11 Target Run, eob mode
+  (8, 5, 2, 2, 2, 'pending',   300.00, 5, '2026-07-05 11:00:00', NULL, NULL,                  '2026-07-05 11:00:00'); -- Brian, different lab (2) -- must NOT show for Alice/Evan
+
+INSERT INTO order_type_a_details (order_id, activity_mci, requested_datetime) VALUES
+  (1, 10.00, '2026-07-10 09:00:00'),
+  (2, 8.00,  '2026-06-25 09:00:00'),
+  (5, 10.00, '2026-06-12 09:00:00'),
+  (6, 10.00, '2026-07-09 09:00:00'),
+  (8, 8.00,  '2026-07-08 09:00:00');
+
+INSERT INTO order_type_b_details (order_id, mode, beam_current, bombardment_minutes, eob_activity_mci, eob_datetime) VALUES
+  (3, 'beam', 35.00, 60, NULL, NULL),
+  (4, 'eob',  NULL,  NULL, 120.00, '2026-06-16 08:00:00'),
+  (7, 'eob',  NULL,  NULL, 200.00, '2026-07-04 06:00:00');
+
+INSERT INTO order_audit_log (order_id, changed_by, status_from, status_to, changed_at) VALUES
+  (1, 4, NULL,        'pending',   '2026-07-05 10:00:00'),
+  (2, 4, NULL,        'pending',   '2026-06-20 08:00:00'),
+  (3, 4, NULL,        'pending',   '2026-07-01 09:00:00'),
+  (3, 3, 'pending',   'accepted',  '2026-07-02 11:00:00'),
+  (4, 4, NULL,        'pending',   '2026-06-15 09:00:00'),
+  (4, 3, 'pending',   'accepted',  '2026-06-15 15:00:00'),
+  (4, 3, 'accepted',  'completed', '2026-06-16 09:00:00'),
+  (5, 4, NULL,        'pending',   '2026-06-10 09:00:00'),
+  (5, 4, 'pending',   'canceled',  '2026-06-11 09:00:00'),
+  (6, 7, NULL,        'pending',   '2026-07-06 14:00:00'),
+  (7, 7, NULL,        'pending',   '2026-07-03 09:00:00'),
+  (7, 3, 'pending',   'accepted',  '2026-07-04 08:00:00'),
+  (8, 5, NULL,        'pending',   '2026-07-05 11:00:00');

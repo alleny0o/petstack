@@ -48,7 +48,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Home</span></span>
+            <span class="menu-label"><span class="menu-label__text">Dashboard</span></span>
           </a>
         </li>
 
