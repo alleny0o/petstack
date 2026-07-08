@@ -83,6 +83,7 @@
   /* Hover states */
   --color-hover-primary:   var(--platinum);
   --color-hover-secondary: var(--alabaster-grey);
+  --color-hover-btn: var(--carbon-black);
 
   /* Buttons */
   --color-btn-primary-bg:         var(--accent-500);
@@ -129,6 +130,7 @@
 
   --color-hover-primary:   var(--carbon-black);
   --color-hover-secondary: var(--iron-grey);
+  --color-hover-btn: var(--white);
 
   --color-btn-primary-bg:         var(--accent-500);
   --color-btn-primary-bg-hover:   var(--accent-600);
