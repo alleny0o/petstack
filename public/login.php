@@ -71,7 +71,8 @@ $pageTitle = 'Log In';
 
         </div>
         <div class="auth-card__foot">
-          New customer? <a href="/register.php">Register here</a>
+          <div>New customer? <a href="/register.php">Register here</a></div>
+          <div>Already registered? <a href="/registration_status.php">Check your status</a></div>
         </div>
       </div>
     </div>
