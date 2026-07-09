@@ -1,12 +1,12 @@
 -- ============================================================
 -- PETCOM — schema.sql
--- Identity/role layer only (Phase 1 scope). 9 tables. InnoDB,
+-- Identity/role layer only (Phase 1 scope). 10 tables. InnoDB,
 -- utf8mb4. Load into an empty `petcom` database, then load
 -- seed.sql.
 --
 -- Build order is FK-safe, not the narrative order in CLAUDE.md:
 --   institutes -> labs -> pis -> lab_pis -> categories -> users
---   -> staff -> admins -> customers
+--   -> password_history -> staff -> admins -> customers
 -- (categories has to exist before staff references it, which is
 -- earlier than CLAUDE.md's identity-then-menu grouping. staff has
 -- to exist before admins, since every admin is also staff.)
@@ -17,6 +17,7 @@ SET NAMES utf8mb4;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS password_history;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS lab_pis;
@@ -95,6 +96,20 @@ CREATE TABLE users (
   active                TINYINT(1) NOT NULL DEFAULT 1,
   created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Stores the outgoing password hash each time a user changes their
+-- password, so change_password.php can block reuse of the last 5
+-- passwords (current users.password_hash + the 4 rows kept here).
+-- Pruned to the 4 most recent rows per user on every insert — no
+-- reason to retain old hashes past what the policy needs.
+CREATE TABLE password_history (
+  history_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id       INT UNSIGNED NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  changed_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_password_history_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  KEY idx_password_history_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- One category per staff member, not a junction table.
