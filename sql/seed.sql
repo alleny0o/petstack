@@ -19,14 +19,38 @@
 -- Usernames follow the real convention: NIH email address.
 -- ============================================================
 
--- ---- Institutes (6 of the ~27 real NIH institutes/centers) ----
+-- ---- Institutes (all 27 real NIH institutes/centers) ----
+-- ids 1-6 are the original seed set (referenced by lab_id below via
+-- their institute_id, so their order/ids are left unchanged); ids 7-27
+-- are the rest of the real NIH ICs, appended rather than interleaved.
 INSERT INTO institutes (name, shorthand_name, active) VALUES
   ('Clinical Center', 'CC', 1),
   ('National Cancer Institute', 'NCI', 1),
   ('National Institute of Mental Health', 'NIMH', 1),
   ('National Heart, Lung, and Blood Institute', 'NHLBI', 1),
   ('National Institute on Aging', 'NIA', 1),
-  ('National Institute of Neurological Disorders and Stroke', 'NINDS', 1);
+  ('National Institute of Neurological Disorders and Stroke', 'NINDS', 1),
+  ('National Eye Institute', 'NEI', 1),
+  ('National Human Genome Research Institute', 'NHGRI', 1),
+  ('National Institute on Alcohol Abuse and Alcoholism', 'NIAAA', 1),
+  ('National Institute of Allergy and Infectious Diseases', 'NIAID', 1),
+  ('National Institute of Arthritis and Musculoskeletal and Skin Diseases', 'NIAMS', 1),
+  ('National Institute of Biomedical Imaging and Bioengineering', 'NIBIB', 1),
+  ('Eunice Kennedy Shriver National Institute of Child Health and Human Development', 'NICHD', 1),
+  ('National Institute on Deafness and Other Communication Disorders', 'NIDCD', 1),
+  ('National Institute of Dental and Craniofacial Research', 'NIDCR', 1),
+  ('National Institute of Diabetes and Digestive and Kidney Diseases', 'NIDDK', 1),
+  ('National Institute on Drug Abuse', 'NIDA', 1),
+  ('National Institute of Environmental Health Sciences', 'NIEHS', 1),
+  ('National Institute of General Medical Sciences', 'NIGMS', 1),
+  ('National Institute on Minority Health and Health Disparities', 'NIMHD', 1),
+  ('National Institute of Nursing Research', 'NINR', 1),
+  ('National Library of Medicine', 'NLM', 1),
+  ('National Center for Advancing Translational Sciences', 'NCATS', 1),
+  ('National Center for Complementary and Integrative Health', 'NCCIH', 1),
+  ('Center for Information Technology', 'CIT', 1),
+  ('Center for Scientific Review', 'CSR', 1),
+  ('Fogarty International Center', 'FIC', 1);
 
 -- ---- Labs (3) ----
 INSERT INTO labs (institute_id, lab_name, building, room, active) VALUES

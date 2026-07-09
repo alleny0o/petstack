@@ -1,20 +1,23 @@
 -- ============================================================
 -- PETCOM — schema.sql
--- Identity/role layer only (Phase 1 scope). 11 tables. InnoDB,
--- utf8mb4. Load into an empty `petcom` database, then load
--- seed.sql.
+-- Identity/role layer (Phase 1) plus the Phase C.1 self-registration
+-- request table. 12 tables. InnoDB, utf8mb4. Load into an empty
+-- `petcom` database, then load seed.sql.
 --
 -- Build order is FK-safe, not the narrative order in CLAUDE.md:
 --   institutes -> labs -> pis -> lab_pis -> categories -> users
 --   -> password_history -> lockout_events -> staff -> admins
---   -> customers
+--   -> customers -> customer_registration_requests
 -- (categories has to exist before staff references it, which is
 -- earlier than CLAUDE.md's identity-then-menu grouping. staff has
--- to exist before admins, since every admin is also staff.)
+-- to exist before admins, since every admin is also staff.
+-- customer_registration_requests comes last since it FKs into labs,
+-- pis, and users but nothing FKs into it.)
 -- ============================================================
 
 SET NAMES utf8mb4;
 
+DROP TABLE IF EXISTS customer_registration_requests;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS staff;
@@ -169,4 +172,37 @@ CREATE TABLE customers (
   CONSTRAINT fk_customers_approved_by  FOREIGN KEY (approved_by)       REFERENCES users (user_id)           ON DELETE SET NULL,
   KEY idx_customers_registration_status (registration_status),
   KEY idx_customers_lab_id (lab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Holds a self-registration submission (Phase C.1) until an admin
+-- approves or rejects it (Phase C.2). No users/customers row exists for
+-- a request until it's approved — this table is fully separate from the
+-- identity tables, not a staging area with FKs into them. lab_id/pi_id
+-- reference the dropdowns the registrant picked from; email becomes the
+-- eventual username. No DB-level uniqueness on email: MySQL/MariaDB
+-- can't express "unique while status='pending'" as a plain index, and a
+-- rejected request is allowed to be resubmitted — so duplicate
+-- prevention is enforced at the app layer (see register.php).
+CREATE TABLE customer_registration_requests (
+  request_id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  lab_id                 INT UNSIGNED NOT NULL,
+  pi_id                  INT UNSIGNED NOT NULL,
+  first_name             VARCHAR(100) NOT NULL,
+  last_name              VARCHAR(100) NOT NULL,
+  email                   VARCHAR(254) NOT NULL,
+  phone                   VARCHAR(20) NOT NULL,
+  nrc_contact_name        VARCHAR(255) NULL,
+  nrc_contact_phone       VARCHAR(20) NULL,
+  nrc_contact_email       VARCHAR(255) NULL,
+  status                  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  rejection_reason        VARCHAR(500) NULL,
+  reviewed_by_admin_id    INT UNSIGNED NULL,
+  reviewed_at             DATETIME NULL,
+  submitted_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reg_requests_lab      FOREIGN KEY (lab_id)               REFERENCES labs (lab_id),
+  CONSTRAINT fk_reg_requests_pi       FOREIGN KEY (pi_id)                REFERENCES pis (pi_id),
+  CONSTRAINT fk_reg_requests_reviewer FOREIGN KEY (reviewed_by_admin_id) REFERENCES users (user_id) ON DELETE SET NULL,
+  KEY idx_reg_requests_status (status),
+  KEY idx_reg_requests_email (email),
+  KEY idx_reg_requests_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

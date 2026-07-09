@@ -26,7 +26,11 @@ Guidance for Claude Code when working on PETCOM.
 ```
 petcom/
   public/              # Only web-reachable folder (Apache doc root)
+    index.php
     login.php
+    register.php
+    logout.php
+    change_password.php
     customer/
     staff/
     admin/
@@ -36,14 +40,14 @@ petcom/
         components.css (forms, buttons, cards, tables, alerts)
         layout.css      (sidebar, topbar, grid)
       js/
-        script.js      (sidebar toggle, theme toggle, form validation)
+        script.js      (sidebar collapse + mobile off-canvas toggle)
 
   src/                 # Above web root — never servable by URL
     config.php          (DB credentials, gitignored)
     config.sample.php   (template)
     db.php              (PDO connection)
     auth.php            (login, require_role(), session guard)
-    helpers.php          (CSRF, escaping, redirects)
+    helpers.php          (session bootstrap, CSRF, escaping, redirects)
     partials/
       head.php
       layout_customer.php
@@ -51,45 +55,47 @@ petcom/
       layout_admin.php
 
   sql/
-    schema.sql          (all 20 tables)
+    schema.sql          (see Database section below)
     seed.sql            (test data)
 
   tools/
     set_temp_passwords.php (one-time setup for seeded accounts)
-
-  docs/
-    SCHEMA.md            (table descriptions in plain English)
-    DEPLOY.md            (RHEL 8 deployment steps)
 ```
+
+No `docs/` folder yet — `DEPLOY.md` is expected to show up as part of the deployment-polish phase; nothing currently reads a `SCHEMA.md`, and it isn't committed anywhere yet either.
 
 ## Three Security Rules
 
 1. **Only `public/` is servable.** DB credentials live in `src/`.
 2. **Every protected page gates itself near the top:**
    ```php
-   session_start();
+   require __DIR__ . '/../src/helpers.php';
+   bootstrap_session();
    require __DIR__ . '/../src/auth.php';
    require_role('customer'); // or 'staff', 'admin'
    ```
-   Public pages (login.php, register.php) don't call `require_role()`.
-3. **Always use `__DIR__` in require paths** — relative paths break when deployed to RHEL.
+   `bootstrap_session()` (in `helpers.php`) sets hardened cookie flags before
+   starting the session — pages must not call a bare `session_start()`. Public
+   pages (login.php, register.php) don't call `require_role()`.
+3. **Always use `__DIR__` in require/include paths** — relative paths break when deployed to RHEL.
 
 ## Page Template Pattern
 
 ```php
 <?php
-session_start();
+require __DIR__ . '/../src/helpers.php';
+bootstrap_session();
 require __DIR__ . '/../src/auth.php';
 require_role('customer');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php $pageTitle = 'Page Name'; include '../src/partials/head.php'; ?>
+    <?php $pageTitle = 'Page Name'; include __DIR__ . '/../src/partials/head.php'; ?>
 </head>
 <body>
     <div class="app-shell">
-        <?php include '../src/partials/layout_customer.php'; ?>
+        <?php include __DIR__ . '/../src/partials/layout_customer.php'; ?>
         <main class="app-main">
             <!-- content here -->
         </main>
@@ -99,44 +105,48 @@ require_role('customer');
 </html>
 ```
 
-## Database — 20 Tables
+## Database
 
-Built in this order (foreign keys matter):
+Tables are grouped by area below; the group composition is stable even as tables
+within it get built out. Tables marked **(built)** exist in `sql/schema.sql` today
+— see that file for exact columns/constraints and build order (FK-safe order,
+not the narrative order here). Unmarked tables are designed but not yet built.
 
-**Identity (8 tables):**
-1. `institutes`
-2. `labs`
-3. `pis`
-4. `lab_pis` (join: a lab can have multiple PIs, a PI can oversee multiple labs)
-5. `users` (shared login table: username, password_hash, must_change_password, failed_login_count, locked_until — used by all three roles)
-6. `customers` (extends `users` via `user_id`; institute/lab/supervising_pi locked at approval)
-7. `staff` (extends `users` via `user_id`; has a single `category_id` — one category per staff member, not a junction table)
-8. `admins` (extends `users` via `user_id`)
+**Identity (11 tables, all built):**
+1. `institutes` (built)
+2. `labs` (built)
+3. `pis` (built)
+4. `lab_pis` (built) — join: a lab can have multiple PIs, a PI can oversee multiple labs
+5. `users` (built) — shared login table: username, password_hash, must_change_password, failed_login_count, locked_until — used by all three roles
+6. `password_history` (built) — prior password hashes, for reuse prevention in `change_password.php`
+7. `lockout_events` (built) — records a lockout event each time a login attempt trips the failed-attempt threshold
+8. `customers` (built) — extends `users` via `user_id`; institute/lab/supervising_pi locked at approval. Also still carries `registration_status`/`approved_by`/`approved_at` columns from before Phase C.1 — those are currently unused by the registration flow (see Business Rules)
+9. `customer_registration_requests` (built) — holds a public self-registration submission until an admin reviews it (see Business Rules)
+10. `staff` (built) — extends `users` via `user_id`; has a single `category_id` — one category per staff member, not a junction table
+11. `admins` (built) — extends `users` via `user_id`
 
-**Menu (6 tables):**
-9. `isotopes`
-10. `categories` (e.g. Radiopharmacy, Cyclotron — real table, admin-editable, referenced by both `staff.category_id` and `compounds.category_id`)
-11. `compounds`
-12. `compound_isotopes` (join: usually 1:1, occasionally a compound allows multiple isotopes)
-13. `delivery_options`
-14. `compound_delivery_options` (join: each compound lists its own allowed delivery methods)
+**Menu (6 tables, 1 built):**
+12. `isotopes`
+13. `categories` (built) — e.g. Radiopharmacy, Cyclotron — admin-editable, referenced by both `staff.category_id` and the future `compounds.category_id`
+14. `compounds`
+15. `compound_isotopes` (join: usually 1:1, occasionally a compound allows multiple isotopes)
+16. `delivery_options`
+17. `compound_delivery_options` (join: each compound lists its own allowed delivery methods)
 
-**Orders (6 tables):**
-15. `orders`
-16. `order_type_a_details` (dose orders: activity_mci, requested_datetime)
-17. `order_type_b_details` (cyclotron orders: either beam_current+bombardment_minutes OR eob_activity_mci+eob_datetime, never both)
-18. `order_public_comments` (append-only, visible to customer + staff)
-19. `order_internal_notes` (append-only, staff-only)
-20. `order_audit_log` (status changes only — pending→accepted→completed/canceled, timestamp, who — not field-level diffing)
-
-See `sql/schema.sql` for exact columns and constraints.
+**Orders (6 tables, none built yet):**
+18. `orders`
+19. `order_type_a_details` (dose orders: activity_mci, requested_datetime)
+20. `order_type_b_details` (cyclotron orders: either beam_current+bombardment_minutes OR eob_activity_mci+eob_datetime, never both)
+21. `order_public_comments` (append-only, visible to customer + staff)
+22. `order_internal_notes` (append-only, staff-only)
+23. `order_audit_log` (status changes only — pending→accepted→completed/canceled, timestamp, who — not field-level diffing)
 
 ## Business Rules (Non-Negotiable)
 
 These came from the requirements interview. Don't simplify them.
 
 - **No phone-in orders.** Customers place their own orders only. No `is_phone_in` field, no attestation.
-- **No separate registration-requests table.** Registration status lives directly on `customers` (`registration_status`: pending/approved/rejected).
+- **Self-registration lands in `customer_registration_requests`, not `customers`.** A public registration submission (Phase C.1) creates a row in that separate table (`status`: pending/approved/rejected) — no `users` or `customers` row exists until an admin approves the request (Phase C.2), at which point the account and temp password get created. `customers.registration_status`/`approved_by`/`approved_at` predate this design and are unused by the current registration flow.
 - **Type A and Type B are independent.** Never model one as parent/child.
 - **Completed orders are terminal.** No edits, no cancels after `status = completed`.
 - **Returned orders go back to `pending`.** No separate "returned" status — the audit log preserves that a return happened.
@@ -185,27 +195,13 @@ Branch → PR → merge. Never push directly to `main`.
 - **HTTPS with self-signed cert locally; real cert on RHEL (handed off by IT).**
 - **No external CDN.** All assets (CSS, JS, icons) inlined or local.
 
-## Phase 1 (Current — Building Now)
+## Build Phases
 
-Build and test, in order:
-1. `sql/schema.sql` — all 20 tables
-2. `sql/seed.sql` — minimal test data (2 institutes, 3 labs, 2 PIs, 1 admin, 2 staff in different categories, 3 customers, a handful of compounds/isotopes/delivery options)
-3. `src/config.sample.php`, `src/db.php` — PDO connection
-4. `src/auth.php` — login (checks `users` + role tables), `require_role()`, session timeout (15 min), lockout (5 attempts)
-5. `src/helpers.php` — CSRF tokens, HTML escaping, redirects
-6. `public/login.php` — login form, redirects to correct role dashboard
-7. Forced password change on first login (`must_change_password` flag), strong password validation
-8. `tools/set_temp_passwords.php` — one-time bcrypt hash setup for seeded accounts
-
-**No mock data. No stub pages beyond what's needed to prove login works end-to-end.**
-
-## Phases 2–6 (Future — Not Yet Started)
-
-2. Customer order form (Type A & B, isotope-first filtering, lead-time validation)
-3. Staff processing queue + accept/modify/complete/cancel/return actions
-4. Admin panels (compounds, categories, isotopes, delivery options, institutes, labs, PIs, staff, customer approval)
-5. Reports (order history, cost/accounting, audit trail, pending orders, user activity, compound usage — CSV export)
-6. Polish (mobile CSS pass, HTTPS self-signed cert, RHEL deployment docs)
+PETCOM is built in lettered phases (A–F); the detailed phase/sub-phase plan is
+tracked outside this file, not here — this section is intentionally just a
+high-level status marker so it doesn't need editing every time a sub-phase
+ships. Current status: **A and B are complete. C is in progress. D, E, and F
+have not started.**
 
 ---
 

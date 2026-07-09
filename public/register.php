@@ -86,57 +86,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     if (!$errors) {
-        $stmt = $pdo->prepare('SELECT 1 FROM pis WHERE pi_id = ? AND active = 1');
-        $stmt->execute([$old['pi_id']]);
+        // PI must be active AND actually linked to the chosen lab via
+        // lab_pis — the client-side filter narrows the dropdown to this
+        // same set, this is just the server-side backstop.
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM pis
+             JOIN lab_pis ON lab_pis.pi_id = pis.pi_id
+             WHERE pis.pi_id = ? AND pis.active = 1 AND lab_pis.lab_id = ?'
+        );
+        $stmt->execute([$old['pi_id'], $old['lab_id']]);
         if (!$stmt->fetchColumn()) {
-            $errors[] = 'Select a valid supervising PI.';
+            $errors[] = 'Select a valid supervising PI for the chosen lab.';
+        }
+    }
+    if (!$errors) {
+        // Duplicate prevention: a pending request already exists, or an
+        // account already exists. A rejected prior request does not
+        // block resubmission. These are the only two account-existence
+        // signals shown to an unauthenticated visitor.
+        $stmt = $pdo->prepare("SELECT 1 FROM customer_registration_requests WHERE email = ? AND status = 'pending'");
+        $stmt->execute([$old['email']]);
+        if ($stmt->fetchColumn()) {
+            $errors[] = 'A registration for this email is already pending.';
         }
     }
     if (!$errors) {
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ?');
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $errors[] = 'An account with this email already exists.';
+            $errors[] = 'An account already exists for this email.';
         }
     }
 
     if (!$errors) {
-        // Unusable placeholder: a bcrypt hash of a random string that's
-        // discarded immediately. password_verify() can never match it,
-        // so this account can't log in until an admin approves the
-        // registration and issues a temp password (CLAUDE.md: no email
-        // from the app, admins relay resets manually).
-        $placeholderHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT);
+        $pdo->prepare(
+            "INSERT INTO customer_registration_requests
+                (lab_id, pi_id, first_name, last_name, email, phone,
+                 nrc_contact_name, nrc_contact_phone, nrc_contact_email, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+        )->execute([
+            $old['lab_id'],
+            $old['pi_id'],
+            $old['first_name'],
+            $old['last_name'],
+            $old['email'],
+            $old['phone'],
+            $old['nrc_contact_name'] !== '' ? $old['nrc_contact_name'] : null,
+            $old['nrc_contact_phone'] !== '' ? $old['nrc_contact_phone'] : null,
+            $old['nrc_contact_email'] !== '' ? $old['nrc_contact_email'] : null,
+        ]);
 
-        $pdo->beginTransaction();
-        try {
-            $pdo->prepare('INSERT INTO users (username, password_hash, must_change_password, active) VALUES (?, ?, 1, 1)')
-                ->execute([$old['email'], $placeholderHash]);
-            $userId = (int) $pdo->lastInsertId();
-
-            $pdo->prepare(
-                'INSERT INTO customers
-                    (user_id, first_name, last_name, phone, lab_id, supervising_pi_id,
-                     registration_status, nrc_contact_name, nrc_contact_phone, nrc_contact_email)
-                 VALUES (?, ?, ?, ?, ?, ?, \'pending\', ?, ?, ?)'
-            )->execute([
-                $userId,
-                $old['first_name'],
-                $old['last_name'],
-                $old['phone'],
-                $old['lab_id'],
-                $old['pi_id'],
-                $old['nrc_contact_name'] !== '' ? $old['nrc_contact_name'] : null,
-                $old['nrc_contact_phone'] !== '' ? $old['nrc_contact_phone'] : null,
-                $old['nrc_contact_email'] !== '' ? $old['nrc_contact_email'] : null,
-            ]);
-
-            $pdo->commit();
-            $submitted = true;
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
+        $submitted = true;
     }
 }
 
@@ -144,6 +144,19 @@ $pdo = get_db();
 $institutes = $pdo->query('SELECT institute_id, name FROM institutes WHERE active = 1 ORDER BY name')->fetchAll();
 $labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs WHERE active = 1 ORDER BY lab_name')->fetchAll();
 $pis = $pdo->query('SELECT pi_id, pi_name FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
+$labPiMap = $pdo->query(
+    'SELECT lab_pis.lab_id, lab_pis.pi_id
+     FROM lab_pis
+     JOIN pis ON pis.pi_id = lab_pis.pi_id
+     WHERE pis.active = 1'
+)->fetchAll();
+
+// Build pi_id => "lab_id lab_id …" for the client-side filter, mirroring
+// the institute_id -> lab_id filter below (a PI can oversee multiple labs).
+$piLabIds = [];
+foreach ($labPiMap as $row) {
+    $piLabIds[$row['pi_id']][] = $row['lab_id'];
+}
 
 $pageTitle = 'Register';
 ?>
@@ -204,6 +217,7 @@ $pageTitle = 'Register';
                       <option value="<?= (int) $lab['lab_id'] ?>" data-institute-id="<?= (int) $lab['institute_id'] ?>" <?= (string) $lab['lab_id'] === $old['lab_id'] ? 'selected' : '' ?>><?= e($lab['lab_name']) ?></option>
                     <?php endforeach; ?>
                   </select>
+                  <span class="field-hint">Don't see your lab? Contact an admin.</span>
                 </div>
               </div>
 
@@ -236,9 +250,9 @@ $pageTitle = 'Register';
                 <div class="field mb-0">
                   <label for="pi_id">Supervising PI <span class="required-mark">*</span></label>
                   <select id="pi_id" name="pi_id" required>
-                    <option value="">Select PI…</option>
+                    <option value="">Select lab first…</option>
                     <?php foreach ($pis as $pi): ?>
-                      <option value="<?= (int) $pi['pi_id'] ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?></option>
+                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?></option>
                     <?php endforeach; ?>
                   </select>
                   <span class="field-hint">Don't see your PI? Contact an admin.</span>
@@ -282,9 +296,11 @@ $pageTitle = 'Register';
 (function () {
   var instituteSelect = document.getElementById('institute_id');
   var labSelect = document.getElementById('lab_id');
-  if (!instituteSelect || !labSelect) return;
+  var piSelect = document.getElementById('pi_id');
+  if (!instituteSelect || !labSelect || !piSelect) return;
 
   var labOptions = Array.prototype.slice.call(labSelect.querySelectorAll('option[data-institute-id]'));
+  var piOptions = Array.prototype.slice.call(piSelect.querySelectorAll('option[data-lab-ids]'));
 
   function filterLabs() {
     var instituteId = instituteSelect.value;
@@ -297,9 +313,25 @@ $pageTitle = 'Register';
       labSelect.value = '';
     }
     labSelect.disabled = !instituteId;
+    filterPis();
+  }
+
+  function filterPis() {
+    var labId = labSelect.value;
+    piOptions.forEach(function (opt) {
+      var labIds = opt.dataset.labIds ? opt.dataset.labIds.split(' ') : [];
+      var matches = labIds.indexOf(labId) !== -1;
+      opt.hidden = !matches;
+      opt.disabled = !matches;
+    });
+    if (piSelect.selectedOptions[0] && piSelect.selectedOptions[0].hidden) {
+      piSelect.value = '';
+    }
+    piSelect.disabled = !labId;
   }
 
   instituteSelect.addEventListener('change', filterLabs);
+  labSelect.addEventListener('change', filterPis);
   filterLabs();
 })();
 </script>
