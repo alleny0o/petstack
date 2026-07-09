@@ -2,51 +2,76 @@
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
 
-// Fetch all orders
 $allOrders = demo_orders();
 
-$filterSearch  = $_GET['search'] ?? '';
-$filterStatus  = $_GET['status'] ?? '';
-$filterIsotope = $_GET['isotope'] ?? '';
-$page          = max(1, intval($_GET['page'] ?? 1)); // Default to page 1
-$itemsPerPage  = 12; // Number of items to show per page
+// ---------------------------------------------------------
+// 1. Capture Filter Inputs
+// ---------------------------------------------------------
+$filterSearch    = $_GET['search'] ?? '';
+$filterStatus    = $_GET['status'] ?? '';
+$filterIsotope   = $_GET['isotope'] ?? '';
+$filterDateStart = $_GET['date_start'] ?? '';
+$filterDateEnd   = $_GET['date_end'] ?? '';
+$page            = max(1, intval($_GET['page'] ?? 1));
+$itemsPerPage    = 10;
 
-// Extract unique isotopes for the dropdown filter dynamically
+// Determine if the advanced drawer should be open on load
+$hasAdvancedFilters = ($filterStatus !== '' || $filterIsotope !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
+
 $uniqueIsotopes = array_unique(array_column($allOrders, 'isotope'));
 sort($uniqueIsotopes);
 
-$filteredOrders = array_filter($allOrders, function($o) use ($filterSearch, $filterStatus, $filterIsotope) {
-    // Check Search (matches ID or Compound)
+// ---------------------------------------------------------
+// 2. Apply Filters
+// ---------------------------------------------------------
+$filteredOrders = array_filter($allOrders, function($o) use ($filterSearch, $filterStatus, $filterIsotope, $filterDateStart, $filterDateEnd) {
+    // 1. Search (ID or Compound)
     $matchesSearch = $filterSearch === '' || 
                      stripos($o['id'], $filterSearch) !== false || 
                      stripos($o['compound'], $filterSearch) !== false;
     
-    // Check Status
+    // 2. Status & Isotope
     $matchesStatus = $filterStatus === '' || $o['status'] === $filterStatus;
-    
-    // Check Isotope
     $matchesIsotope = $filterIsotope === '' || strcasecmp($o['isotope'], $filterIsotope) === 0;
 
-    return $matchesSearch && $matchesStatus && $matchesIsotope;
+    // 3. Date Range Logic
+    $matchesDate = true;
+    // Fallback through your available date keys to find the timestamp
+    $orderDateRaw = $o['placed_at'] ?? $o['requested'] ?? $o['b_datetime'] ?? null;
+    
+    if ($orderDateRaw) {
+        // Extract just the YYYY-MM-DD part for a clean comparison
+        $dateOnly = substr($orderDateRaw, 0, 10);
+        
+        if ($filterDateStart !== '' && $dateOnly < $filterDateStart) {
+            $matchesDate = false;
+        }
+        if ($filterDateEnd !== '' && $dateOnly > $filterDateEnd) {
+            $matchesDate = false;
+        }
+    }
+
+    return $matchesSearch && $matchesStatus && $matchesIsotope && $matchesDate;
 });
 
+// ---------------------------------------------------------
+// 3. Pagination Logic
+// ---------------------------------------------------------
 $totalItems = count($filteredOrders);
 $totalPages = $totalItems > 0 ? ceil($totalItems / $itemsPerPage) : 1;
-
-// Ensure current page doesn't exceed total pages if filters narrow down the results
 $page = min($page, $totalPages); 
 
 $offset = ($page - 1) * $itemsPerPage;
-// Extract just the items for the current page
 $paginatedOrders = array_slice($filteredOrders, $offset, $itemsPerPage);
 
-// Helper function to build pagination links while preserving filter parameters
 function buildUrl($pageUpdate) {
     $params = $_GET;
     $params['page'] = $pageUpdate;
     return '?' . http_build_query($params);
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -70,34 +95,61 @@ function buildUrl($pageUpdate) {
             </div>
 
             <div class="table-card" style="margin-top: 20px;">
-                <div class="table-card-header">
-                    <span class="table-card-title">All Orders (<?= $totalItems ?>)</span>
+                <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                    <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
-                    <form method="GET" action="customer_past_orders.php" class="filter-form" id="filter-form">
+                    <form method="GET" action="customer_past_orders.php" id="filter-form">
                         <input type="hidden" name="page" value="1"> 
                         
-                        <select name="isotope" id="filter-isotope" onchange="this.form.submit()">
-                            <option value="">All Isotopes</option>
-                            <?php foreach ($uniqueIsotopes as $iso): ?>
-                                <option value="<?= htmlspecialchars($iso) ?>" <?= $filterIsotope === $iso ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($iso) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="search-bar-top">
+                            <input type="text" name="search" placeholder="Search Order # or compound…" value="<?= htmlspecialchars($filterSearch) ?>">
+                            
+                            <button type="submit" class="btn btn--primary">Search</button>
 
-                        <select name="status" id="filter-status" onchange="this.form.submit()">
-                            <option value="">All Statuses</option>
-                            <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
-                            <option value="accepted" <?= $filterStatus === 'accepted' ? 'selected' : '' ?>>Accepted</option>
-                            <option value="completed" <?= $filterStatus === 'completed' ? 'selected' : '' ?>>Completed</option>
-                            <option value="canceled" <?= $filterStatus === 'canceled' ? 'selected' : '' ?>>Canceled</option>
-                        </select>
-                        
-                        <input type="text" name="search" id="filter-search" 
-                               placeholder="Order # or compound…" 
-                               value="<?= htmlspecialchars($filterSearch) ?>">
-                        
-                        <button type="submit" class="btn btn--primary">Filter</button>
+                            <button type="button" class="btn btn--secondary" id="toggle-advanced-search">
+                                Advanced
+                            </button>
+                            
+                            <?php if ($filterSearch !== '' || $hasAdvancedFilters): ?>
+                                <a href="customer_past_orders.php" class="btn btn--secondary">Clear</a>
+                            <?php endif; ?>
+                        </div>
+
+                        <div id="advanced-filters" class="advanced-filters <?= $hasAdvancedFilters ? 'is-open' : '' ?>">
+                            
+                            <div class="filter-group">
+                                <label for="filter-date-start">From Date</label>
+                                <input type="date" name="date_start" id="filter-date-start" value="<?= htmlspecialchars($filterDateStart) ?>" onchange="this.form.submit()">
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-date-end">To Date</label>
+                                <input type="date" name="date_end" id="filter-date-end" value="<?= htmlspecialchars($filterDateEnd) ?>" onchange="this.form.submit()">
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-isotope">Isotope</label>
+                                <select name="isotope" id="filter-isotope" onchange="this.form.submit()">
+                                    <option value="">All Isotopes</option>
+                                    <?php foreach ($uniqueIsotopes as $iso): ?>
+                                        <option value="<?= htmlspecialchars($iso) ?>" <?= $filterIsotope === $iso ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($iso) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-status">Status</label>
+                                <select name="status" id="filter-status" onchange="this.form.submit()">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                    <option value="accepted" <?= $filterStatus === 'accepted' ? 'selected' : '' ?>>Accepted</option>
+                                    <option value="completed" <?= $filterStatus === 'completed' ? 'selected' : '' ?>>Completed</option>
+                                    <option value="canceled" <?= $filterStatus === 'canceled' ? 'selected' : '' ?>>Canceled</option>
+                                </select>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 
@@ -153,6 +205,7 @@ function buildUrl($pageUpdate) {
                         <?php endif; ?>
                     </div>
                 </div>
+
             </div>
 
         </main>
@@ -161,5 +214,11 @@ function buildUrl($pageUpdate) {
 </body>
 
 <script src="assets/js/script.js" defer></script>
+<script>
+    // Toggle the advanced filter drawer open/closed
+    document.getElementById('toggle-advanced-search').addEventListener('click', function() {
+        document.getElementById('advanced-filters').classList.toggle('is-open');
+    });
+</script>
 
 </html>
