@@ -134,7 +134,7 @@ $query_string = http_build_query($url_params); // Magically turns array into &se
                             // Attach the specific page number to our search query string
                             $page_url = "?page=" . $i . ($query_string ? '&' . $query_string : ''); 
                         ?>
-                        <a href="<?php echo $page_url; ?>" class="<?php echo $i === $current_page ? 'active' : ''; ?>">
+                        <a href="<?php echo $page_url; ?>" class="<?php echo $i == $current_page ? 'active' : ''; ?>">
                         <?php echo $i; ?>
                         </a>
                     <?php endfor; ?>
