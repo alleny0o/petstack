@@ -74,6 +74,7 @@
   --color-bg-sidebar:   var(--white);
   --color-bg-chrome:    var(--white); /* app header — light, no dark chrome */
   --color-bg-surface:   var(--white); /* elevated: cards, auth panel, table, form fields */
+  --color-bg-table-hd:  var(--bright-snow); /* headers for the tables */
 
   /* Borders */
   --color-border-hr:    var(--pale-slate);
@@ -93,6 +94,8 @@
   --color-btn-secondary-text:     var(--color-text-secondary);
   --color-btn-active-bg:          var(--accent-100);
   --color-btn-active-text:        var(--accent-600);
+  --color-btn-bg-disabled:        var(--pale-slate);
+  --color-btn-text-disabled:      var(--alabaster-grey);
 
   /* Logo square — its own token. Light chrome now, so the logo is
      the one place we keep a dark fill so the brand mark still has
@@ -123,6 +126,7 @@
   --color-bg-sidebar:   var(--gunmetal);
   --color-bg-chrome:    var(--gunmetal);
   --color-bg-surface:   var(--gunmetal); /* elevated surfaces one step lighter than the page */
+  --color-bg-table-hd:  var(--carbon-black);
 
   --color-border-hr:    var(--iron-grey);
   --color-border-input: var(--iron-grey);
@@ -137,6 +141,8 @@
   --color-btn-secondary-bg:       var(--gunmetal);
   --color-btn-secondary-bg-hover: var(--iron-grey);
   --color-btn-secondary-text:     var(--pale-slate);
+  --color-btn-bg-disabled:        var(--iron-grey);
+  --color-btn-text-disabled:      var(--pale-slate-2);
 
   --color-logo-bg:   var(--accent-500);
   --color-logo-text: var(--white);
