@@ -24,7 +24,9 @@ function attempt_login(string $username, string $password): array
     }
 
     if ($user['locked_until'] !== null && strtotime($user['locked_until']) > time()) {
-        return ['success' => false, 'reason' => 'Account locked, try again later.'];
+        $minutesLeft = (int) ceil((strtotime($user['locked_until']) - time()) / 60);
+        $unit = $minutesLeft === 1 ? 'minute' : 'minutes';
+        return ['success' => false, 'reason' => "Account temporarily locked. Try again in {$minutesLeft} {$unit}."];
     }
 
     if (!password_verify($password, $user['password_hash'])) {
@@ -40,6 +42,10 @@ function attempt_login(string $username, string $password): array
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
+    if (!$user['active']) {
+        return ['success' => false, 'reason' => 'Invalid username or password.'];
+    }
+
     $pdo->prepare('UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
         ->execute([$user['user_id']]);
 
@@ -47,6 +53,8 @@ function attempt_login(string $username, string $password): array
     if ($role === null) {
         return ['success' => false, 'reason' => 'Account has no assigned role.'];
     }
+
+    session_regenerate_id(true);
 
     $_SESSION['user_id'] = (int) $user['user_id'];
     $_SESSION['username'] = $user['username'];
