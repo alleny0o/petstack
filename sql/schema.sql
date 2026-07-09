@@ -161,15 +161,12 @@ CREATE TABLE customers (
   lab_id               INT UNSIGNED NULL,
   supervising_pi_id    INT UNSIGNED NULL,
   registration_status  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
-  approved_by          INT UNSIGNED NULL,
-  approved_at          DATETIME NULL,
   nrc_contact_name     VARCHAR(255) NULL,
   nrc_contact_phone    VARCHAR(20) NULL,
   nrc_contact_email    VARCHAR(255) NULL,
   CONSTRAINT fk_customers_user         FOREIGN KEY (user_id)           REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_customers_lab          FOREIGN KEY (lab_id)            REFERENCES labs (lab_id)             ON DELETE SET NULL,
   CONSTRAINT fk_customers_pi           FOREIGN KEY (supervising_pi_id) REFERENCES pis (pi_id)               ON DELETE SET NULL,
-  CONSTRAINT fk_customers_approved_by  FOREIGN KEY (approved_by)       REFERENCES users (user_id)           ON DELETE SET NULL,
   KEY idx_customers_registration_status (registration_status),
   KEY idx_customers_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -120,7 +120,7 @@ not the narrative order here). Unmarked tables are designed but not yet built.
 5. `users` (built) — shared login table: username, password_hash, must_change_password, failed_login_count, locked_until — used by all three roles
 6. `password_history` (built) — prior password hashes, for reuse prevention in `change_password.php`
 7. `lockout_events` (built) — records a lockout event each time a login attempt trips the failed-attempt threshold
-8. `customers` (built) — extends `users` via `user_id`; institute/lab/supervising_pi locked at approval. Also still carries `registration_status`/`approved_by`/`approved_at` columns from before Phase C.1 — those are currently unused by the registration flow (see Business Rules)
+8. `customers` (built) — extends `users` via `user_id`; institute/lab/supervising_pi locked at approval. `registration_status` is set to `'approved'` when the row is created by the C.2 approval flow — a `customers` row only ever exists once a request is approved, so this is effectively a constant, kept because `customer/dashboard.php` displays it. The old `approved_by`/`approved_at` columns were dropped in C.2 as genuinely unused (see `customer_registration_requests.reviewed_by_admin_id`/`reviewed_at` for that bookkeeping now)
 9. `customer_registration_requests` (built) — holds a public self-registration submission until an admin reviews it (see Business Rules)
 10. `staff` (built) — extends `users` via `user_id`; has a single `category_id` — one category per staff member, not a junction table
 11. `admins` (built) — extends `users` via `user_id`

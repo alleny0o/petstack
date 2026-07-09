@@ -104,8 +104,8 @@ INSERT INTO staff (user_id, category_id) VALUES
 INSERT INTO admins (user_id) VALUES (1);
 
 -- ---- Customers (4, all approved) ----
-INSERT INTO customers (user_id, first_name, last_name, lab_id, supervising_pi_id, registration_status, approved_by, approved_at) VALUES
-  (4, 'Alice', 'Carter', 1, 1, 'approved', 1, '2026-06-01 09:00:00'), -- NCI / Molecular Imaging Lab / Dr. Carter
-  (5, 'Brian', 'Kim',    2, 2, 'approved', 1, '2026-06-02 09:00:00'), -- NIMH / Neuroimaging Lab / Dr. Ellison
-  (6, 'Deepa', 'Patel',  3, 2, 'approved', 1, '2026-06-03 09:00:00'), -- NINDS / Cerebrovascular Imaging Lab / Dr. Ellison
-  (7, 'Evan',  'Feng',   1, 1, 'approved', 1, '2026-06-04 09:00:00'); -- NCI / Molecular Imaging Lab / Dr. Carter (lab-mate of Alice)
+INSERT INTO customers (user_id, first_name, last_name, lab_id, supervising_pi_id, registration_status) VALUES
+  (4, 'Alice', 'Carter', 1, 1, 'approved'), -- NCI / Molecular Imaging Lab / Dr. Carter
+  (5, 'Brian', 'Kim',    2, 2, 'approved'), -- NIMH / Neuroimaging Lab / Dr. Ellison
+  (6, 'Deepa', 'Patel',  3, 2, 'approved'), -- NINDS / Cerebrovascular Imaging Lab / Dr. Ellison
+  (7, 'Evan',  'Feng',   1, 1, 'approved'); -- NCI / Molecular Imaging Lab / Dr. Carter (lab-mate of Alice)
