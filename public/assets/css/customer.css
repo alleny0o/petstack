@@ -69,13 +69,6 @@
   padding: 5px 12px; 
 }
 
-.filter-form { 
-  display: flex; 
-  gap: 10px; 
-  align-items: center; 
-}
-
-
 /* ============================================================
    3. ORDER FORM
    ============================================================ */
@@ -181,23 +174,42 @@
   background-color: var(--accent-600);
 }
 
-.clear-btn {
-  padding: 8px 20px;
-  background-color: var(--color-bg-surface); 
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-hr);
-  border-radius: 4px;
-  text-decoration: none; 
+.search-bar-top {
   display: flex;
+  gap: 10px;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
+  width: 100%;
 }
 
-.clear-btn:hover {
-  background-color: var(--color-hover-primary);
-  color: var(--color-hover-btn);
+.search-bar-top input[type="text"] {
+  flex-grow: 1; /* Makes the search bar take up the remaining space */
+}
+
+.advanced-filters {
+  display: none; /* Hidden by default */
+  gap: 15px;
+  align-items: flex-end; /* Aligns dropdowns with date inputs */
+  margin-top: 12px;
+  padding-top: 15px;
+  border-top: 1px dashed var(--color-border-hr);
+  flex-wrap: wrap;
+}
+
+/* This class is toggled by JavaScript to reveal the drawer */
+.advanced-filters.is-open {
+  display: flex;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-group label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
 }
 
 .catalog-grid {
