@@ -94,7 +94,7 @@ function buildUrl($pageUpdate) {
                 </div>
             </div>
 
-            <div class="table-card" style="margin-top: 20px;">
+            <div class="table-card" style="margin-top: var(--sp-6);">
                 <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
                     <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
