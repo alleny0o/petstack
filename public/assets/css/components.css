@@ -89,6 +89,9 @@
   font-size: 13px;
   color: var(--color-text-placeholder);
 }
+.auth-card__foot div + div {
+  margin-top: var(--sp-2);
+}
 .auth-card__foot a {
   font-weight: 500;
 }
@@ -523,6 +526,39 @@ textarea {
   background: rgba(217, 119, 6, 0.1);
 }
 
+/* Prominent one-time password reveal -- larger and harder to miss than
+   the standard .alert, since this is the only chance to copy the value. */
+.temp-password-banner {
+  background: rgba(5, 150, 105, 0.08);
+  border: 2px solid var(--color-success);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.temp-password-banner__heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-success);
+  margin-bottom: var(--sp-2);
+}
+.temp-password-banner__password {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-2) var(--sp-4);
+  margin: var(--sp-2) 0;
+}
+.temp-password-banner__warning {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-top: var(--sp-2);
+}
+
 /* ============================================================
    15. BADGES
    Subtle tint + text color, not solid loud fills.
@@ -537,6 +573,16 @@ textarea {
   padding: 0.15rem 0.5rem;
   border: 1px solid var(--color-border-hr);
   color: var(--color-text-placeholder);
+  background: var(--color-bg-primary);
+}
+.badge--active {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background: rgba(5, 150, 105, 0.1);
+}
+.badge--inactive {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-hr);
   background: var(--color-bg-primary);
 }
 
