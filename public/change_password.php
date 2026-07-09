@@ -15,23 +15,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
     $pdo = get_db();
-    $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE user_id = ?');
+    $stmt = $pdo->prepare('SELECT username, password_hash FROM users WHERE user_id = ?');
     $stmt->execute([$_SESSION['user_id']]);
-    $currentHash = $stmt->fetchColumn();
+    $row = $stmt->fetch();
+    $username = $row['username'];
+    $currentHash = $row['password_hash'];
 
     if (!password_verify($currentPassword, $currentHash)) {
         $errors[] = 'Current password is incorrect.';
     }
 
-    if (strlen($newPassword) < 8 || !preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
-        $errors[] = 'New password must be at least 8 characters and include at least one letter and one number.';
-    }
+    $errors = array_merge($errors, validate_password_strength($newPassword, $username));
 
     if ($newPassword !== $confirmPassword) {
         $errors[] = 'New password and confirmation do not match.';
     }
 
+    if (!$errors && is_password_reused($pdo, (int) $_SESSION['user_id'], $currentHash, $newPassword)) {
+        $errors[] = 'New password must not match any of your last 5 passwords.';
+    }
+
     if (!$errors) {
+        record_password_history($pdo, (int) $_SESSION['user_id'], $currentHash);
+
         $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?')
             ->execute([password_hash($newPassword, PASSWORD_BCRYPT), $_SESSION['user_id']]);
 
@@ -82,8 +88,8 @@ $pageTitle = 'Change Password';
 
             <div class="field">
               <label for="new_password">New password</label>
-              <input type="password" id="new_password" name="new_password" required>
-              <span class="field-hint">At least 8 characters, with a letter and a number.</span>
+              <input type="password" id="new_password" name="new_password" required minlength="12">
+              <span class="field-hint">At least 12 characters, with a letter and a number. Must not contain your username or email.</span>
             </div>
 
             <div class="field">

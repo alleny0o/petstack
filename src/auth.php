@@ -101,6 +101,74 @@ function logout(): void
     redirect('/login.php');
 }
 
+const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_HISTORY_LIMIT = 4; // plus the current users.password_hash = last 5 checked/kept
+
+/**
+ * @return string[] Validation error messages; empty array means the
+ *                   password satisfies the strength policy.
+ */
+function validate_password_strength(string $password, string $username): array
+{
+    $errors = [];
+
+    if (strlen($password) < PASSWORD_MIN_LENGTH) {
+        $errors[] = 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
+    }
+
+    if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+        $errors[] = 'Password must include at least one letter and one number.';
+    }
+
+    if ($username !== '' && stripos($password, $username) !== false) {
+        $errors[] = 'Password must not contain your username or email.';
+    }
+
+    return $errors;
+}
+
+/**
+ * Checks the new password against the account's current password plus
+ * its last PASSWORD_HISTORY_LIMIT prior passwords.
+ */
+function is_password_reused(PDO $pdo, int $userId, string $currentHash, string $newPassword): bool
+{
+    if (password_verify($newPassword, $currentHash)) {
+        return true;
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY history_id DESC LIMIT ' . PASSWORD_HISTORY_LIMIT
+    );
+    $stmt->execute([$userId]);
+
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $oldHash) {
+        if (password_verify($newPassword, $oldHash)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Archives the hash being replaced, then prunes password_history down
+ * to the PASSWORD_HISTORY_LIMIT most recent rows for that user.
+ */
+function record_password_history(PDO $pdo, int $userId, string $outgoingHash): void
+{
+    $pdo->prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)')
+        ->execute([$userId, $outgoingHash]);
+
+    $pdo->prepare(
+        'DELETE FROM password_history WHERE user_id = ? AND history_id NOT IN (
+            SELECT history_id FROM (
+                SELECT history_id FROM password_history WHERE user_id = ? ORDER BY history_id DESC LIMIT ' . PASSWORD_HISTORY_LIMIT . '
+            ) AS keep_rows
+        )'
+    )->execute([$userId, $userId]);
+}
+
 function determine_role(PDO $pdo, int $userId): ?string
 {
     $roleTables = ['admin' => 'admins', 'staff' => 'staff', 'customer' => 'customers'];
