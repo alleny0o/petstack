@@ -39,6 +39,11 @@ function attempt_login(string $username, string $password): array
         $pdo->prepare('UPDATE users SET failed_login_count = ?, locked_until = ? WHERE user_id = ?')
             ->execute([$failedCount, $lockedUntil, $user['user_id']]);
 
+        if ($lockedUntil !== null) {
+            $pdo->prepare('INSERT INTO lockout_events (user_id, failed_attempts) VALUES (?, ?)')
+                ->execute([$user['user_id'], $failedCount]);
+        }
+
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
@@ -74,6 +79,14 @@ function attempt_login(string $username, string $password): array
 function require_role($allowedRoles): void
 {
     if (empty($_SESSION['user_id']) || empty($_SESSION['role'])) {
+        redirect('/login.php');
+    }
+
+    $stmt = get_db()->prepare('SELECT active FROM users WHERE user_id = ?');
+    $stmt->execute([$_SESSION['user_id']]);
+    if (!$stmt->fetchColumn()) {
+        session_unset();
+        session_destroy();
         redirect('/login.php');
     }
 

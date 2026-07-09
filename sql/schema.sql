@@ -1,12 +1,13 @@
 -- ============================================================
 -- PETCOM — schema.sql
--- Identity/role layer only (Phase 1 scope). 10 tables. InnoDB,
+-- Identity/role layer only (Phase 1 scope). 11 tables. InnoDB,
 -- utf8mb4. Load into an empty `petcom` database, then load
 -- seed.sql.
 --
 -- Build order is FK-safe, not the narrative order in CLAUDE.md:
 --   institutes -> labs -> pis -> lab_pis -> categories -> users
---   -> password_history -> staff -> admins -> customers
+--   -> password_history -> lockout_events -> staff -> admins
+--   -> customers
 -- (categories has to exist before staff references it, which is
 -- earlier than CLAUDE.md's identity-then-menu grouping. staff has
 -- to exist before admins, since every admin is also staff.)
@@ -17,6 +18,7 @@ SET NAMES utf8mb4;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS lockout_events;
 DROP TABLE IF EXISTS password_history;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS categories;
@@ -110,6 +112,19 @@ CREATE TABLE password_history (
   changed_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_password_history_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
   KEY idx_password_history_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Records a lockout event each time a login attempt pushes
+-- failed_login_count past FAILED_LOGIN_LOCKOUT_THRESHOLD and
+-- locked_until gets set. Narrower than the Phase F audit log system —
+-- just who/when/how many attempts. No admin UI to view these yet.
+CREATE TABLE lockout_events (
+  lockout_id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id          INT UNSIGNED NOT NULL,
+  failed_attempts  TINYINT UNSIGNED NOT NULL,
+  locked_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_lockout_events_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  KEY idx_lockout_events_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- One category per staff member, not a junction table.
