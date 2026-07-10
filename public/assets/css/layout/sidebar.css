@@ -326,6 +326,36 @@
   color: var(--color-error);
 }
 
+/* --- Sidebar: admin Staff/Admin view toggle (sits directly above the
+   identity/footer row; admin-only, see layout_admin.php/layout_staff.php) --- */
+.sidebar .sidebar-mode-toggle {
+  display: flex;
+  gap: 2px;
+  margin: 0 var(--sp-5) var(--sp-3);
+  padding: 3px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+}
+.sidebar .sidebar-mode-toggle__option {
+  flex: 1;
+  text-align: center;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+.sidebar .sidebar-mode-toggle__option:hover {
+  color: var(--color-text-primary);
+}
+.sidebar .sidebar-mode-toggle__option.is-active {
+  background: var(--color-bg-primary);
+  color: var(--accent-600);
+  box-shadow: var(--shadow-xs);
+}
+
 /* --- App topbar (always present, all breakpoints) ---
    Sits in the .app-shell "header" grid area, so it participates
    in normal flow just like .app-header would. The only thing
@@ -444,5 +474,8 @@
   [data-sidebar="collapsed"] .sidebar-footer-actions {
     flex-direction: column;
     margin-left: 0;
+  }
+  [data-sidebar="collapsed"] .sidebar-mode-toggle {
+    display: none;
   }
 }
