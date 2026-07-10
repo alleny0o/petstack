@@ -66,11 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $request['nrc_contact_email'],
                 ]);
 
-                // Seeds password_history with the temp password's own hash so
-                // it can't be reused as the "new" password on the forced
-                // first change (is_password_reused() checks current hash +
-                // this history).
-                record_password_history($pdo, $newUserId, $tempHash);
+                // No password_history seeding: the temp can't be reused as
+                // the "new" password anyway (is_password_reused() checks
+                // the current users.password_hash), and history holds
+                // outgoing hashes only.
 
                 $pdo->prepare(
                     "UPDATE customer_registration_requests
