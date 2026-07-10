@@ -391,7 +391,11 @@ $pageTitle = $order !== null ? ('Order #' . $orderId) : 'Order not found';
                     </div>
                     <?php if ($canEdit): ?>
                         <div class="page-header__actions">
-                            <form method="post" onsubmit="return confirm('Cancel this order?');">
+                            <form method="post"
+                                  data-confirm="Cancel this order? This can't be undone."
+                                  data-confirm-title="Cancel order"
+                                  data-confirm-verb="Cancel order"
+                                  data-confirm-danger>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="cancel">
                                 <button type="submit" class="btn btn--danger">Cancel order</button>

@@ -68,12 +68,12 @@ $pageTitle = 'Log In';
             <input type="password" id="password" name="password" value="" required>
           </div>
 
-          <button type="submit" class="btn btn--primary btn--block">Log In</button>
+          <button type="submit" class="btn btn--primary btn--lg btn--block">Log In</button>
         </form>
 
       </div>
       <div class="auth-card__foot">
-        <div style="margin-bottom: 0.5px;">New customer? <a href="/register.php">Register here</a></div>
+        <div>New customer? <a href="/register.php">Register here</a></div>
         <div>Already registered? <a href="/registration_status.php">Check your status</a></div>
       </div>
     </div>

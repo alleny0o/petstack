@@ -19,14 +19,6 @@ function format_lead_hours(float $hours): string
     return $formatted === '' ? '0' : $formatted;
 }
 
-function field_error(array $fieldErrors, string $key): string
-{
-    if (!isset($fieldErrors[$key])) {
-        return '';
-    }
-    return '<span class="field-error">' . e($fieldErrors[$key]) . '</span>';
-}
-
 $fieldErrors = [];
 $old = [
     'isotope_id'          => '',

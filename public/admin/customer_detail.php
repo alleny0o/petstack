@@ -37,14 +37,6 @@ function fetch_customer(PDO $pdo, int $userId): ?array
     return $row !== false ? $row : null;
 }
 
-function field_error(array $fieldErrors, string $key): string
-{
-    if (!isset($fieldErrors[$key])) {
-        return '';
-    }
-    return '<span class="field-error">' . e($fieldErrors[$key]) . '</span>';
-}
-
 $userId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
 $customer = $userId > 0 ? fetch_customer($pdo, $userId) : null;
 
@@ -172,13 +164,18 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $tempPassword = generate_temp_password();
         $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
 
+        // Archive the outgoing hash so the pre-reset password still
+        // counts toward the last-5 reuse check on the forced change.
+        // The temp itself needs no history row: is_password_reused()
+        // already rejects it via the current users.password_hash.
+        $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE user_id = ?');
+        $stmt->execute([$userId]);
+        $outgoingHash = (string) $stmt->fetchColumn();
+
         $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?')
             ->execute([$tempHash, $userId]);
 
-        // Seeds password_history with the temp password's own hash so it
-        // can't be reused as the "new" password on the forced first
-        // change (is_password_reused() checks current hash + this history).
-        record_password_history($pdo, $userId, $tempHash);
+        record_password_history($pdo, $userId, $outgoingHash);
 
         $tempPasswordReveal = $tempPassword;
     }
@@ -247,7 +244,9 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     </div>
                 </div>
 
-                <?php if ($flash): ?>
+                <?php if ($flash && $flash['type'] === 'success'): ?>
+                    <?= toast_flash('success', $flash['message']) ?>
+                <?php elseif ($flash): ?>
                     <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
                 <?php endif; ?>
 
@@ -255,7 +254,10 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     <div class="temp-password-banner">
                         <div class="temp-password-banner__heading">Temporary password generated</div>
                         <div>Give this to <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?> via NIH email &mdash; it will not be shown again.</div>
-                        <div class="temp-password-banner__password"><?= e($tempPasswordReveal) ?></div>
+                        <div class="temp-password-banner__row">
+                            <span class="temp-password-banner__password" id="temp-password-value"><?= e($tempPasswordReveal) ?></span>
+                            <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
+                        </div>
                         <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
                     </div>
                 <?php endif; ?>
@@ -289,19 +291,19 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                         <input type="hidden" name="action" value="edit">
 
                         <div class="field-row">
-                            <div class="field">
+                            <div class="<?= field_class($fieldErrors, 'first_name') ?>">
                                 <label for="first_name">First name <span class="required-mark">*</span></label>
                                 <input type="text" id="first_name" name="first_name" value="<?= e($editOld['first_name']) ?>" required>
                                 <?= field_error($fieldErrors, 'first_name') ?>
                             </div>
-                            <div class="field">
+                            <div class="<?= field_class($fieldErrors, 'last_name') ?>">
                                 <label for="last_name">Last name <span class="required-mark">*</span></label>
                                 <input type="text" id="last_name" name="last_name" value="<?= e($editOld['last_name']) ?>" required>
                                 <?= field_error($fieldErrors, 'last_name') ?>
                             </div>
                         </div>
 
-                        <div class="field">
+                        <div class="<?= field_class($fieldErrors, 'phone') ?>">
                             <label for="phone">Phone <span class="required-mark">*</span></label>
                             <input type="text" id="phone" name="phone" value="<?= e($editOld['phone']) ?>" required>
                             <?= field_error($fieldErrors, 'phone') ?>
@@ -320,7 +322,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 </select>
                             </div>
 
-                            <div class="field">
+                            <div class="<?= field_class($fieldErrors, 'lab_id') ?>">
                                 <label for="lab_id">Lab <span class="required-mark">*</span></label>
                                 <select id="lab_id" name="lab_id" required>
                                     <option value="">Select institute first&hellip;</option>
@@ -331,7 +333,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 <?= field_error($fieldErrors, 'lab_id') ?>
                             </div>
 
-                            <div class="field mb-0">
+                            <div class="<?= field_class($fieldErrors, 'supervising_pi_id', 'field mb-0') ?>">
                                 <label for="supervising_pi_id">Supervising PI <span class="required-mark">*</span></label>
                                 <select id="supervising_pi_id" name="supervising_pi_id" required>
                                     <option value="">Select lab first&hellip;</option>
@@ -356,7 +358,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                     <label for="nrc_contact_phone">Contact phone</label>
                                     <input type="text" id="nrc_contact_phone" name="nrc_contact_phone" value="<?= e($editOld['nrc_contact_phone']) ?>">
                                 </div>
-                                <div class="field mb-0">
+                                <div class="<?= field_class($fieldErrors, 'nrc_contact_email', 'field mb-0') ?>">
                                     <label for="nrc_contact_email">Contact email</label>
                                     <input type="email" id="nrc_contact_email" name="nrc_contact_email" value="<?= e($editOld['nrc_contact_email']) ?>">
                                     <?= field_error($fieldErrors, 'nrc_contact_email') ?>
@@ -373,13 +375,32 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                 <div class="card">
                     <span class="card__title">Account Actions</span>
                     <div class="flex gap-3">
-                        <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" onsubmit="return confirm('<?= $customer['active'] ? 'Deactivate this customer? They will be signed out immediately and unable to log in.' : 'Reactivate this customer? They will be able to log in again.' ?>');">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="action" value="toggle_active">
-                            <button type="submit" class="btn <?= $customer['active'] ? 'btn--danger' : 'btn--secondary' ?>"><?= $customer['active'] ? 'Deactivate Customer' : 'Reactivate Customer' ?></button>
-                        </form>
+                        <?php if ($customer['active']): ?>
+                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                                  data-confirm="Deactivate <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? They will be signed out immediately and unable to log in. Their order history stays intact."
+                                  data-confirm-title="Deactivate customer"
+                                  data-confirm-verb="Deactivate"
+                                  data-confirm-danger>
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="toggle_active">
+                                <button type="submit" class="btn btn--danger">Deactivate Customer</button>
+                            </form>
+                        <?php else: ?>
+                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                                  data-confirm="Reactivate <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? They will be able to log in again."
+                                  data-confirm-title="Reactivate customer"
+                                  data-confirm-verb="Reactivate">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="toggle_active">
+                                <button type="submit" class="btn btn--secondary">Reactivate Customer</button>
+                            </form>
+                        <?php endif; ?>
 
-                        <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" onsubmit="return confirm('Generate a new temporary password for this customer? Their current password will stop working immediately.');">
+                        <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                              data-confirm="Generate a new temporary password for <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? Their current password will stop working immediately."
+                              data-confirm-title="Reset password"
+                              data-confirm-verb="Reset password"
+                              data-confirm-danger>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="reset_password">
                             <button type="submit" class="btn btn--secondary">Reset Password</button>

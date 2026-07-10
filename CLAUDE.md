@@ -34,20 +34,31 @@ petcom/
     customer/
     staff/
     admin/
+      dashboard.php
+      registrations.php
+      customers.php
+      customer_detail.php
+      accounts.php         (D.2: unified staff+admin list)
+      account_detail.php   (D.2: view/edit category/deactivate/reset password)
+      account_create.php   (D.2: create a staff or admin account)
     assets/
       css/
         style.css      (tokens + base + typography)
-        components.css (forms, buttons, cards, tables, alerts)
+        components.css (forms, buttons, cards, tables, alerts, badges,
+                        toasts, modals, spinners, empty states, stat tiles)
         layout.css      (sidebar, topbar, grid)
       js/
-        script.js      (sidebar collapse + mobile off-canvas toggle)
+        script.js      (sidebar collapse + mobile off-canvas toggle,
+                        toasts, confirm modals, form-submit loading,
+                        copy-to-clipboard)
 
   src/                 # Above web root — never servable by URL
     config.php          (DB credentials, gitignored)
     config.sample.php   (template)
     db.php              (PDO connection)
     auth.php            (login, require_role(), session guard)
-    helpers.php          (session bootstrap, CSRF, escaping, redirects)
+    helpers.php          (session bootstrap, CSRF, escaping, redirects,
+                          toast_flash, field_error/field_class)
     partials/
       head.php
       layout_customer.php
@@ -174,11 +185,19 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 
 ## CSS Architecture
 
-- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, color tokens, typography
-- **components.css:** Forms, buttons, cards, tables, alerts, badges, utilities, responsive breakpoints, accessibility
+- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, design tokens (colors + status text/tint pairs, spacing, radii `--radius-sm/md/lg/full`, shadows `--shadow-xs…lg`), typography
+- **components.css:** Forms, buttons, cards, tables, alerts, badges, utilities, responsive breakpoints, accessibility, detail lists, toasts, modals, spinners/loading, empty states, dashboard stat tiles, radio cards, order-page baselines
 - **layout.css:** Sidebar (sticky, collapse on desktop, off-canvas on mobile), topbar, grid layout, dark mode hooks
 
 **No role-specific CSS files.** All three roles share the same component library.
+
+**UI feedback conventions (post-D.2 overhaul):**
+- Transient success → toast via `toast_flash($type, $message)` (helpers.php); pages re-render on POST (no PRG), so the helper emits a DOMContentLoaded `showToast()` call
+- Errors/warnings → inline `.alert--error/--warning` banners; per-field validation → `field_class()` on the `.field` wrapper + `field_error()` below the input
+- Destructive/irreversible actions → `data-confirm` / `data-confirm-title` / `data-confirm-verb` / `data-confirm-danger` attributes on the form; script.js intercepts submit and shows a custom modal (never `window.confirm`)
+- Temp-password reveals → `.temp-password-banner` with a `data-copy-target` Copy button; never a toast
+- Status language: pill badges with a leading dot (`.badge--active/pending/approved/rejected/…`); role chips are square (`.badge--role-admin/staff`)
+- Submit buttons get a spinner + double-submit guard automatically from script.js — no per-form wiring needed
 
 **Dark mode:** Not implemented right now. Tokens may exist in CSS for future use but no toggle is wired up.
 
@@ -200,8 +219,9 @@ Branch → PR → merge. Never push directly to `main`.
 PETCOM is built in lettered phases (A–F); the detailed phase/sub-phase plan is
 tracked outside this file, not here — this section is intentionally just a
 high-level status marker so it doesn't need editing every time a sub-phase
-ships. Current status: **A and B are complete. C is in progress. D, E, and F
-have not started.**
+ships. Current status: **A, B, and C are complete. D is in progress (D.1
+customer management and D.2 staff/admin account management are done; D.3
+institute/lab/PI CRUD has not started). E and F have not started.**
 
 ---
 

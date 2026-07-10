@@ -60,17 +60,22 @@ $pageTitle = 'Registration Status';
 
           <?php if ($searched): ?>
             <?php if ($result === null): ?>
-              <div class="alert alert--warning">No registration found for this email.</div>
+              <div class="alert alert--warning"><strong>No registration found</strong> for this email. Check the address, or <a href="/register.php">register here</a>.</div>
             <?php elseif ($result['status'] === 'pending'): ?>
-              <div class="alert alert--warning">Your registration is pending review. An administrator will contact you.</div>
+              <div class="alert alert--warning">
+                <div><span class="badge badge--pending">Pending</span></div>
+                <div>Your registration is awaiting review. An administrator will contact you.</div>
+              </div>
             <?php elseif ($result['status'] === 'rejected'): ?>
               <div class="alert alert--error">
+                <div><span class="badge badge--rejected">Rejected</span></div>
                 <div>Your registration was not approved. Reason: <?= e($result['rejection_reason']) ?></div>
                 <div>You may submit a new registration if you'd like.</div>
               </div>
             <?php elseif ($result['status'] === 'approved'): ?>
               <div class="alert alert--success">
-                Your registration has been approved. You should receive your login details from an administrator via NIH email. If you haven't received this, please contact an administrator.
+                <div><span class="badge badge--approved">Approved</span></div>
+                <div>Your login details come from an administrator via NIH email. If you haven't received them, please contact an administrator.</div>
               </div>
             <?php endif; ?>
           <?php endif; ?>
@@ -83,7 +88,7 @@ $pageTitle = 'Registration Status';
               <input type="email" id="email" name="email" value="<?= e($email) ?>" required autofocus>
             </div>
 
-            <button type="submit" class="btn btn--primary btn--block">Check Status</button>
+            <button type="submit" class="btn btn--primary btn--lg btn--block">Check Status</button>
           </form>
 
         </div>

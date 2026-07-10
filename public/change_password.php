@@ -5,7 +5,7 @@ require __DIR__ . '/../src/db.php';
 require __DIR__ . '/../src/auth.php';
 require_role(['customer', 'staff', 'admin']);
 
-$errors = [];
+$fieldErrors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -22,20 +22,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentHash = $row['password_hash'];
 
     if (!password_verify($currentPassword, $currentHash)) {
-        $errors[] = 'Current password is incorrect.';
+        $fieldErrors['current_password'] = 'Current password is incorrect.';
     }
 
-    $errors = array_merge($errors, validate_password_strength($newPassword, $username));
+    $strengthErrors = validate_password_strength($newPassword, $username);
+    if ($strengthErrors) {
+        $fieldErrors['new_password'] = $strengthErrors;
+    }
 
     if ($newPassword !== $confirmPassword) {
-        $errors[] = 'New password and confirmation do not match.';
+        $fieldErrors['confirm_password'] = 'New password and confirmation do not match.';
     }
 
-    if (!$errors && is_password_reused($pdo, (int) $_SESSION['user_id'], $currentHash, $newPassword)) {
-        $errors[] = 'New password must not match any of your last 5 passwords.';
+    if (!$fieldErrors && is_password_reused($pdo, (int) $_SESSION['user_id'], $currentHash, $newPassword)) {
+        $fieldErrors['new_password'] = 'New password must not match any of your last 5 passwords.';
     }
 
-    if (!$errors) {
+    if (!$fieldErrors) {
         record_password_history($pdo, (int) $_SESSION['user_id'], $currentHash);
 
         $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?')
@@ -70,34 +73,33 @@ $pageTitle = 'Change Password';
         </div>
         <div class="auth-card__body">
 
-          <?php if ($errors): ?>
-            <div class="alert alert--error">
-              <?php foreach ($errors as $error): ?>
-                <div><?= e($error) ?></div>
-              <?php endforeach; ?>
-            </div>
+          <?php if (!empty($_SESSION['must_change_password'])): ?>
+            <div class="alert alert--info">You're signed in with a temporary password. Set a new one to continue.</div>
           <?php endif; ?>
 
           <form method="post" novalidate>
             <?= csrf_field() ?>
 
-            <div class="field">
+            <div class="<?= field_class($fieldErrors, 'current_password') ?>">
               <label for="current_password">Current password</label>
               <input type="password" id="current_password" name="current_password" required autofocus>
+              <?= field_error($fieldErrors, 'current_password') ?>
             </div>
 
-            <div class="field">
+            <div class="<?= field_class($fieldErrors, 'new_password') ?>">
               <label for="new_password">New password</label>
               <input type="password" id="new_password" name="new_password" required minlength="12">
               <span class="field-hint">At least 12 characters, with a letter and a number. Must not contain your username or email.</span>
+              <?= field_error($fieldErrors, 'new_password') ?>
             </div>
 
-            <div class="field">
+            <div class="<?= field_class($fieldErrors, 'confirm_password') ?>">
               <label for="confirm_password">Confirm new password</label>
               <input type="password" id="confirm_password" name="confirm_password" required>
+              <?= field_error($fieldErrors, 'confirm_password') ?>
             </div>
 
-            <button type="submit" class="btn btn--primary btn--block">Change Password</button>
+            <button type="submit" class="btn btn--primary btn--lg btn--block">Change Password</button>
           </form>
 
         </div>

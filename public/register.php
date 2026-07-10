@@ -8,7 +8,7 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
     redirect(dashboard_path_for_role($_SESSION['role']));
 }
 
-$errors = [];
+$fieldErrors = [];
 $submitted = false;
 $old = [
     'institute_id'      => '',
@@ -38,54 +38,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['nrc_contact_email'] = trim($_POST['nrc_contact_email'] ?? '');
 
     if ($old['institute_id'] === '') {
-        $errors[] = 'Institute is required.';
+        $fieldErrors['institute_id'] = 'Institute is required.';
     }
     if ($old['lab_id'] === '') {
-        $errors[] = 'Lab is required.';
+        $fieldErrors['lab_id'] = 'Lab is required.';
     }
     if ($old['first_name'] === '') {
-        $errors[] = 'First name is required.';
+        $fieldErrors['first_name'] = 'First name is required.';
     }
     if ($old['last_name'] === '') {
-        $errors[] = 'Last name is required.';
+        $fieldErrors['last_name'] = 'Last name is required.';
     }
     if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'A valid email is required.';
+        $fieldErrors['email'] = 'A valid email is required.';
     } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
-        $errors[] = 'Email must be an @nih.gov address.';
+        $fieldErrors['email'] = 'Email must be an @nih.gov address.';
     }
     if ($old['phone'] === '') {
-        $errors[] = 'Phone is required.';
+        $fieldErrors['phone'] = 'Phone is required.';
     } elseif (!preg_match('/^[0-9()+.\-\s]+$/', $old['phone']) || !preg_match('/[0-9]/', $old['phone'])) {
-        $errors[] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
+        $fieldErrors['phone'] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
     }
     if ($old['pi_id'] === '') {
-        $errors[] = 'Supervising PI is required.';
+        $fieldErrors['pi_id'] = 'Supervising PI is required.';
     }
     // NRC contact fields are only relevant for shipping orders (per the
     // original requirements interview), so they're optional at
     // registration time — collected now for convenience, not required.
     if ($old['nrc_contact_email'] !== '' && !filter_var($old['nrc_contact_email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'NRC contact email must be a valid email address.';
+        $fieldErrors['nrc_contact_email'] = 'NRC contact email must be a valid email address.';
     }
 
     $pdo = get_db();
 
-    if (!$errors) {
+    if (!$fieldErrors) {
         $stmt = $pdo->prepare('SELECT 1 FROM institutes WHERE institute_id = ? AND active = 1');
         $stmt->execute([$old['institute_id']]);
         if (!$stmt->fetchColumn()) {
-            $errors[] = 'Select a valid institute.';
+            $fieldErrors['institute_id'] = 'Select a valid institute.';
         }
     }
-    if (!$errors) {
+    if (!$fieldErrors) {
         $stmt = $pdo->prepare('SELECT 1 FROM labs WHERE lab_id = ? AND institute_id = ? AND active = 1');
         $stmt->execute([$old['lab_id'], $old['institute_id']]);
         if (!$stmt->fetchColumn()) {
-            $errors[] = 'Select a valid lab for the chosen institute.';
+            $fieldErrors['lab_id'] = 'Select a valid lab for the chosen institute.';
         }
     }
-    if (!$errors) {
+    if (!$fieldErrors) {
         // PI must be active AND actually linked to the chosen lab via
         // lab_pis — the client-side filter narrows the dropdown to this
         // same set, this is just the server-side backstop.
@@ -96,10 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $stmt->execute([$old['pi_id'], $old['lab_id']]);
         if (!$stmt->fetchColumn()) {
-            $errors[] = 'Select a valid supervising PI for the chosen lab.';
+            $fieldErrors['pi_id'] = 'Select a valid supervising PI for the chosen lab.';
         }
     }
-    if (!$errors) {
+    if (!$fieldErrors) {
         // Duplicate prevention: a pending request already exists, or an
         // account already exists. A rejected prior request does not
         // block resubmission. These are the only two account-existence
@@ -107,18 +107,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("SELECT 1 FROM customer_registration_requests WHERE email = ? AND status = 'pending'");
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $errors[] = 'A registration for this email is already pending.';
+            $fieldErrors['email'] = 'A registration for this email is already pending.';
         }
     }
-    if (!$errors) {
+    if (!$fieldErrors) {
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ?');
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $errors[] = 'An account already exists for this email.';
+            $fieldErrors['email'] = 'An account already exists for this email.';
         }
     }
 
-    if (!$errors) {
+    if (!$fieldErrors) {
         $pdo->prepare(
             "INSERT INTO customer_registration_requests
                 (lab_id, pi_id, first_name, last_name, email, phone,
@@ -182,15 +182,22 @@ $pageTitle = 'Register';
         <div class="auth-card__body">
 
           <?php if ($submitted): ?>
-            <div class="alert alert--success">Registration submitted. An administrator will review your request and contact you.</div>
+            <div class="success-panel">
+              <div class="success-panel__icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <div class="success-panel__title">Registration submitted</div>
+              <p class="success-panel__text">An administrator will review your request. Once approved, your login details arrive by NIH email.</p>
+              <div class="success-panel__action">
+                <a href="/registration_status.php" class="btn btn--secondary">Check your status</a>
+              </div>
+            </div>
           <?php else: ?>
 
-            <?php if ($errors): ?>
-              <div class="alert alert--error">
-                <?php foreach ($errors as $error): ?>
-                  <div><?= e($error) ?></div>
-                <?php endforeach; ?>
-              </div>
+            <?php if ($fieldErrors): ?>
+              <div class="alert alert--error">Some fields need attention — see the messages below.</div>
             <?php endif; ?>
 
             <form method="post" novalidate>
@@ -199,7 +206,7 @@ $pageTitle = 'Register';
               <div class="form-section">
                 <span class="form-section__title">Institute &amp; Lab</span>
 
-                <div class="field">
+                <div class="<?= field_class($fieldErrors, 'institute_id') ?>">
                   <label for="institute_id">Institute <span class="required-mark">*</span></label>
                   <select id="institute_id" name="institute_id" required>
                     <option value="">Select institute…</option>
@@ -207,9 +214,10 @@ $pageTitle = 'Register';
                       <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?></option>
                     <?php endforeach; ?>
                   </select>
+                  <?= field_error($fieldErrors, 'institute_id') ?>
                 </div>
 
-                <div class="field mb-0">
+                <div class="<?= field_class($fieldErrors, 'lab_id', 'field mb-0') ?>">
                   <label for="lab_id">Lab <span class="required-mark">*</span></label>
                   <select id="lab_id" name="lab_id" required>
                     <option value="">Select institute first…</option>
@@ -218,6 +226,7 @@ $pageTitle = 'Register';
                     <?php endforeach; ?>
                   </select>
                   <span class="field-hint">Don't see your lab? Contact an admin.</span>
+                  <?= field_error($fieldErrors, 'lab_id') ?>
                 </div>
               </div>
 
@@ -225,29 +234,33 @@ $pageTitle = 'Register';
                 <span class="form-section__title">Investigator</span>
 
                 <div class="field-row">
-                  <div class="field">
+                  <div class="<?= field_class($fieldErrors, 'first_name') ?>">
                     <label for="first_name">First name <span class="required-mark">*</span></label>
                     <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                    <?= field_error($fieldErrors, 'first_name') ?>
                   </div>
-                  <div class="field">
+                  <div class="<?= field_class($fieldErrors, 'last_name') ?>">
                     <label for="last_name">Last name <span class="required-mark">*</span></label>
                     <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                    <?= field_error($fieldErrors, 'last_name') ?>
                   </div>
                 </div>
 
                 <div class="field-row">
-                  <div class="field">
+                  <div class="<?= field_class($fieldErrors, 'email') ?>">
                     <label for="email">Email <span class="required-mark">*</span></label>
                     <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
                     <span class="field-hint">This becomes your username.</span>
+                    <?= field_error($fieldErrors, 'email') ?>
                   </div>
-                  <div class="field">
+                  <div class="<?= field_class($fieldErrors, 'phone') ?>">
                     <label for="phone">Phone <span class="required-mark">*</span></label>
                     <input type="text" id="phone" name="phone" value="<?= e($old['phone']) ?>" required>
+                    <?= field_error($fieldErrors, 'phone') ?>
                   </div>
                 </div>
 
-                <div class="field mb-0">
+                <div class="<?= field_class($fieldErrors, 'pi_id', 'field mb-0') ?>">
                   <label for="pi_id">Supervising PI <span class="required-mark">*</span></label>
                   <select id="pi_id" name="pi_id" required>
                     <option value="">Select lab first…</option>
@@ -256,11 +269,12 @@ $pageTitle = 'Register';
                     <?php endforeach; ?>
                   </select>
                   <span class="field-hint">Don't see your PI? Contact an admin.</span>
+                  <?= field_error($fieldErrors, 'pi_id') ?>
                 </div>
               </div>
 
               <div class="form-section">
-                <span class="form-section__title">NRC License Contact <span class="muted" style="text-transform:none; letter-spacing:0; font-weight:400;">— shipping orders only, optional</span></span>
+                <span class="form-section__title">NRC License Contact <span class="form-section__suffix">— shipping orders only, optional</span></span>
 
                 <div class="field">
                   <label for="nrc_contact_name">Contact name</label>
@@ -272,14 +286,15 @@ $pageTitle = 'Register';
                     <label for="nrc_contact_phone">Contact phone</label>
                     <input type="text" id="nrc_contact_phone" name="nrc_contact_phone" value="<?= e($old['nrc_contact_phone']) ?>">
                   </div>
-                  <div class="field mb-0">
+                  <div class="<?= field_class($fieldErrors, 'nrc_contact_email', 'field mb-0') ?>">
                     <label for="nrc_contact_email">Contact email</label>
                     <input type="email" id="nrc_contact_email" name="nrc_contact_email" value="<?= e($old['nrc_contact_email']) ?>">
+                    <?= field_error($fieldErrors, 'nrc_contact_email') ?>
                   </div>
                 </div>
               </div>
 
-              <button type="submit" class="btn btn--primary btn--block">Submit Registration</button>
+              <button type="submit" class="btn btn--primary btn--lg btn--block">Submit Registration</button>
             </form>
 
           <?php endif; ?>
