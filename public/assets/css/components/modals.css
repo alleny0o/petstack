@@ -1,0 +1,74 @@
+/* ============================================================
+   PETCOM — components/modals.css
+   Confirmations — script.js
+   Overlay sits above the sidebar (z 50) and its backdrop (z 40).
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: rgba(33, 37, 41, 0.45);
+  animation: modal-fade-in 0.15s ease;
+}
+.modal-overlay[hidden] {
+  display: none;
+}
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: modal-pop-in 0.15s ease;
+  max-height: calc(100vh - 2 * var(--sp-4));
+  overflow-y: auto;
+}
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.modal__body {
+  padding: var(--sp-5);
+}
+.modal__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-2);
+}
+.modal__message {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+.modal__body .field {
+  margin-top: var(--sp-4);
+}
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--color-border-hr);
+  background: var(--color-bg-primary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* Scroll lock while any modal is open (independent of the mobile
+   sidebar's own lock, which uses data-sidebar-mobile) */
+[data-modal-open],
+[data-modal-open] body {
+  overflow-y: hidden;
+}

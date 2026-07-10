@@ -21,6 +21,7 @@ function setSidebarState(collapsed) {
     document.documentElement.dataset.sidebar = 'collapsed';
   } else {
     delete document.documentElement.dataset.sidebar;
+    closeSidebarFlyout(); // un-collapsing kills the flyout's reason to exist
   }
   localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? 'collapsed' : 'expanded');
 }
@@ -97,17 +98,142 @@ function initSidebarMobileSafety() {
     if (!isMobileViewport() && isSidebarMobileOpen()) {
       setSidebarMobileOpen(false);
     }
+    // The collapsed-rail flyout is desktop/tablet-only (see
+    // toggleSidebarFlyout) — a stale position: fixed panel positioned via
+    // a desktop getBoundingClientRect shouldn't be left floating once the
+    // viewport shrinks into the mobile off-canvas layout.
+    if (isMobileViewport()) {
+      closeSidebarFlyout();
+    }
   });
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSidebarToggle();
-  initHamburgerToggle();
-  initSidebarBackdrop();
-  initSidebarMobileSafety();
-});
+// ===== Sidebar submenu expand/collapse ("Accounts" group) ========
+// Click toggles .is-expanded on the parent <li>, which drives the
+// chevron rotation and max-height reveal in CSS. No persistence —
+// initial state is rendered server-side (see layout_admin.php).
+//
+// Exception: when the sidebar is icon-rail collapsed (desktop/tablet
+// only — mobile off-canvas always uses the inline behavior above), the
+// inline submenu is display:none (layout.css), so the click opens a
+// floating flyout instead. Same toggle button, different target
+// depending on collapsed state.
 
+function initSidebarSubmenus() {
+  // The PHP template renders aria-expanded assuming the inline submenu
+  // is what would open (correct when the sidebar starts expanded), but
+  // the collapsed state is restored from localStorage pre-paint — if
+  // that's the state on load, nothing is actually open yet.
+  if (document.documentElement.dataset.sidebar === 'collapsed') {
+    document.querySelectorAll('.menu-item--has-submenu > .menu-link').forEach((toggleBtn) => {
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  document.querySelectorAll('.menu-item--has-submenu > .menu-link').forEach((toggleBtn) => {
+    toggleBtn.addEventListener('click', () => {
+      const collapsedDesktop =
+        document.documentElement.dataset.sidebar === 'collapsed' && !isMobileViewport();
+      if (collapsedDesktop) {
+        toggleSidebarFlyout(toggleBtn);
+        return;
+      }
+      const item = toggleBtn.closest('.menu-item--has-submenu');
+      const expanded = item.classList.toggle('is-expanded');
+      toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  });
+}
+
+
+// ===== Sidebar collapsed-rail flyout ==============================
+// Floating panel for reaching submenu links while the sidebar is an
+// icon rail. Appended to <body> (not .sidebar-content, which clips via
+// overflow:hidden) and positioned next to the clicked icon.
+
+let activeFlyout = null; // { panel, toggleBtn, defaultAriaControls, outsideClickHandler, keydownHandler, scrollHandler }
+
+function closeSidebarFlyout() {
+  if (!activeFlyout) return;
+  const { panel, toggleBtn, defaultAriaControls, outsideClickHandler, keydownHandler, scrollHandler } =
+    activeFlyout;
+  activeFlyout = null;
+
+  document.removeEventListener('mousedown', outsideClickHandler, true);
+  document.removeEventListener('keydown', keydownHandler, true);
+  const sidebarContent = document.querySelector('.sidebar-content');
+  if (sidebarContent) sidebarContent.removeEventListener('scroll', scrollHandler);
+
+  panel.remove();
+  toggleBtn.setAttribute('aria-expanded', 'false');
+  toggleBtn.setAttribute('aria-controls', defaultAriaControls);
+  toggleBtn.focus();
+}
+
+function buildSidebarFlyout(item) {
+  const panel = document.createElement('div');
+  panel.className = 'sidebar-flyout';
+  panel.id = 'accounts-flyout';
+  panel.setAttribute('role', 'menu');
+
+  const heading = document.createElement('div');
+  heading.className = 'sidebar-flyout__title';
+  heading.textContent = 'Accounts';
+  panel.appendChild(heading);
+
+  const list = document.createElement('ul');
+  list.className = 'sidebar-flyout__list';
+  item.querySelectorAll('.submenu-link').forEach((link) => {
+    const li = document.createElement('li');
+    li.appendChild(link.cloneNode(true));
+    list.appendChild(li);
+  });
+  panel.appendChild(list);
+
+  return panel;
+}
+
+function toggleSidebarFlyout(toggleBtn) {
+  if (activeFlyout && activeFlyout.toggleBtn === toggleBtn) {
+    closeSidebarFlyout();
+    return;
+  }
+  closeSidebarFlyout(); // only one flyout open at a time
+
+  const item = toggleBtn.closest('.menu-item--has-submenu');
+  const panel = buildSidebarFlyout(item);
+  document.body.appendChild(panel);
+
+  const rect = toggleBtn.getBoundingClientRect();
+  panel.style.top = `${rect.top}px`;
+  panel.style.left = `${rect.right + 8}px`;
+
+  const defaultAriaControls = toggleBtn.getAttribute('aria-controls');
+  toggleBtn.setAttribute('aria-expanded', 'true');
+  toggleBtn.setAttribute('aria-controls', panel.id);
+
+  const outsideClickHandler = (e) => {
+    if (!panel.contains(e.target) && !toggleBtn.contains(e.target)) {
+      closeSidebarFlyout();
+    }
+  };
+  const keydownHandler = (e) => {
+    if (e.key === 'Escape') closeSidebarFlyout();
+  };
+  const scrollHandler = () => closeSidebarFlyout();
+
+  document.addEventListener('mousedown', outsideClickHandler, true);
+  document.addEventListener('keydown', keydownHandler, true);
+  const sidebarContent = document.querySelector('.sidebar-content');
+  if (sidebarContent) sidebarContent.addEventListener('scroll', scrollHandler);
+
+  panel.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => closeSidebarFlyout());
+  });
+
+  activeFlyout = { panel, toggleBtn, defaultAriaControls, outsideClickHandler, keydownHandler, scrollHandler };
+}
 
 // ===== Toasts =====================================================
 // Transient feedback, bottom-right. Usage from any page or script:
@@ -435,8 +561,98 @@ function initCopyButtons() {
 }
 
 
+// ===== Dashboard masonry (admin/dashboard.php panel area) =========
+// #dash-masonry holds 4 panels (Pending Registrations, Recently Rejected
+// Registrations, Recently Added Customers, Lockouts) followed by two
+// empty [data-masonry-col] wrapper divs (components.css: .dash-masonry__col).
+// This used to be CSS column-count: 2, but each browser's internal
+// column-balancing engine doesn't guarantee identical placement for the
+// same content — confirmed Chrome and Safari packing these 4 panels
+// differently. Replaced with the same shortest-column-first algorithm
+// standard JS masonry libraries use, just run by our own code instead of
+// the browser, so the result is deterministic across engines.
+// Desktop/tablet only — mobile keeps the panels in their original
+// single-column source order and never runs the split (see
+// isMobileViewport()). Re-run on resize (not just once on load) so
+// rotating a device or dragging the window across the breakpoint
+// actually re-evaluates instead of staying locked to the split (or
+// lack of one) computed at initial load.
+
+let dashMasonryPanels = null; // original source order, captured once
+
+function initDashboardMasonry() {
+  const container = document.getElementById('dash-masonry');
+  if (!container) return;
+
+  const columns = container.querySelectorAll('[data-masonry-col]');
+  if (columns.length !== 2) return;
+  const [colA, colB] = columns;
+
+  if (!dashMasonryPanels) {
+    dashMasonryPanels = Array.from(container.children).filter(
+      (el) => el !== colA && el !== colB
+    );
+  }
+  if (!dashMasonryPanels.length) return;
+
+  // Always reset to single-column source order first — cheap, and makes
+  // this function idempotent whether it's called fresh or re-called on
+  // resize after a previous split.
+  dashMasonryPanels.forEach((panel) => container.insertBefore(panel, colA));
+  container.classList.remove('dash-masonry--split');
+  colA.innerHTML = '';
+  colB.innerHTML = '';
+
+  if (isMobileViewport()) return;
+
+  // Read every height first, before moving anything — .card/.table-card
+  // are back at full container width and in source order at this point,
+  // so this is one batch of layout reads with no interleaved writes.
+  const heights = dashMasonryPanels.map((panel) => panel.offsetHeight);
+
+  let heightA = 0;
+  let heightB = 0;
+  dashMasonryPanels.forEach((panel, i) => {
+    // First panel always lands in column A: both totals start at 0, and
+    // the <= tie-break favors A. Every panel after that goes wherever is
+    // currently shorter.
+    if (heightA <= heightB) {
+      colA.appendChild(panel);
+      heightA += heights[i];
+    } else {
+      colB.appendChild(panel);
+      heightB += heights[i];
+    }
+  });
+
+  container.classList.add('dash-masonry--split');
+}
+
+function initDashboardMasonryResize() {
+  if (!document.getElementById('dash-masonry')) return;
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(initDashboardMasonry, 150);
+  });
+}
+
+
+// ===== Init (single entry point — order matters: sidebar first so its
+// pre-paint collapsed/submenu state is wired up before anything else
+// touches the DOM, then the page-wide confirm/form/copy/dashboard
+// behaviors) ========================================================
+
 document.addEventListener('DOMContentLoaded', () => {
+  initSidebarToggle();
+  initHamburgerToggle();
+  initSidebarBackdrop();
+  initSidebarMobileSafety();
+  initSidebarSubmenus();
+
   initConfirmForms();
   initFormLoadingStates();
   initCopyButtons();
+  initDashboardMasonry();
+  initDashboardMasonryResize();
 });

@@ -1,0 +1,136 @@
+/* ============================================================
+   PETCOM — components/auth.css
+   AUTH PAGES (login / register / change-password)
+   A centered, focused card — separate from the app shell.
+   ============================================================ */
+
+.auth-wrap {
+  min-height: 100vh;
+  min-height: 100dvh; /* tracks mobile browser chrome; vh line is the fallback */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+/* Wider variant for longer forms (registration, with grouped sections) */
+.auth-card--wide {
+  max-width: 540px;
+}
+
+.auth-card__head {
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  text-align: center;
+}
+
+.auth-card__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.auth-card__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.auth-card__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.auth-card__title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.auth-card__subtitle {
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.auth-card__body {
+  padding: 0 var(--sp-6) var(--sp-6);
+}
+
+.auth-card__foot {
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-hr);
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.auth-card__foot div + div {
+  margin-top: var(--sp-2);
+}
+.auth-card__foot a {
+  font-weight: 500;
+}
+
+/* Form sections inside the auth card: quiet dividers, no bulky
+   top border/padding stacking on top of the card's own padding. */
+.auth-card .form-section {
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+.auth-card .form-section:last-of-type {
+  padding-bottom: 0;
+  margin-bottom: var(--sp-5);
+  border-bottom: none;
+}
+.auth-card .form-section__title {
+  font-size: 12px;
+}
+
+/* Terminal success state (e.g. registration submitted) — a calm,
+   centered confirmation rather than a transient toast. */
+.success-panel {
+  text-align: center;
+  padding: var(--sp-2) 0;
+}
+.success-panel__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto var(--sp-3);
+  border-radius: var(--radius-full);
+  background: var(--status-success-tint);
+  color: var(--status-success-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.success-panel__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-2);
+}
+.success-panel__text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+.success-panel__action {
+  margin-top: var(--sp-4);
+}

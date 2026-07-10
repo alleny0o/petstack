@@ -1,0 +1,79 @@
+/* ============================================================
+   PETCOM — components/alerts.css
+   Persistent inline messages: errors, warnings, must-read info.
+   Transient success feedback goes through toasts instead (see
+   components/toasts.css).
+   ============================================================ */
+
+.alert {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--sp-4);
+}
+.alert--error {
+  color: var(--status-error-text);
+  border-color: var(--color-error);
+  background: var(--status-error-tint);
+}
+.alert--success {
+  color: var(--status-success-text);
+  border-color: var(--color-success);
+  background: var(--status-success-tint);
+}
+.alert--warning {
+  color: var(--status-warning-text);
+  border-color: var(--color-warning);
+  background: var(--status-warning-tint);
+}
+.alert--info {
+  color: var(--status-info-text);
+  border-color: var(--status-info);
+  background: var(--status-info-tint);
+}
+.alert div + div {
+  margin-top: var(--sp-1);
+}
+
+/* Prominent one-time password reveal -- larger and harder to miss than
+   the standard .alert, since this is the only chance to copy the value. */
+.temp-password-banner {
+  background: var(--status-success-tint);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.temp-password-banner__heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--status-success-text);
+  margin-bottom: var(--sp-2);
+}
+.temp-password-banner__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+}
+.temp-password-banner__password {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-4);
+}
+.temp-password-banner__warning {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-top: var(--sp-2);
+}

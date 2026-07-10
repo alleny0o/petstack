@@ -113,7 +113,7 @@ $recentRejections = $pdo->query(
                 </a>
             </div>
 
-            <div class="dash-masonry">
+            <div class="dash-masonry" id="dash-masonry">
                 <div class="table-card">
                     <div class="table-card-header">
                         <span class="table-card-title">Pending Registrations</span>
@@ -209,6 +209,13 @@ $recentRejections = $pdo->query(
                         </ul>
                     <?php endif; ?>
                 </div>
+
+                <!-- Empty until script.js (initDashboardMasonry) distributes
+                     the 4 panels above into these by measured height —
+                     desktop/tablet only. On mobile they stay unused and
+                     the panels above simply stack in source order. -->
+                <div class="dash-masonry__col" data-masonry-col></div>
+                <div class="dash-masonry__col" data-masonry-col></div>
             </div>
         </main>
     </div>

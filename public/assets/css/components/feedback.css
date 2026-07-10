@@ -1,0 +1,60 @@
+/* ============================================================
+   PETCOM — components/feedback.css
+   Sections: Spinners / loading  Empty states (friendly,
+   directive — not just gray text)
+   ============================================================ */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: spinner-turn 0.6s linear infinite;
+  vertical-align: -3px;
+}
+.spinner--lg {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+}
+.empty-state__icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--sp-3);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-state__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-1);
+}
+.empty-state__hint {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 0;
+}
+.empty-state__action {
+  margin-top: var(--sp-4);
+}
+/* Tighter variant for dashboard panels */
+.empty-state--compact {
+  padding: var(--sp-5) var(--sp-4);
+}

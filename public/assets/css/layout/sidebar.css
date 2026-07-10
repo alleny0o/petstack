@@ -1,78 +1,5 @@
 /* ============================================================
-   PETCOM — layout.css
-   Sections: 6. App shell  7. App chrome  8. Sidebar
-   ============================================================ */
-
-
-/* ============================================================
-   6. APP SHELL (grid layout)
-   One shell handles every combination of header/footer being
-   present or absent. Sidebar occupies column 1 and is named in
-   all three rows, so it spans full height automatically no
-   matter which of the other areas exist on a given page.
-
-     "sidebar header"   <- auto height, collapses if no .app-header
-     "sidebar main"     <- 1fr, always present
-     "sidebar footer"   <- auto height, collapses if no .app-footer
-
-   NOTE: the sidebar partials place .app-topbar in this same
-   "header" area (see section 8) — it's always present via the
-   sidebar include, so on pages using that sidebar this row no
-   longer collapses to 0 the way it would with .app-header alone.
-
-   Usage: wrap sidebar include + main (+ optional header/footer)
-   in a single <div class="app-shell">. Nothing else to toggle —
-   just include or omit the header/footer partials per page.
-
-   Collapsing the sidebar (see section 8) updates --sidebar-width,
-   which this grid reads directly — so the column and the
-   sidebar's own width always stay in sync.
-   ============================================================ */
-
-.app-shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "sidebar header"
-    "sidebar main"
-    "sidebar footer";
-  min-height: 100vh;
-  min-height: 100dvh; /* tracks mobile browser chrome; vh line is the fallback */
-  transition: grid-template-columns 0.4s ease;
-}
-
-
-/* ============================================================
-   7. APP CHROME (header / main / footer grid-area bindings)
-   ============================================================ */
-
-.app-header {
-  grid-area: header;
-  background: var(--color-bg-chrome);
-  border-bottom: 1px solid var(--color-border-hr);
-}
-
-.app-main {
-  grid-area: main;
-  /* Grid items default to min-width:auto and refuse to shrink below their
-     content's intrinsic width — without this, a wide table stretches the
-     whole page and mobile browsers zoom out to fit (breaking 100vh). */
-  min-width: 0;
-  max-width: var(--content-max);
-  margin: 0 auto;
-  padding: var(--sp-6) var(--sp-5);
-  width: 100%;
-}
-
-.app-footer {
-  grid-area: footer;
-  border-top: 1px solid var(--color-border-hr);
-}
-
-
-/* ============================================================
-   8. SIDEBAR
+   PETCOM — layout/sidebar.css
    Desktop/tablet (>768px): toggle icon-rail collapse by setting
    data-sidebar="collapsed" on <html> via JS (see script.js) —
    applied before paint by the inline snippet in head.php.
@@ -81,7 +8,7 @@
    toggled via data-sidebar-mobile="open" on <html> instead (a
    separate attribute — "collapsed" and "open" are independent
    states, not a spectrum). See the mobile media query at the
-   end of this section for the topbar/backdrop/off-canvas rules.
+   end of this file for the topbar/backdrop/off-canvas rules.
 
    Using attributes on <html> (rather than classes on .sidebar)
    means the pre-paint inline script in <head> can apply saved
@@ -199,7 +126,18 @@
   list-style: none;
 }
 
-.sidebar .sidebar-content .menu-list li a {
+.sidebar .sidebar-content .menu-list li .menu-link {
+  width: 100%;
+  /* Safari paints native button chrome (rounded, bordered) over any
+     border/background override unless appearance is reset first —
+     Chrome/Firefox don't need this, but Safari does. */
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -209,17 +147,124 @@
   color: var(--color-text-primary);
   transition: 0.3s ease;
 }
-.sidebar .sidebar-content .menu-list li a svg {
+.sidebar .sidebar-content .menu-list li .menu-link svg {
   flex-shrink: 0;
 }
-.sidebar .sidebar-content .menu-list li a:hover {
+.sidebar .sidebar-content .menu-list li .menu-link:hover {
   background: var(--color-hover-secondary);
   color: var(--color-text-primary);
 }
-.sidebar .sidebar-content .menu-list li a.active {
+.sidebar .sidebar-content .menu-list li .menu-link.active {
   background: var(--accent-100);
   color: var(--accent-600);
   font-weight: bold;
+}
+
+/* Lighter cue for a submenu parent whose section is currently open (a
+   child page is active) — tint only, no bold/accent text, so it doesn't
+   compete with the actual current child's full .active treatment below.
+   Not gated behind the collapsed-sidebar media query, so the tint still
+   shows on the icon when the rail is collapsed. */
+.sidebar .sidebar-content .menu-list li .menu-link.menu-link--section-active {
+  background: var(--accent-100);
+}
+
+/* --- Sidebar: expandable "Accounts" submenu ---
+   Parent is a <button> (toggles state, doesn't navigate) styled
+   identically to the <a> menu-links above via the shared .menu-link
+   class. Chevron rotates on expand; submenu height-animates open
+   via max-height (no JS measuring needed for a short, fixed list). */
+
+.menu-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.menu-item--has-submenu.is-expanded .menu-chevron {
+  transform: rotate(180deg);
+}
+
+.submenu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  /* padding-y only applies while expanded (below) — padding isn't part
+     of the content-box that max-height constrains, so a base padding
+     here would leave a visible sliver even at max-height: 0. */
+  padding: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+}
+.menu-item--has-submenu.is-expanded .submenu {
+  max-height: 200px; /* generous cap for a 3-item list */
+  padding: var(--sp-2) 0;
+}
+
+.submenu-link {
+  display: flex;
+  align-items: center;
+  /* indent so the text lines up under the parent's label (past its
+     icon width + gap), not flush with the sidebar edge */
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) calc(var(--sp-4) + 18px + var(--sp-3));
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-decoration: none;
+  transition: 0.3s ease;
+}
+.submenu-link:hover {
+  background: var(--color-hover-secondary);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.submenu-link.active {
+  background: var(--accent-100);
+  color: var(--accent-600);
+  font-weight: bold;
+}
+
+/* Icon-rail collapsed sidebar has no room for an indented submenu or
+   a chevron next to a hidden label — hide both, same as .menu-label. */
+@media (min-width: 769px) {
+  [data-sidebar="collapsed"] .menu-chevron,
+  [data-sidebar="collapsed"] .submenu {
+    display: none;
+  }
+}
+
+/* --- Sidebar: collapsed-rail flyout (script.js: toggleSidebarFlyout) ---
+   The icon rail has no room for an inline submenu, so clicking "Accounts"
+   while collapsed opens this instead: a small floating panel appended to
+   <body> (not .sidebar-content, which clips via overflow) and positioned
+   next to the icon via getBoundingClientRect. No backdrop — closes on
+   outside click/Escape/link click/scroll/un-collapse (see script.js). */
+
+.sidebar-flyout {
+  position: fixed;
+  z-index: 60; /* same tier as .modal (components/modals.css), above .sidebar (50), below .toast-region (70) */
+  min-width: 200px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-2);
+}
+.sidebar-flyout__title {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+}
+.sidebar-flyout__list {
+  list-style: none;
+}
+.sidebar-flyout__list .submenu-link {
+  /* reset the indent padding meant for the inline nested-under-icon layout */
+  padding: var(--sp-2) var(--sp-3);
 }
 
 /* --- Sidebar: footer (account / logout block) --- */

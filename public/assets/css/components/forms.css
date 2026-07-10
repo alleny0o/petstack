@@ -1,0 +1,135 @@
+/* ============================================================
+   PETCOM — components/forms.css
+   ============================================================ */
+
+.field {
+  margin-bottom: var(--sp-4);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+  margin-bottom: var(--sp-1);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+  width: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-text-tertiary);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-bg-primary);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+  border-color: var(--color-border-input);
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Small helper text under a field (lead time notes, format hints) */
+.field-hint {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: var(--sp-1);
+}
+
+/* Inline validation message under a field */
+.field-error {
+  display: block;
+  font-size: 12px;
+  color: var(--status-error-text);
+  margin-top: var(--sp-1);
+}
+
+/* Invalid field: red border + red focus ring on the input itself */
+.field--invalid input,
+.field--invalid select,
+.field--invalid textarea {
+  border-color: var(--color-error);
+}
+.field--invalid input:focus,
+.field--invalid select:focus,
+.field--invalid textarea:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+.field--invalid > label {
+  color: var(--status-error-text);
+}
+
+/* Two fields side by side; stacks on mobile */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Asterisk marking a required field's label */
+.required-mark {
+  color: var(--color-error);
+}
+
+/* Grouped form sections with a small uppercase title */
+.form-section + .form-section {
+  border-top: 1px solid var(--color-border-hr);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-5);
+}
+.form-section__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--sp-4);
+}
+/* Quiet aside after a section title (e.g. "— optional") */
+.form-section__suffix {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}

@@ -20,5 +20,21 @@
 <!-- Leading slash: resolves from site root regardless of which folder
      the current page lives in (public/, public/customer/, etc). -->
 <link rel="stylesheet" href="/assets/css/style.css">
-<link rel="stylesheet" href="/assets/css/layout.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+
+<link rel="stylesheet" href="/assets/css/layout/shell.css">
+<link rel="stylesheet" href="/assets/css/layout/sidebar.css">
+
+<link rel="stylesheet" href="/assets/css/components/auth.css">
+<link rel="stylesheet" href="/assets/css/components/page-structure.css">
+<link rel="stylesheet" href="/assets/css/components/forms.css">
+<link rel="stylesheet" href="/assets/css/components/buttons.css">
+<link rel="stylesheet" href="/assets/css/components/tables.css">
+<link rel="stylesheet" href="/assets/css/components/alerts.css">
+<link rel="stylesheet" href="/assets/css/components/badges.css">
+<link rel="stylesheet" href="/assets/css/components/utilities.css">
+<link rel="stylesheet" href="/assets/css/components/toasts.css">
+<link rel="stylesheet" href="/assets/css/components/modals.css">
+<link rel="stylesheet" href="/assets/css/components/feedback.css">
+<link rel="stylesheet" href="/assets/css/components/dashboard.css">
+<link rel="stylesheet" href="/assets/css/components/radio-cards.css">
+<link rel="stylesheet" href="/assets/css/components/order-page.css">

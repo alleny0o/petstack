@@ -1,0 +1,62 @@
+/* ============================================================
+   PETCOM — components/radio-cards.css
+   Selectable bordered options. Checked styling uses :has() where
+   supported; the native radio stays visible as the baseline
+   signal everywhere else.
+   ============================================================ */
+
+.radio-card-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 640px) {
+  .radio-card-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+.radio-card {
+  display: block;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+  margin-bottom: 0;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  /* undo global label styling */
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  letter-spacing: 0;
+}
+.radio-card:hover {
+  border-color: var(--color-text-tertiary);
+}
+.radio-card input[type="radio"] {
+  margin-right: var(--sp-2);
+  accent-color: var(--accent-600);
+}
+.radio-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.radio-card__desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  padding-left: calc(13px + var(--sp-2)); /* aligns under the title, past the radio */
+}
+@supports selector(:has(*)) {
+  .radio-card:has(input:checked) {
+    border-color: var(--accent-600);
+    background: var(--status-info-tint);
+  }
+  .radio-card:has(input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 1px;
+  }
+}

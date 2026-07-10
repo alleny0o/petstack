@@ -1,0 +1,185 @@
+/* ============================================================
+   PETCOM — components/dashboard.css
+   Stat tiles, panel grid, quick actions, masonry.
+   ============================================================ */
+
+/* Explicit column counts (not auto-fit/minmax) so 4 tiles always land as
+   a clean row of 4 or a clean 2x2 — never an awkward 3-then-1 wrap.
+   Two tiers only: 2x2 from 320px up, 4-across from 1024px (Tailwind's
+   "lg") up — holds up fine at the smallest common mobile width, no
+   third single-column tier needed. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+@media (min-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-tile {
+  display: block;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: var(--sp-4) var(--sp-5);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+a.stat-tile:hover {
+  border-color: var(--accent-500);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+}
+
+.stat-tile__label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--sp-2);
+}
+.stat-tile__value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile__meta {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: var(--sp-1);
+}
+/* Word-valued tiles (a category name, not a count) */
+.stat-tile__value--text {
+  font-size: 20px;
+}
+
+/* Small status dot, usable anywhere (stat labels, list rows) */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-neutral);
+  flex-shrink: 0;
+}
+.dot--success { background: var(--status-success); }
+.dot--warning { background: var(--status-warning); }
+.dot--error   { background: var(--status-error); }
+.dot--info    { background: var(--status-info); }
+
+/* Two-column panel area below the tiles; stacks on tablets down */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--sp-4);
+  align-items: start;
+}
+.dash-grid--even {
+  grid-template-columns: 1fr 1fr;
+}
+.dash-grid > .card,
+.dash-grid > .table-card {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+/* Vertical run of cards inside one dash-grid column */
+.dash-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+@media (max-width: 900px) {
+  .dash-grid,
+  .dash-grid--even {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Masonry-style panel area: panels pack by actual rendered height.
+   Previously CSS multi-column (column-count: 2) — dropped because each
+   browser's internal column-balancing engine doesn't guarantee the same
+   distribution for the same content (confirmed Chrome and Safari packing
+   the 4 dashboard panels differently), which isn't acceptable here.
+   Now a JS pass (script.js: initDashboardMasonry) measures the panels
+   and places each into the shorter column itself, so the result is
+   ours to control and identical across browsers.
+
+   Base layout is a single column — the same one used at mobile widths
+   below — so it's a correct, JS-independent fallback: nothing renders
+   wrong before the script runs, and mobile needs no JS at all. JS adds
+   .dash-masonry--split once it has moved the panels into the two
+   [data-masonry-col] wrappers (empty and display:none until then, so
+   they don't contribute a spurious extra gap while unused). */
+.dash-masonry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.dash-masonry .card,
+.dash-masonry .table-card {
+  margin: 0;
+}
+.dash-masonry__col {
+  display: none;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.dash-masonry--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+.dash-masonry--split .dash-masonry__col {
+  display: flex;
+}
+
+/* Compact list inside a dashboard panel (recent items) */
+.mini-list {
+  list-style: none;
+}
+.mini-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+  font-size: 13px;
+}
+.mini-list li:first-child {
+  padding-top: 0;
+}
+.mini-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.mini-list__main {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mini-list__meta {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}

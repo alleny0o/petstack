@@ -1,0 +1,82 @@
+/* ============================================================
+   PETCOM — components/badges.css
+   The app-wide status vocabulary. Two shapes, two meanings:
+   - status  = pill + leading dot (active, pending, rejected, …)
+   - role    = square chip, no dot (admin, staff)
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
+  white-space: nowrap;
+}
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--badge-dot, var(--status-neutral));
+  flex-shrink: 0;
+}
+
+/* Status variants — shared tones per meaning:
+   good (green): active / approved / completed
+   waiting (amber): pending
+   bad (red): rejected
+   off (gray): inactive / canceled
+   in-flight (blue): accepted */
+.badge--active,
+.badge--approved,
+.badge--completed {
+  --badge-dot: var(--status-success);
+  color: var(--status-success-text);
+  background: var(--status-success-tint);
+}
+.badge--pending {
+  --badge-dot: var(--status-warning);
+  color: var(--status-warning-text);
+  background: var(--status-warning-tint);
+}
+.badge--rejected {
+  --badge-dot: var(--status-error);
+  color: var(--status-error-text);
+  background: var(--status-error-tint);
+}
+.badge--inactive,
+.badge--canceled {
+  --badge-dot: var(--status-neutral);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
+}
+.badge--accepted {
+  --badge-dot: var(--status-info);
+  color: var(--status-info-text);
+  background: var(--status-info-tint);
+}
+
+/* Role chips — square, no dot: a fact, not a state */
+.badge--role-admin,
+.badge--role-staff {
+  border-radius: var(--radius-sm);
+}
+.badge--role-admin::before,
+.badge--role-staff::before {
+  display: none;
+}
+.badge--role-admin {
+  color: var(--status-info-text);
+  background: var(--status-info-tint);
+}
+.badge--role-staff {
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
+}

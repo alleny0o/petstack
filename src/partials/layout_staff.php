@@ -7,7 +7,7 @@ $accountInitials = implode('', array_map(
 ));
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 ?>
-<!-- App topbar: always present (see layout.css section 8). The
+<!-- App topbar: always present (see layout/sidebar.css). The
      hamburger button inside it is the only mobile-specific part. -->
 <div class="app-topbar u-mobile-only">
   <button class="hamburger-toggle" type="button" aria-label="Open menu">
@@ -53,7 +53,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         </li>
 
         <li class="menu-item">
-          <a href="/staff_past_orders.php" class="menu-link <?= $currentPage === 'staff_past_orders' ? 'active' : '' ?>">
+          <a href="/staff/past_orders.php" class="menu-link <?= $currentPage === 'past_orders' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11l3 3L22 4"></path>
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>

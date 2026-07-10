@@ -1,0 +1,131 @@
+/* ============================================================
+   PETCOM — components/buttons.css
+   Compact by default (~32px). Variants: primary (solid accent),
+   secondary (white + border), danger (outline red — the loud
+   solid red lives in .btn--danger-solid for modal confirms),
+   ghost (borderless). Sizes: --sm (~26px), --lg (~38px, auth
+   submits only).
+
+   NOTE: .btn .spinner below relies on the base .spinner rule
+   defined in components/feedback.css — both files must be
+   loaded on any page using buttons (true of every page today).
+   ============================================================ */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn--primary {
+  background: var(--color-btn-primary-bg);
+  color: var(--color-text-on-accent);
+  box-shadow: var(--shadow-xs);
+}
+.btn--primary:hover {
+  background: var(--color-btn-primary-bg-hover);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.btn--secondary {
+  background: var(--color-btn-secondary-bg);
+  color: var(--color-btn-secondary-text);
+  border-color: var(--color-border-input);
+  box-shadow: var(--shadow-xs);
+}
+.btn--secondary:hover {
+  background: var(--color-btn-secondary-bg-hover);
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+/* Outline red: destructive actions on pages. The confirm modal
+   carries the solid red so danger reads loudest at the moment of
+   commitment, not all over the page. */
+.btn--danger {
+  background: var(--color-bg-surface);
+  color: var(--status-error-text);
+  border-color: var(--color-error);
+}
+.btn--danger:hover {
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.btn--danger-solid {
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
+  box-shadow: var(--shadow-xs);
+}
+.btn--danger-solid:hover {
+  background: var(--status-error-text);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btn--ghost:hover {
+  background: var(--color-hover-primary);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.btn--block {
+  display: block;
+  width: 100%;
+}
+
+.btn--sm {
+  font-size: 12px;
+  padding: 0.25rem 0.6rem;
+}
+
+.btn--lg {
+  font-size: 14px;
+  padding: 0.55rem 1.1rem;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn:disabled:hover {
+  /* freeze hover styles per-variant by re-asserting the base */
+  text-decoration: none;
+}
+
+/* Submitting state — spinner element is inserted by script.js;
+   pointer-events (not `disabled`) so submitted values are kept. */
+.btn.is-loading {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.btn .spinner {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}

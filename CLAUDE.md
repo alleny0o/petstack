@@ -43,14 +43,30 @@ petcom/
       account_create.php   (D.2: create a staff or admin account)
     assets/
       css/
-        style.css      (tokens + base + typography)
-        components.css (forms, buttons, cards, tables, alerts, badges,
-                        toasts, modals, spinners, empty states, stat tiles)
-        layout.css      (sidebar, topbar, grid)
+        style.css        (tokens + base/reset + typography + accessibility)
+        layout/
+          shell.css       (app-shell grid, header/main/footer bindings)
+          sidebar.css     (sidebar: collapse, submenu, flyout, mobile off-canvas)
+        components/
+          auth.css
+          page-structure.css   (page header, cards, detail-list)
+          forms.css
+          buttons.css
+          tables.css
+          alerts.css            (incl. temp-password banner)
+          badges.css
+          utilities.css
+          toasts.css
+          modals.css
+          feedback.css          (spinners, empty states)
+          dashboard.css         (stat tiles, panel grid, masonry)
+          radio-cards.css
+          order-page.css        (baseline for Phase E)
       js/
-        script.js      (sidebar collapse + mobile off-canvas toggle,
-                        toasts, confirm modals, form-submit loading,
-                        copy-to-clipboard)
+        script.js        (single file, no bundler — sidebar collapse +
+                          mobile off-canvas toggle, toasts, confirm modals,
+                          form-submit loading, copy-to-clipboard; one
+                          DOMContentLoaded init block)
 
   src/                 # Above web root — never servable by URL
     config.php          (DB credentials, gitignored)
@@ -185,9 +201,10 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 
 ## CSS Architecture
 
-- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, design tokens (colors + status text/tint pairs, spacing, radii `--radius-sm/md/lg/full`, shadows `--shadow-xs…lg`), typography
-- **components.css:** Forms, buttons, cards, tables, alerts, badges, utilities, responsive breakpoints, accessibility, detail lists, toasts, modals, spinners/loading, empty states, dashboard stat tiles, radio cards, order-page baselines
-- **layout.css:** Sidebar (sticky, collapse on desktop, off-canvas on mobile), topbar, grid layout, dark mode hooks
+- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, design tokens (colors + status text/tint pairs, spacing, radii `--radius-sm/md/lg/full`, shadows `--shadow-xs…lg`), typography, accessibility (`:focus-visible`, `prefers-reduced-motion`, `.sr-only`)
+- **layout/shell.css:** App-shell grid, header/main/footer chrome bindings
+- **layout/sidebar.css:** Sidebar (sticky, collapse on desktop, off-canvas on mobile), topbar, dark mode hooks
+- **components/:** One file per concern — auth, page-structure (page header + cards + detail list), forms, buttons, tables, alerts (incl. temp-password banner), badges, utilities, toasts, modals, feedback (spinners + empty states), dashboard (stat tiles + masonry), radio-cards, order-page
 
 **No role-specific CSS files.** All three roles share the same component library.
 
@@ -222,6 +239,21 @@ high-level status marker so it doesn't need editing every time a sub-phase
 ships. Current status: **A, B, and C are complete. D is in progress (D.1
 customer management and D.2 staff/admin account management are done; D.3
 institute/lab/PI CRUD has not started). E and F have not started.**
+
+## Verification Policy
+
+Claude Code must NOT start background servers, spin up scratch/temp MySQL 
+instances, or run live HTTP verification (curl, PHP built-in server, etc.) 
+as part of any task, even for 'verification' purposes. This includes 
+resetting temp passwords or modifying any database, scratch or otherwise, 
+without explicit instruction.
+
+Verification must be limited to: php -l (syntax check), static code 
+review/diffs, and grep-based checks (e.g. confirming no leftover references 
+after a rename). The user will handle all live browser-based testing 
+themselves, manually, in their own MAMP environment. This is a firm rule, 
+not a suggestion — do not deviate from it even if it seems more thorough 
+to test live.
 
 ---
 

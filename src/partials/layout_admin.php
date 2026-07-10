@@ -6,8 +6,14 @@ $accountInitials = implode('', array_map(
     array_slice(explode(' ', $accountName), 0, 2)
 ));
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
+
+// The three account-workflow pages now live under one expandable
+// "Accounts" parent — expand it server-side when we're already on one
+// of them, so the correct state renders on first paint with no JS.
+$accountsChildPages = ['registrations', 'customers', 'customer_detail', 'accounts', 'account_detail', 'account_create'];
+$accountsSectionActive = in_array($currentPage, $accountsChildPages, true);
 ?>
-<!-- App topbar: always present (see layout.css section 8). The
+<!-- App topbar: always present (see layout/sidebar.css). The
      hamburger button inside it is the only mobile-specific part. -->
 <div class="app-topbar u-mobile-only">
   <button class="hamburger-toggle" type="button" aria-label="Open menu">
@@ -52,41 +58,8 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
           </a>
         </li>
 
-        <li class="menu-item">
-          <a href="/admin/registrations.php" class="menu-link <?= $currentPage === 'registrations' ? 'active' : '' ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="8.5" cy="7" r="4"></circle>
-              <line x1="20" y1="8" x2="20" y2="14"></line>
-              <line x1="23" y1="11" x2="17" y2="11"></line>
-            </svg>
-            <span class="menu-label"><span class="menu-label__text">Registrations</span></span>
-          </a>
-        </li>
-
-        <li class="menu-item">
-          <a href="/admin/customers.php" class="menu-link <?= in_array($currentPage, ['customers', 'customer_detail'], true) ? 'active' : '' ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <span class="menu-label"><span class="menu-label__text">Customers</span></span>
-          </a>
-        </li>
-
-        <li class="menu-item">
-          <a href="/admin_catalog.php" class="menu-link <?= $currentPage === 'admin_catalog' ? 'active' : '' ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            <span class="menu-label"><span class="menu-label__text">Catalog Config</span></span>
-          </a>
-        </li>
-
-        <li class="menu-item">
-          <a href="/admin/accounts.php" class="menu-link <?= in_array($currentPage, ['accounts', 'account_detail', 'account_create'], true) ? 'active' : '' ?>">
+        <li class="menu-item menu-item--has-submenu <?= $accountsSectionActive ? 'is-expanded' : '' ?>">
+          <button type="button" class="menu-link <?= $accountsSectionActive ? 'menu-link--section-active' : '' ?>" aria-expanded="<?= $accountsSectionActive ? 'true' : 'false' ?>" aria-controls="accounts-submenu">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -94,17 +67,31 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span class="menu-label"><span class="menu-label__text">Accounts</span></span>
-          </a>
+            <svg class="menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <ul class="submenu" id="accounts-submenu">
+            <li>
+              <a href="/admin/registrations.php" class="submenu-link <?= $currentPage === 'registrations' ? 'active' : '' ?>">Pending Registrations</a>
+            </li>
+            <li>
+              <a href="/admin/customers.php" class="submenu-link <?= in_array($currentPage, ['customers', 'customer_detail'], true) ? 'active' : '' ?>">Customers</a>
+            </li>
+            <li>
+              <a href="/admin/accounts.php" class="submenu-link <?= in_array($currentPage, ['accounts', 'account_detail', 'account_create'], true) ? 'active' : '' ?>">Staff &amp; Admins</a>
+            </li>
+          </ul>
         </li>
 
         <li class="menu-item">
-          <a href="/admin_reports.php" class="menu-link <?= $currentPage === 'admin_reports' ? 'active' : '' ?>">
+          <a href="/admin/catalog.php" class="menu-link <?= $currentPage === 'catalog' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Reports</span></span>
+            <span class="menu-label"><span class="menu-label__text">Catalog Config</span></span>
           </a>
         </li>
 

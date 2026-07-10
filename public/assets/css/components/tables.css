@@ -1,0 +1,176 @@
+/* ============================================================
+   PETCOM — components/tables.css
+   ============================================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+}
+.table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: var(--color-bg-primary);
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-hr);
+  white-space: nowrap;
+}
+.table td {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+/* First column is the row's anchor (name/email) — worth a shade
+   more weight so rows scan by their identity. */
+.table td:first-child {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+/* Last column holds row actions — tuck them against the right edge. */
+.table th:last-child,
+.table td:last-child {
+  text-align: right;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tbody tr:hover td {
+  background: var(--color-bg-primary);
+}
+
+/* Friendly empty state inside a table card (see also components/feedback.css) */
+.table-empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+}
+.table-empty .btn {
+  margin-top: var(--sp-3);
+}
+
+/* --- Table card (title bar + controls above a table) --- */
+
+.table-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--sp-5);
+  overflow: hidden; /* clip table corners to the card radius */
+}
+
+.table-card-header {
+  display: flex;
+  flex-wrap: wrap; /* controls drop to a second row on narrow screens */
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+
+.table-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.table-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Compact overrides — undo the global width:100% and shrink padding */
+.table-card-controls select,
+.table-card-controls input[type="text"],
+.table-card-controls input[type="date"] {
+  width: auto;
+  font-size: 13px;
+  padding: 0.3rem 0.6rem;
+}
+
+/* Search input shrinks on narrow screens instead of widening the page */
+.table-card-controls input[type="text"] {
+  flex: 1 1 130px;
+  min-width: 0;
+  max-width: 240px;
+}
+
+/* Card provides the outer border; remove the table's own */
+.table-card .table {
+  border: none;
+}
+
+/* Wide tables scroll inside the card instead of stretching the page
+   (a page-level horizontal scrollbar hides the bottom of the 100vh
+   sidebar behind it) */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* Action link in table rows */
+.table-action {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.table-action:hover {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+/* Prev/Next + "Showing a–b of n" strip below a paginated table */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--color-border-hr);
+}
+.table-pagination__status {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.table-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.table-pagination .btn {
+  min-width: 30px;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+.table-pagination .btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Responsive override (was components.css §17) */
+@media (max-width: 640px) {
+  .table {
+    font-size: 13px;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}

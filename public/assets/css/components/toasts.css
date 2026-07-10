@@ -1,0 +1,76 @@
+/* ============================================================
+   PETCOM — components/toasts.css
+   Transient success/info feedback — script.js
+   ============================================================ */
+
+.toast-region {
+  position: fixed;
+  bottom: var(--sp-5);
+  right: var(--sp-5);
+  z-index: 70; /* above modals: feedback outlives a closing dialog */
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(340px, calc(100vw - 2 * var(--sp-4)));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.65rem 0.75rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  animation: toast-in 0.2s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+.toast--leaving {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-neutral);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.toast--success .toast__dot { background: var(--status-success); }
+.toast--error   .toast__dot { background: var(--status-error); }
+.toast--warning .toast__dot { background: var(--status-warning); }
+.toast--info    .toast__dot { background: var(--status-info); }
+
+.toast__msg {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-top: 1px;
+}
+
+.toast__close {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+.toast__close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-hover-primary);
+}

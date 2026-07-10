@@ -1,0 +1,57 @@
+/* ============================================================
+   PETCOM — components/utilities.css
+   ============================================================ */
+
+.muted {
+  color: var(--color-text-tertiary);
+}
+.text-sm {
+  font-size: 13px;
+}
+.mt-0 {
+  margin-top: 0;
+}
+.mt-2 {
+  margin-top: var(--sp-2);
+}
+.mt-4 {
+  margin-top: var(--sp-4);
+}
+.mb-0 {
+  margin-bottom: 0;
+}
+.mb-2 {
+  margin-bottom: var(--sp-2);
+}
+.mb-4 {
+  margin-bottom: var(--sp-4);
+}
+
+.flex {
+  display: flex;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gap-2 {
+  gap: var(--sp-2);
+}
+.gap-3 {
+  gap: var(--sp-3);
+}
+.justify-end {
+  justify-content: flex-end;
+}
+
+/* Hidden by default, only appears at ≤768px. Add to any element
+   you want mobile-only — e.g. <div class="app-topbar u-mobile-only"> */
+.u-mobile-only {
+  display: none;
+}
+@media (max-width: 768px) {
+  .u-mobile-only {
+    display: flex; /* swap to `block` if the element isn't a flex row */
+  }
+}

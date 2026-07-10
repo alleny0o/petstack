@@ -1,7 +1,7 @@
 /* ============================================================
    PETCOM — style.css
    Sections: 1. Raw palette  2. Semantic tokens  3. Base / reset
-             4. Typography
+             4. Typography  5. Accessibility
    ============================================================ */
 
 
@@ -222,4 +222,33 @@ code {
 /* Numbers (mCi, dates) line up in columns */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   5. ACCESSIBILITY
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
