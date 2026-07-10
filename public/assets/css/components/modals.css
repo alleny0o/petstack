@@ -67,8 +67,19 @@
 }
 
 /* Scroll lock while any modal is open (independent of the mobile
-   sidebar's own lock, which uses data-sidebar-mobile) */
-[data-modal-open],
-[data-modal-open] body {
+   sidebar's own lock, which uses data-sidebar-mobile).
+   html ONLY — do not also add ", [data-modal-open] body" here.
+   Locking html directly freezes the viewport at its current scroll
+   position, which is all that's needed. Locking body too makes body
+   its OWN independent scroll container (it stops just proxying to
+   the viewport), and a freshly-independent scroll container starts
+   at scrollTop 0 regardless of how far the (now-frozen) viewport
+   was actually scrolled — so .sidebar's position:sticky (desktop/
+   tablet, layout/sidebar.css) recomputes against that zeroed body
+   frame instead of the real frozen viewport and renders off-screen
+   by however far the page had been scrolled. Confirmed live: html+
+   body froze scrolling correctly but still made the sidebar vanish;
+   html-only fixes both. */
+[data-modal-open] {
   overflow-y: hidden;
 }
