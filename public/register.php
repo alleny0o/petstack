@@ -1,253 +1,338 @@
 <?php
-/**
- * Self-registration page.
- *
- * Standalone: no shared header/footer (pre-login flow).
- * Submitting creates a pending registration REQUEST, not an active account.
- * An admin must approve before the account is activated.
- *
- * Right now this only RENDERS the form. Submitting it does nothing until
- * db.php + schema exist.
- *
- * TODO (once schema exists):
- *   1. Verify CSRF token
- *   2. Validate all required fields server-side
- *   3. Check no existing account/request with this email
- *   4. INSERT into customer_registration_requests (status = 'pending')
- *   5. Show success message ("Your request has been submitted...")
- */
+require __DIR__ . '/../src/helpers.php';
+bootstrap_session();
+require __DIR__ . '/../src/db.php';
+require __DIR__ . '/../src/auth.php';
 
-$error = '';
-$success = false;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // TODO: wire to db.php once schema exists.
-  $error = 'Registration is not wired up yet.';
+if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
+    redirect(dashboard_path_for_role($_SESSION['role']));
 }
 
-// TODO: replace with a real db query once schema exists.
-// SELECT id, name FROM institutes WHERE active = 1 ORDER BY name
-$institutes = [
-  'CC' => 'CC — Clinical Center',
-  'FIC' => 'FIC — Fogarty International Center',
-  'NCATS' => 'NCATS — National Center for Advancing Translational Sciences',
-  'NCCIH' => 'NCCIH — National Center for Complementary and Integrative Health',
-  'NCI' => 'NCI — National Cancer Institute',
-  'NEI' => 'NEI — National Eye Institute',
-  'NHGRI' => 'NHGRI — National Human Genome Research Institute',
-  'NHLBI' => 'NHLBI — National Heart, Lung, and Blood Institute',
-  'NIA' => 'NIA — National Institute on Aging',
-  'NIAAA' => 'NIAAA — National Institute on Alcohol Abuse and Alcoholism',
-  'NIAID' => 'NIAID — National Institute of Allergy and Infectious Diseases',
-  'NIAMS' => 'NIAMS — National Institute of Arthritis and Musculoskeletal and Skin Diseases',
-  'NIBIB' => 'NIBIB — National Institute of Biomedical Imaging and Bioengineering',
-  'NICHD' => 'NICHD — Eunice Kennedy Shriver National Institute of Child Health and Human Development',
-  'NIDA' => 'NIDA — National Institute on Drug Abuse',
-  'NIDCD' => 'NIDCD — National Institute on Deafness and Other Communication Disorders',
-  'NIDCR' => 'NIDCR — National Institute of Dental and Craniofacial Research',
-  'NIDDK' => 'NIDDK — National Institute of Diabetes and Digestive and Kidney Diseases',
-  'NIEHS' => 'NIEHS — National Institute of Environmental Health Sciences',
-  'NIGMS' => 'NIGMS — National Institute of General Medical Sciences',
-  'NIMH' => 'NIMH — National Institute of Mental Health',
-  'NIMHD' => 'NIMHD — National Institute on Minority Health and Health Disparities',
-  'NINDS' => 'NINDS — National Institute of Neurological Disorders and Stroke',
-  'NINR' => 'NINR — National Institute of Nursing Research',
-  'NLM' => 'NLM — National Library of Medicine',
-  'ODP' => 'ODP — Office of Disease Prevention',
-  'ORS' => 'ORS — Office of Research Services',
+$errors = [];
+$submitted = false;
+$old = [
+    'institute_id'      => '',
+    'lab_id'            => '',
+    'first_name'        => '',
+    'last_name'         => '',
+    'email'             => '',
+    'phone'             => '',
+    'pi_id'             => '',
+    'nrc_contact_name'  => '',
+    'nrc_contact_phone' => '',
+    'nrc_contact_email' => '',
 ];
 
-// Re-populate fields on error so the user doesn't lose their input
-$old = $_POST ?? [];
-function old(string $key, string $default = ''): string
-{
-  global $old;
-  return htmlspecialchars($old[$key] ?? $default);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+
+    $old['institute_id']      = $_POST['institute_id'] ?? '';
+    $old['lab_id']            = $_POST['lab_id'] ?? '';
+    $old['first_name']        = trim($_POST['first_name'] ?? '');
+    $old['last_name']         = trim($_POST['last_name'] ?? '');
+    $old['email']             = trim($_POST['email'] ?? '');
+    $old['phone']             = trim($_POST['phone'] ?? '');
+    $old['pi_id']             = $_POST['pi_id'] ?? '';
+    $old['nrc_contact_name']  = trim($_POST['nrc_contact_name'] ?? '');
+    $old['nrc_contact_phone'] = trim($_POST['nrc_contact_phone'] ?? '');
+    $old['nrc_contact_email'] = trim($_POST['nrc_contact_email'] ?? '');
+
+    if ($old['institute_id'] === '') {
+        $errors[] = 'Institute is required.';
+    }
+    if ($old['lab_id'] === '') {
+        $errors[] = 'Lab is required.';
+    }
+    if ($old['first_name'] === '') {
+        $errors[] = 'First name is required.';
+    }
+    if ($old['last_name'] === '') {
+        $errors[] = 'Last name is required.';
+    }
+    if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'A valid email is required.';
+    } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
+        $errors[] = 'Email must be an @nih.gov address.';
+    }
+    if ($old['phone'] === '') {
+        $errors[] = 'Phone is required.';
+    } elseif (!preg_match('/^[0-9()+.\-\s]+$/', $old['phone']) || !preg_match('/[0-9]/', $old['phone'])) {
+        $errors[] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
+    }
+    if ($old['pi_id'] === '') {
+        $errors[] = 'Supervising PI is required.';
+    }
+    // NRC contact fields are only relevant for shipping orders (per the
+    // original requirements interview), so they're optional at
+    // registration time — collected now for convenience, not required.
+    if ($old['nrc_contact_email'] !== '' && !filter_var($old['nrc_contact_email'], FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'NRC contact email must be a valid email address.';
+    }
+
+    $pdo = get_db();
+
+    if (!$errors) {
+        $stmt = $pdo->prepare('SELECT 1 FROM institutes WHERE institute_id = ? AND active = 1');
+        $stmt->execute([$old['institute_id']]);
+        if (!$stmt->fetchColumn()) {
+            $errors[] = 'Select a valid institute.';
+        }
+    }
+    if (!$errors) {
+        $stmt = $pdo->prepare('SELECT 1 FROM labs WHERE lab_id = ? AND institute_id = ? AND active = 1');
+        $stmt->execute([$old['lab_id'], $old['institute_id']]);
+        if (!$stmt->fetchColumn()) {
+            $errors[] = 'Select a valid lab for the chosen institute.';
+        }
+    }
+    if (!$errors) {
+        // PI must be active AND actually linked to the chosen lab via
+        // lab_pis — the client-side filter narrows the dropdown to this
+        // same set, this is just the server-side backstop.
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM pis
+             JOIN lab_pis ON lab_pis.pi_id = pis.pi_id
+             WHERE pis.pi_id = ? AND pis.active = 1 AND lab_pis.lab_id = ?'
+        );
+        $stmt->execute([$old['pi_id'], $old['lab_id']]);
+        if (!$stmt->fetchColumn()) {
+            $errors[] = 'Select a valid supervising PI for the chosen lab.';
+        }
+    }
+    if (!$errors) {
+        // Duplicate prevention: a pending request already exists, or an
+        // account already exists. A rejected prior request does not
+        // block resubmission. These are the only two account-existence
+        // signals shown to an unauthenticated visitor.
+        $stmt = $pdo->prepare("SELECT 1 FROM customer_registration_requests WHERE email = ? AND status = 'pending'");
+        $stmt->execute([$old['email']]);
+        if ($stmt->fetchColumn()) {
+            $errors[] = 'A registration for this email is already pending.';
+        }
+    }
+    if (!$errors) {
+        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ?');
+        $stmt->execute([$old['email']]);
+        if ($stmt->fetchColumn()) {
+            $errors[] = 'An account already exists for this email.';
+        }
+    }
+
+    if (!$errors) {
+        $pdo->prepare(
+            "INSERT INTO customer_registration_requests
+                (lab_id, pi_id, first_name, last_name, email, phone,
+                 nrc_contact_name, nrc_contact_phone, nrc_contact_email, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+        )->execute([
+            $old['lab_id'],
+            $old['pi_id'],
+            $old['first_name'],
+            $old['last_name'],
+            $old['email'],
+            $old['phone'],
+            $old['nrc_contact_name'] !== '' ? $old['nrc_contact_name'] : null,
+            $old['nrc_contact_phone'] !== '' ? $old['nrc_contact_phone'] : null,
+            $old['nrc_contact_email'] !== '' ? $old['nrc_contact_email'] : null,
+        ]);
+
+        $submitted = true;
+    }
 }
+
+$pdo = get_db();
+$institutes = $pdo->query('SELECT institute_id, name FROM institutes WHERE active = 1 ORDER BY name')->fetchAll();
+$labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs WHERE active = 1 ORDER BY lab_name')->fetchAll();
+$pis = $pdo->query('SELECT pi_id, pi_name FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
+$labPiMap = $pdo->query(
+    'SELECT lab_pis.lab_id, lab_pis.pi_id
+     FROM lab_pis
+     JOIN pis ON pis.pi_id = lab_pis.pi_id
+     WHERE pis.active = 1'
+)->fetchAll();
+
+// Build pi_id => "lab_id lab_id …" for the client-side filter, mirroring
+// the institute_id -> lab_id filter below (a PI can oversee multiple labs).
+$piLabIds = [];
+foreach ($labPiMap as $row) {
+    $piLabIds[$row['pi_id']][] = $row['lab_id'];
+}
+
+$pageTitle = 'Register';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <?php $pageTitle = 'Register';
-  include '../src/partials/head.php'; ?>
-
-  <style>
-    /* Register card is wider than the login card */
-    .auth-card {
-      max-width: 540px;
-    }
-
-    .form-section {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--color-text-secondary);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding-bottom: 0.4rem;
-      border-bottom: 1px solid var(--color-border-hr);
-      margin: 1.5rem 0 1rem;
-    }
-
-    .form-section:first-of-type {
-      margin-top: 0;
-    }
-
-    .form-section__note {
-      font-size: 12px;
-      color: var(--color-text-placeholder);
-      font-weight: 400;
-      text-transform: none;
-      letter-spacing: 0;
-      margin-top: 0.2rem;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem 1rem;
-    }
-
-    .form-grid .span-2 {
-      grid-column: 1 / -1;
-    }
-
-    @media (max-width: 520px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .form-grid .span-2 {
-        grid-column: 1;
-      }
-    }
-  </style>
+    <?php include __DIR__ . '/../src/partials/head.php'; ?>
 </head>
-
 <body>
-
-  <div class="auth-wrap">
-    <div class="auth-card">
-
-      <!-- Header -->
-      <div class="auth-card__head">
-        <div class="auth-card__brand">
-          <div class="auth-card__logo">P</div>
-          <div>
-            <div class="auth-card__title">Request an account</div>
-            <div class="auth-card__subtitle">An admin will review and activate your account</div>
+    <div class="auth-wrap">
+      <div class="auth-card auth-card--wide">
+        <div class="auth-card__head">
+          <div class="auth-card__brand">
+            <div class="auth-card__logo">
+              <img src="/favicons/android-chrome-192x192.png" alt="PETCOM">
+            </div>
+            <div>
+              <div class="auth-card__title">PETCOM</div>
+              <div class="auth-card__subtitle">Customer Registration</div>
+            </div>
           </div>
         </div>
-      </div>
+        <div class="auth-card__body">
 
-      <!-- Body -->
-      <div class="auth-card__body">
+          <?php if ($submitted): ?>
+            <div class="alert alert--success">Registration submitted. An administrator will review your request and contact you.</div>
+          <?php else: ?>
 
-        <?php if ($error): ?>
-          <div class="alert alert--error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <?php if ($success): ?>
-          <div class="alert alert--success">
-            Your request has been submitted. An admin will contact you via NIH
-            email once your account is activated.
-          </div>
-        <?php else: ?>
-
-          <form method="post" action="register.php">
-
-            <!-- 1. Institute -->
-            <div class="form-section">Institute</div>
-            <div class="field">
-              <label for="institute">NIH Institute</label>
-              <select id="institute" name="institute" required>
-                <option value="" disabled <?= !old('institute') ? 'selected' : '' ?>>
-                  Select your institute
-                </option>
-                <?php foreach ($institutes as $code => $label): ?>
-                  <option value="<?= htmlspecialchars($code) ?>" <?= old('institute') === $code ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($label) ?>
-                  </option>
+            <?php if ($errors): ?>
+              <div class="alert alert--error">
+                <?php foreach ($errors as $error): ?>
+                  <div><?= e($error) ?></div>
                 <?php endforeach; ?>
-              </select>
-            </div>
+              </div>
+            <?php endif; ?>
 
-            <!-- 2. Investigator (the person registering) -->
-            <div class="form-section">Investigator (you)</div>
-            <div class="form-grid">
-              <div class="field">
-                <label for="inv_name">Full name</label>
-                <input type="text" id="inv_name" name="inv_name" value="<?= old('inv_name') ?>" required>
-              </div>
-              <div class="field">
-                <label for="inv_email">NIH email <span class="muted">(your login)</span></label>
-                <input type="email" id="inv_email" name="inv_email" value="<?= old('inv_email') ?>"
-                  autocomplete="username" required>
-              </div>
-              <div class="field">
-                <label for="inv_phone">Phone</label>
-                <input type="text" id="inv_phone" name="inv_phone" value="<?= old('inv_phone') ?>" required>
-              </div>
-              <div class="field">
-                <label for="inv_lab">Lab <span class="muted">(Building &amp; Room)</span></label>
-                <input type="text" id="inv_lab" name="inv_lab" placeholder="e.g. Bldg 10, Rm 1C401"
-                  value="<?= old('inv_lab') ?>" required>
-              </div>
-            </div>
+            <form method="post" novalidate>
+              <?= csrf_field() ?>
 
-            <!-- 3. Principal Investigator -->
-            <div class="form-section">Principal Investigator</div>
-            <div class="form-grid">
-              <div class="field span-2">
-                <label for="pi_name">PI name</label>
-                <input type="text" id="pi_name" name="pi_name" value="<?= old('pi_name') ?>" required>
-              </div>
-              <div class="field">
-                <label for="pi_email">PI email</label>
-                <input type="email" id="pi_email" name="pi_email" value="<?= old('pi_email') ?>" required>
-              </div>
-              <div class="field">
-                <label for="pi_phone">PI phone</label>
-                <input type="text" id="pi_phone" name="pi_phone" value="<?= old('pi_phone') ?>" required>
-              </div>
-            </div>
+              <div class="form-section">
+                <span class="form-section__title">Institute &amp; Lab</span>
 
-            <!-- 4. NRC License Contact -->
-            <div class="form-section">
-              NRC License Contact
-              <div class="form-section__note">For shipping orders only</div>
-            </div>
-            <div class="form-grid">
-              <div class="field span-2">
-                <label for="nrc_name">Contact name</label>
-                <input type="text" id="nrc_name" name="nrc_name" value="<?= old('nrc_name') ?>">
+                <div class="field">
+                  <label for="institute_id">Institute <span class="required-mark">*</span></label>
+                  <select id="institute_id" name="institute_id" required>
+                    <option value="">Select institute…</option>
+                    <?php foreach ($institutes as $institute): ?>
+                      <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+
+                <div class="field mb-0">
+                  <label for="lab_id">Lab <span class="required-mark">*</span></label>
+                  <select id="lab_id" name="lab_id" required>
+                    <option value="">Select institute first…</option>
+                    <?php foreach ($labs as $lab): ?>
+                      <option value="<?= (int) $lab['lab_id'] ?>" data-institute-id="<?= (int) $lab['institute_id'] ?>" <?= (string) $lab['lab_id'] === $old['lab_id'] ? 'selected' : '' ?>><?= e($lab['lab_name']) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <span class="field-hint">Don't see your lab? Contact an admin.</span>
+                </div>
               </div>
-              <div class="field">
-                <label for="nrc_phone">Contact phone</label>
-                <input type="text" id="nrc_phone" name="nrc_phone" value="<?= old('nrc_phone') ?>">
+
+              <div class="form-section">
+                <span class="form-section__title">Investigator</span>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="first_name">First name <span class="required-mark">*</span></label>
+                    <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                  </div>
+                  <div class="field">
+                    <label for="last_name">Last name <span class="required-mark">*</span></label>
+                    <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="email">Email <span class="required-mark">*</span></label>
+                    <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
+                    <span class="field-hint">This becomes your username.</span>
+                  </div>
+                  <div class="field">
+                    <label for="phone">Phone <span class="required-mark">*</span></label>
+                    <input type="text" id="phone" name="phone" value="<?= e($old['phone']) ?>" required>
+                  </div>
+                </div>
+
+                <div class="field mb-0">
+                  <label for="pi_id">Supervising PI <span class="required-mark">*</span></label>
+                  <select id="pi_id" name="pi_id" required>
+                    <option value="">Select lab first…</option>
+                    <?php foreach ($pis as $pi): ?>
+                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <span class="field-hint">Don't see your PI? Contact an admin.</span>
+                </div>
               </div>
-              <div class="field">
-                <label for="nrc_email">Contact email</label>
-                <input type="email" id="nrc_email" name="nrc_email" value="<?= old('nrc_email') ?>">
+
+              <div class="form-section">
+                <span class="form-section__title">NRC License Contact <span class="muted" style="text-transform:none; letter-spacing:0; font-weight:400;">— shipping orders only, optional</span></span>
+
+                <div class="field">
+                  <label for="nrc_contact_name">Contact name</label>
+                  <input type="text" id="nrc_contact_name" name="nrc_contact_name" value="<?= e($old['nrc_contact_name']) ?>">
+                </div>
+
+                <div class="field-row mb-0">
+                  <div class="field mb-0">
+                    <label for="nrc_contact_phone">Contact phone</label>
+                    <input type="text" id="nrc_contact_phone" name="nrc_contact_phone" value="<?= e($old['nrc_contact_phone']) ?>">
+                  </div>
+                  <div class="field mb-0">
+                    <label for="nrc_contact_email">Contact email</label>
+                    <input type="email" id="nrc_contact_email" name="nrc_contact_email" value="<?= e($old['nrc_contact_email']) ?>">
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <button type="submit" class="btn btn--primary btn--block">
-              Submit request
-            </button>
+              <button type="submit" class="btn btn--primary btn--block">Submit Registration</button>
+            </form>
 
-          </form>
+          <?php endif; ?>
 
-        <?php endif; ?>
-
-        <div class="auth-card__foot">
-          Already have an account? <a href="login.php">Sign in</a>
         </div>
-
+        <div class="auth-card__foot">
+          Already have an account? <a href="/login.php">Log in</a>
+        </div>
       </div>
     </div>
-  </div>
-
 </body>
+<script src="/assets/js/script.js" defer></script>
+<script>
+(function () {
+  var instituteSelect = document.getElementById('institute_id');
+  var labSelect = document.getElementById('lab_id');
+  var piSelect = document.getElementById('pi_id');
+  if (!instituteSelect || !labSelect || !piSelect) return;
 
+  var labOptions = Array.prototype.slice.call(labSelect.querySelectorAll('option[data-institute-id]'));
+  var piOptions = Array.prototype.slice.call(piSelect.querySelectorAll('option[data-lab-ids]'));
+
+  function filterLabs() {
+    var instituteId = instituteSelect.value;
+    labOptions.forEach(function (opt) {
+      var matches = opt.dataset.instituteId === instituteId;
+      opt.hidden = !matches;
+      opt.disabled = !matches;
+    });
+    if (labSelect.selectedOptions[0] && labSelect.selectedOptions[0].hidden) {
+      labSelect.value = '';
+    }
+    labSelect.disabled = !instituteId;
+    filterPis();
+  }
+
+  function filterPis() {
+    var labId = labSelect.value;
+    piOptions.forEach(function (opt) {
+      var labIds = opt.dataset.labIds ? opt.dataset.labIds.split(' ') : [];
+      var matches = labIds.indexOf(labId) !== -1;
+      opt.hidden = !matches;
+      opt.disabled = !matches;
+    });
+    if (piSelect.selectedOptions[0] && piSelect.selectedOptions[0].hidden) {
+      piSelect.value = '';
+    }
+    piSelect.disabled = !labId;
+  }
+
+  instituteSelect.addEventListener('change', filterLabs);
+  labSelect.addEventListener('change', filterPis);
+  filterLabs();
+})();
+</script>
 </html>

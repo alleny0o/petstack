@@ -1,14 +1,14 @@
 /* ============================================================
-   PETStack — components.css
-   Sections: 9. Auth  10. Forms  11. Buttons  12. Cards
-             13. Tables  14. Alerts  15. Badges  16. Utilities
-             17. Responsive  18. Accessibility
+   PETCOM — components.css
+   Sections: 9. Auth  9b. Page header  10. Forms  11. Buttons
+             12. Cards  13. Tables  14. Alerts
+             15. Badges  16. Utilities  17. Responsive
+             18. Accessibility
    ============================================================ */
-
 
 /* ============================================================
    9. AUTH PAGES (login / register / change-password)
-   A centered, narrow, focused card — separate from the app shell.
+   A centered, focused card — separate from the app shell.
    ============================================================ */
 
 .auth-wrap {
@@ -19,58 +19,160 @@
   justify-content: center;
   padding: var(--sp-6) var(--sp-4);
 }
+
 .auth-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: 8px;
+  box-shadow:
+    0 1px 2px var(--color-shadow),
+    0 8px 24px var(--color-shadow);
+  overflow: hidden;
 }
+
+/* Wider variant for longer forms (registration, with grouped sections) */
+.auth-card--wide {
+  max-width: 540px;
+}
+
 .auth-card__head {
-  border-top: 3px solid var(--accent-500);
   padding: var(--sp-6) var(--sp-6) var(--sp-5);
-  border-bottom: 1px solid var(--color-bg-primary);
+  text-align: center;
 }
+
 .auth-card__brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 }
+
 .auth-card__logo {
-  width: 45px;
-  height: 45px;
-  background: var(--color-logo-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-logo-text);
-  font-weight: 700;
-  font-size: 25px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
   flex-shrink: 0;
 }
+.auth-card__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .auth-card__title {
   color: var(--color-text-primary);
   font-weight: 600;
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: -0.01em;
-  line-height: 1.1;
+  line-height: 1.2;
 }
+
 .auth-card__subtitle {
   color: var(--color-text-placeholder);
-  font-size: 12px;
-  margin-top: 1px;
+  font-size: 13px;
+  margin-top: 2px;
 }
+
 .auth-card__body {
-  padding: var(--sp-5) var(--sp-6) var(--sp-6);
+  padding: 0 var(--sp-6) var(--sp-6);
 }
+
 .auth-card__foot {
-  margin-top: var(--sp-5);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--color-bg-primary);
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-hr);
   text-align: center;
   font-size: 13px;
   color: var(--color-text-placeholder);
 }
+.auth-card__foot div + div {
+  margin-top: var(--sp-2);
+}
+.auth-card__foot a {
+  font-weight: 500;
+}
 
+/* Form sections inside the auth card: quiet dividers, no bulky
+   top border/padding stacking on top of the card's own padding. */
+.auth-card .form-section {
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+.auth-card .form-section:last-of-type {
+  padding-bottom: 0;
+  margin-bottom: var(--sp-5);
+  border-bottom: none;
+}
+.auth-card .form-section__title {
+  font-size: 12px;
+}
+
+/* ============================================================
+   9b. PAGE HEADER (eyebrow + title + right-aligned actions)
+   Every main page opens with one of these.
+   ============================================================ */
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-5);
+}
+.page-header__eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-1);
+}
+/* Small muted link above the title (e.g. "back to dashboard").
+   Block so it, the status badge, and the title stack as separate
+   lines instead of running inline together. */
+.page-header__back {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--sp-2);
+}
+.page-header__back:hover {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+/* Status badge shown above the title, on its own line */
+.page-header__status {
+  margin-bottom: var(--sp-2);
+}
+.page-header h1 {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.page-header__meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-placeholder);
+  margin-top: var(--sp-1);
+}
+.page-header__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--sp-2);
+}
 
 /* ============================================================
    10. FORMS
@@ -111,11 +213,19 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(105, 92, 254, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 input::placeholder,
 textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-bg-primary);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
 }
 
 textarea {
@@ -130,6 +240,13 @@ textarea {
   margin-top: var(--sp-1);
 }
 
+/* Inline validation message under a field */
+.field-error {
+  font-size: 12px;
+  color: var(--color-error);
+  margin-top: var(--sp-1);
+}
+
 /* Two fields side by side; stacks on mobile */
 .field-row {
   display: grid;
@@ -140,6 +257,11 @@ textarea {
   .field-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Asterisk marking a required field's label */
+.required-mark {
+  color: var(--color-error);
 }
 
 /* Grouped form sections with a small uppercase title */
@@ -157,7 +279,6 @@ textarea {
   color: var(--color-text-placeholder);
   margin-bottom: var(--sp-4);
 }
-
 
 /* ============================================================
    11. BUTTONS
@@ -182,6 +303,7 @@ textarea {
 }
 .btn--primary:hover {
   background: var(--color-btn-primary-bg-hover);
+  color: var(--color-text-on-accent);
   text-decoration: none;
 }
 
@@ -205,6 +327,10 @@ textarea {
   width: 100%;
 }
 
+.btn--sm {
+  font-size: 13px;
+  padding: 0.35rem 0.7rem;
+}
 
 /* ============================================================
    12. CARDS / PANELS
@@ -214,47 +340,24 @@ textarea {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
   padding: var(--sp-5);
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
+  transition: border-color 0.15s ease;
+}
+/* Unmistakable "you're editing this" signal while the inline edit form
+   is open, so the state change reads as more than just the Edit
+   button quietly vanishing. */
+.card.is-editing {
+  border-color: var(--accent-500);
+  border-left-width: 3px;
 }
 .card__title {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--sp-4);
+  display: block;
 }
-
-/* Definition-list rows for detail views (order detail, staff order view) */
-.detail-list {
-  margin: 0;
-}
-.detail-list__row {
-  display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: var(--sp-3);
-  padding: var(--sp-3) 0;
-  border-bottom: 1px solid var(--color-bg-primary);
-}
-.detail-list__row:last-child {
-  border-bottom: none;
-}
-.detail-list__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-placeholder);
-  letter-spacing: 0.02em;
-}
-.detail-list__value {
-  font-size: 14px;
-  color: var(--color-text-primary);
-}
-@media (max-width: 640px) {
-  .detail-list__row {
-    grid-template-columns: 1fr;
-    gap: var(--sp-1);
-  }
-}
-
 
 /* ============================================================
    13. TABLES
@@ -285,8 +388,19 @@ textarea {
 .table tr:last-child td {
   border-bottom: none;
 }
-.table tr:hover td {
+.table tbody tr:hover td {
   background: var(--color-bg-primary);
+}
+
+/* Friendly empty state inside a table card */
+.table-empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: 14px;
+}
+.table-empty .btn {
+  margin-top: var(--sp-3);
 }
 
 /* --- Table card (title bar + controls above a table) --- */
@@ -315,6 +429,7 @@ textarea {
 
 .table-card-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
   flex: 1 1 auto;
@@ -324,7 +439,8 @@ textarea {
 
 /* Compact overrides — undo the global width:100% and shrink padding */
 .table-card-controls select,
-.table-card-controls input[type="text"] {
+.table-card-controls input[type="text"],
+.table-card-controls input[type="date"] {
   width: auto;
   font-size: 13px;
   padding: 0.3rem 0.6rem;
@@ -363,6 +479,25 @@ textarea {
   text-decoration: none;
 }
 
+/* Prev/Next + "Page X of Y" strip below a paginated table */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-top: 1px solid var(--color-border-hr);
+}
+.table-pagination__status {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.table-pagination .btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
 
 /* ============================================================
    14. ALERTS / MESSAGES
@@ -391,9 +526,42 @@ textarea {
   background: rgba(217, 119, 6, 0.1);
 }
 
+/* Prominent one-time password reveal -- larger and harder to miss than
+   the standard .alert, since this is the only chance to copy the value. */
+.temp-password-banner {
+  background: rgba(5, 150, 105, 0.08);
+  border: 2px solid var(--color-success);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.temp-password-banner__heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-success);
+  margin-bottom: var(--sp-2);
+}
+.temp-password-banner__password {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  padding: var(--sp-2) var(--sp-4);
+  margin: var(--sp-2) 0;
+}
+.temp-password-banner__warning {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-top: var(--sp-2);
+}
 
 /* ============================================================
-   15. STATUS BADGES (order states)
+   15. BADGES
+   Subtle tint + text color, not solid loud fills.
    ============================================================ */
 
 .badge {
@@ -407,48 +575,39 @@ textarea {
   color: var(--color-text-placeholder);
   background: var(--color-bg-primary);
 }
-.badge--pending {
-  color: var(--color-warning);
-  border-color: #fde68a;
-  background: #fffbeb;
-}
-.badge--accepted {
-  color: var(--accent-600);
-  border-color: var(--accent-100);
-  background: var(--color-bg-secondary);
-}
-.badge--completed {
+.badge--active {
   color: var(--color-success);
-  border-color: #a7f3d0;
-  background: #ecfdf5;
+  border-color: var(--color-success);
+  background: rgba(5, 150, 105, 0.1);
 }
-.badge--canceled {
+.badge--inactive {
   color: var(--color-text-placeholder);
+  border-color: var(--color-border-hr);
+  background: var(--color-bg-primary);
 }
-
-[data-theme="dark"] .badge--pending {
-  background: rgba(217, 119, 6, 0.15);
-  border-color: rgba(217, 119, 6, 0.35);
-}
-[data-theme="dark"] .badge--accepted {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-}
-[data-theme="dark"] .badge--completed {
-  background: rgba(5, 150, 105, 0.15);
-  border-color: rgba(5, 150, 105, 0.35);
-}
-
 
 /* ============================================================
    16. UTILITIES
    ============================================================ */
 
-.muted   { color: var(--color-text-placeholder); }
-.text-sm { font-size: 13px; }
-.mt-0    { margin-top: 0; }
-.mb-0    { margin-bottom: 0; }
-.mb-2    { margin-bottom: var(--sp-2); }
+.muted {
+  color: var(--color-text-placeholder);
+}
+.text-sm {
+  font-size: 13px;
+}
+.mt-0 {
+  margin-top: 0;
+}
+.mb-0 {
+  margin-bottom: 0;
+}
+.mb-2 {
+  margin-bottom: var(--sp-2);
+}
+.mb-4 {
+  margin-bottom: var(--sp-4);
+}
 
 .flex {
   display: flex;
@@ -458,18 +617,19 @@ textarea {
   align-items: center;
   justify-content: space-between;
 }
-.gap-2 { gap: var(--sp-2); }
-.gap-3 { gap: var(--sp-3); }
-
+.gap-2 {
+  gap: var(--sp-2);
+}
+.gap-3 {
+  gap: var(--sp-3);
+}
 
 /* ============================================================
    17. RESPONSIVE OVERRIDES
    ============================================================ */
 
 @media (max-width: 640px) {
-  .app-header__inner,
-  .app-main,
-  .app-footer__inner {
+  .app-main {
     padding-left: var(--sp-4);
     padding-right: var(--sp-4);
   }
@@ -479,6 +639,10 @@ textarea {
   .table th,
   .table td {
     padding: 0.5rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -492,7 +656,6 @@ textarea {
     display: flex; /* swap to `block` if the element isn't a flex row */
   }
 }
-
 
 /* ============================================================
    18. ACCESSIBILITY

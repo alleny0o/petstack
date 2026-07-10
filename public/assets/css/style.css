@@ -1,6 +1,7 @@
 /* ============================================================
-   PETStack — tokens.css
-   Sections: 1. Raw palette  2. Semantic tokens  3. Dark mode
+   PETCOM — style.css
+   Sections: 1. Raw palette  2. Semantic tokens  3. Base / reset
+             4. Typography
    ============================================================ */
 
 
@@ -34,9 +35,11 @@
   /* Shadow — used sparingly, not decorative */
   --color-shadow: rgba(0, 0, 0, 0.05);
 
-  /* Type */
+  /* Type — system stack only; this app has no external
+     dependencies (intranet server, no internet). */
   --font:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
 
   /* Spacing scale */
   --sp-1: 0.25rem;
@@ -55,7 +58,7 @@
 
 
 /* ============================================================
-   2. SEMANTIC TOKENS (light / default)
+   2. SEMANTIC TOKENS (light mode only — no dark mode)
    Components reference ONLY these names, in the
    --color-{category}-{role} convention. Never reach for the raw
    palette directly inside a component rule below this point.
@@ -91,9 +94,7 @@
   --color-btn-secondary-bg-hover: var(--color-hover-secondary);
   --color-btn-secondary-text:     var(--color-text-secondary);
 
-  /* Logo square — its own token. Light chrome now, so the logo is
-     the one place we keep a dark fill so the brand mark still has
-     presence. */
+  /* Logo square */
   --color-logo-bg:   var(--gunmetal);
   --color-logo-text: var(--white);
 
@@ -105,35 +106,67 @@
 
 
 /* ============================================================
-   3. DARK MODE TOKENS (scaffolded, not wired to a toggle yet)
-   Rough starting point — revisit once dark mode is actually built.
+   3. BASE / RESET
    ============================================================ */
 
-[data-theme="dark"] {
-  --color-text-primary:     var(--bright-snow);
-  --color-text-secondary:   var(--pale-slate);
-  --color-text-placeholder: var(--pale-slate-2);
-  --color-text-on-accent:   var(--white);
+* {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+}
 
-  --color-bg-primary:   var(--carbon-black);
-  --color-bg-secondary: var(--carbon-black);
-  --color-bg-sidebar:   var(--gunmetal);
-  --color-bg-chrome:    var(--gunmetal);
-  --color-bg-surface:   var(--gunmetal); /* elevated surfaces one step lighter than the page */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-  --color-border-hr:    var(--iron-grey);
-  --color-border-input: var(--iron-grey);
-  --color-border-focus: var(--accent-500);
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+  /* Guard: stray wide content gets clipped instead of widening the page,
+     which on mobile zooms the layout out and breaks 100vh elements like
+     the sidebar. `clip` (not `hidden`) so no scroll container is created
+     and position:sticky keeps working. */
+  overflow-x: clip;
+}
 
-  --color-hover-primary:   var(--carbon-black);
-  --color-hover-secondary: var(--iron-grey);
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+}
 
-  --color-btn-primary-bg:         var(--accent-500);
-  --color-btn-primary-bg-hover:   var(--accent-600);
-  --color-btn-secondary-bg:       var(--gunmetal);
-  --color-btn-secondary-bg-hover: var(--iron-grey);
-  --color-btn-secondary-text:     var(--pale-slate);
 
-  --color-logo-bg:   var(--accent-500);
-  --color-logo-text: var(--white);
+/* ============================================================
+   4. TYPOGRAPHY
+   ============================================================ */
+
+h1,
+h2,
+h3 {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 var(--sp-4);
+}
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+h3 { font-size: 16px; }
+
+p {
+  margin: 0 0 var(--sp-4);
+}
+
+a {
+  color: var(--accent-500);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-600);
+  text-decoration: underline;
+}
+
+/* Numbers (mCi, dates) line up in columns */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

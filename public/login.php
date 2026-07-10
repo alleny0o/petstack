@@ -1,80 +1,84 @@
 <?php
-/**
- * Login page.
- *
- * Standalone: no shared header/footer (you're not logged in yet, so there's
- * no nav). Just the centered auth card on a slate page.
- *
- * Right now this only RENDERS the form. Submitting it does nothing until
- * auth.php exists (needs the database + schema first). The form posts to
- * itself; the POST-handling block at the top is stubbed and marked TODO.
- */
+require __DIR__ . '/../src/helpers.php';
+bootstrap_session();
+require __DIR__ . '/../src/db.php';
+require __DIR__ . '/../src/auth.php';
 
-// --- Form handling (stub until auth.php is ready) ---
-$error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // TODO: wire to auth.php once schema + db.php exist.
-  //   1. read $_POST['email'] and $_POST['password']
-  //   2. verify CSRF token
-  //   3. look up the account, check the password hash
-  //   4. on success, start session + redirect to index.php
-  //   5. on failure, set $error to a friendly message
-  $error = 'Login is not wired up yet.';
+if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
+  redirect(dashboard_path_for_role($_SESSION['role']));
 }
+
+$error = '';
+$username = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  verify_csrf();
+
+  $username = trim($_POST['username'] ?? '');
+  $password = $_POST['password'] ?? '';
+
+  $result = attempt_login($username, $password);
+
+  if ($result['success']) {
+    redirect(dashboard_path_for_role($_SESSION['role']));
+  }
+
+  $error = $result['reason'];
+}
+
+$pageTitle = 'Log In';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <?php $pageTitle = 'Login';
-  include '../src/partials/head.php'; ?>
+  <?php include __DIR__ . '/../src/partials/head.php'; ?>
 </head>
 
 <body>
-
   <div class="auth-wrap">
     <div class="auth-card">
-
       <div class="auth-card__head">
         <div class="auth-card__brand">
-          <div class="auth-card__logo">P</div>
+          <div class="auth-card__logo">
+            <img src="/favicons/android-chrome-192x192.png" alt="PETCOM">
+          </div>
           <div>
-            <div class="auth-card__title">PETStack</div>
-            <div class="auth-card__subtitle">PET Department Ordering</div>
+            <div class="auth-card__title">PETCOM</div>
+            <div class="auth-card__subtitle">Sign In</div>
           </div>
         </div>
       </div>
-
       <div class="auth-card__body">
 
         <?php if ($error): ?>
-          <div class="alert alert--error"><?= htmlspecialchars($error) ?></div>
+          <div class="alert alert--error"><?= e($error) ?></div>
         <?php endif; ?>
 
-        <form method="post" action="login.php">
+        <form method="post" novalidate>
+          <?= csrf_field() ?>
 
           <div class="field">
-            <label for="email">NIH email</label>
-            <input type="email" id="email" name="email" autocomplete="username" required autofocus>
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" value="<?= e($username) ?>" required autofocus>
           </div>
 
           <div class="field">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <input type="password" id="password" name="password" value="" required>
           </div>
 
-          <button type="submit" class="btn btn--primary btn--block">Sign in</button>
-
+          <button type="submit" class="btn btn--primary btn--block">Log In</button>
         </form>
 
-        <div class="auth-card__foot">
-          Need an account? <a href="register.php">Register</a>
-        </div>
-
+      </div>
+      <div class="auth-card__foot">
+        <div style="margin-bottom: 0.5px;">New customer? <a href="/register.php">Register here</a></div>
+        <div>Already registered? <a href="/registration_status.php">Check your status</a></div>
       </div>
     </div>
   </div>
-
 </body>
+<script src="/assets/js/script.js" defer></script>
 
 </html>

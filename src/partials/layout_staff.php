@@ -1,6 +1,6 @@
 <?php
-// TODO(auth): read the logged-in customer instead of this placeholder.
-$accountName = 'Jane Doe';
+// TODO(auth): read the logged-in staff member instead of this placeholder.
+$accountName = 'Staff Member';
 $accountInitials = implode('', array_map(
     fn($w) => mb_substr($w, 0, 1),
     array_slice(explode(' ', $accountName), 0, 2)
@@ -41,24 +41,24 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/customer/dashboard.php" class="menu-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
+          <a href="/staff/dashboard.php" class="menu-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Dashboard</span></span>
+            <span class="menu-label"><span class="menu-label__text">Order Queue</span></span>
           </a>
         </li>
 
         <li class="menu-item">
-          <a href="/customer_catalog.php" class="menu-link <?= $currentPage === 'customer_catalog' ? 'active' : '' ?>">
+          <a href="/staff_past_orders.php" class="menu-link <?= $currentPage === 'staff_past_orders' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="10" cy="10" r="7"></circle>
-              <line x1="21" y1="21" x2="15" y2="15"></line>
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Catalog</span></span>
+            <span class="menu-label"><span class="menu-label__text">Past Orders</span></span>
           </a>
         </li>
 
@@ -68,10 +68,10 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
-    <a href="/customer_account.php" class="sidebar-account">
+    <div class="sidebar-account">
       <div class="account-avatar"><?= htmlspecialchars($accountInitials) ?></div>
       <span class="account-name"><?= htmlspecialchars($accountName) ?></span>
-    </a>
+    </div>
 
     <div class="sidebar-footer-actions">
       <a href="/logout.php" class="logout-link">
