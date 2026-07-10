@@ -34,6 +34,13 @@ petcom/
     customer/
     staff/
     admin/
+      dashboard.php
+      registrations.php
+      customers.php
+      customer_detail.php
+      accounts.php         (D.2: unified staff+admin list)
+      account_detail.php   (D.2: view/edit category/deactivate/reset password)
+      account_create.php   (D.2: create a staff or admin account)
     assets/
       css/
         style.css      (tokens + base + typography)
@@ -200,8 +207,9 @@ Branch → PR → merge. Never push directly to `main`.
 PETCOM is built in lettered phases (A–F); the detailed phase/sub-phase plan is
 tracked outside this file, not here — this section is intentionally just a
 high-level status marker so it doesn't need editing every time a sub-phase
-ships. Current status: **A and B are complete. C is in progress. D, E, and F
-have not started.**
+ships. Current status: **A, B, and C are complete. D is in progress (D.1
+customer management and D.2 staff/admin account management are done; D.3
+institute/lab/PI CRUD has not started). E and F have not started.**
 
 ---
 

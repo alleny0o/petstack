@@ -172,13 +172,18 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $tempPassword = generate_temp_password();
         $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
 
+        // Archive the outgoing hash so the pre-reset password still
+        // counts toward the last-5 reuse check on the forced change.
+        // The temp itself needs no history row: is_password_reused()
+        // already rejects it via the current users.password_hash.
+        $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE user_id = ?');
+        $stmt->execute([$userId]);
+        $outgoingHash = (string) $stmt->fetchColumn();
+
         $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?')
             ->execute([$tempHash, $userId]);
 
-        // Seeds password_history with the temp password's own hash so it
-        // can't be reused as the "new" password on the forced first
-        // change (is_password_reused() checks current hash + this history).
-        record_password_history($pdo, $userId, $tempHash);
+        record_password_history($pdo, $userId, $outgoingHash);
 
         $tempPasswordReveal = $tempPassword;
     }

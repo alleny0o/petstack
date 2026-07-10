@@ -585,6 +585,16 @@ textarea {
   border-color: var(--color-border-hr);
   background: var(--color-bg-primary);
 }
+.badge--role-admin {
+  color: var(--accent-600);
+  border-color: var(--accent-500);
+  background: rgba(59, 130, 246, 0.1);
+}
+.badge--role-staff {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-hr);
+  background: var(--color-bg-primary);
+}
 
 /* ============================================================
    16. UTILITIES
