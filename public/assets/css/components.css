@@ -1194,9 +1194,16 @@ textarea {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-4);
   margin-bottom: var(--sp-5);
+}
+/* Explicit column counts (not auto-fit/minmax) so 4 tiles always land as
+   a clean row of 4 or a clean 2x2 — never an awkward 3-then-1 wrap. */
+@media (max-width: 860px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .stat-tile {
@@ -1282,6 +1289,26 @@ a.stat-tile:hover {
   .dash-grid,
   .dash-grid--even {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Masonry-style panel area: panels pack by actual height (CSS multi-col)
+   instead of being locked into rigid grid rows. break-inside:avoid stops
+   a panel from being sliced across the column boundary; column-fill's
+   default "balance" keeps source order while choosing the break point
+   that evens out the two columns' total height. */
+.dash-masonry {
+  column-count: 2;
+  column-gap: var(--sp-4);
+}
+.dash-masonry > .card,
+.dash-masonry > .table-card {
+  break-inside: avoid;
+  margin: 0 0 var(--sp-4);
+}
+@media (max-width: 900px) {
+  .dash-masonry {
+    column-count: 1;
   }
 }
 

@@ -57,6 +57,14 @@ $recentLockouts = $pdo->query(
      ORDER BY le.locked_at DESC
      LIMIT 5'
 )->fetchAll();
+
+$recentRejections = $pdo->query(
+    "SELECT first_name, last_name, rejection_reason, reviewed_at
+     FROM customer_registration_requests
+     WHERE status = 'rejected'
+     ORDER BY reviewed_at DESC
+     LIMIT 5"
+)->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -105,7 +113,7 @@ $recentLockouts = $pdo->query(
                 </a>
             </div>
 
-            <div class="dash-grid">
+            <div class="dash-masonry">
                 <div class="table-card">
                     <div class="table-card-header">
                         <span class="table-card-title">Pending Registrations</span>
@@ -149,38 +157,57 @@ $recentLockouts = $pdo->query(
                     <?php endif; ?>
                 </div>
 
-                <div class="dash-stack">
-                    <div class="card mt-0 mb-0">
-                        <span class="card__title">Recently Added Customers</span>
-                        <?php if (!$recentCustomers): ?>
-                            <p class="muted text-sm mb-0">No customers yet &mdash; approve a registration to create one.</p>
-                        <?php else: ?>
-                            <ul class="mini-list">
-                                <?php foreach ($recentCustomers as $c): ?>
-                                    <li>
-                                        <a class="mini-list__main" href="/admin/customer_detail.php?id=<?= (int) $c['user_id'] ?>"><?= e($c['first_name'] . ' ' . $c['last_name']) ?></a>
-                                        <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($c['created_at']))) ?></span>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                    </div>
+                <div class="card">
+                    <span class="card__title">Recently Rejected Registrations</span>
+                    <?php if (!$recentRejections): ?>
+                        <p class="muted text-sm mb-0">No recent rejections.</p>
+                    <?php else: ?>
+                        <ul class="mini-list">
+                            <?php foreach ($recentRejections as $r):
+                                $reason = trim((string) $r['rejection_reason']);
+                                if ($reason !== '' && mb_strlen($reason) > 60) {
+                                    $reason = mb_substr($reason, 0, 60) . '…';
+                                }
+                            ?>
+                                <li>
+                                    <span class="mini-list__main"><?= e($r['first_name'] . ' ' . $r['last_name']) ?><?= $reason !== '' ? ' &mdash; ' . e($reason) : '' ?></span>
+                                    <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($r['reviewed_at']))) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
 
-                    <div class="card mt-0 mb-0">
-                        <span class="card__title">Lockouts &mdash; Past 7 Days</span>
-                        <?php if (!$recentLockouts): ?>
-                            <p class="muted text-sm mb-0">No accounts have been locked out recently.</p>
-                        <?php else: ?>
-                            <ul class="mini-list">
-                                <?php foreach ($recentLockouts as $l): ?>
-                                    <li>
-                                        <span class="mini-list__main"><?= e($l['username']) ?></span>
-                                        <span class="mini-list__meta"><?= e(date('M j, g:i A', strtotime($l['locked_at']))) ?></span>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                    </div>
+                <div class="card">
+                    <span class="card__title">Recently Added Customers</span>
+                    <?php if (!$recentCustomers): ?>
+                        <p class="muted text-sm mb-0">No customers yet &mdash; approve a registration to create one.</p>
+                    <?php else: ?>
+                        <ul class="mini-list">
+                            <?php foreach ($recentCustomers as $c): ?>
+                                <li>
+                                    <a class="mini-list__main" href="/admin/customer_detail.php?id=<?= (int) $c['user_id'] ?>"><?= e($c['first_name'] . ' ' . $c['last_name']) ?></a>
+                                    <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($c['created_at']))) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+
+                <div class="card">
+                    <span class="card__title">Lockouts &mdash; Past 7 Days</span>
+                    <?php if (!$recentLockouts): ?>
+                        <p class="muted text-sm mb-0">No accounts have been locked out recently.</p>
+                    <?php else: ?>
+                        <ul class="mini-list">
+                            <?php foreach ($recentLockouts as $l): ?>
+                                <li>
+                                    <span class="mini-list__main"><?= e($l['username']) ?></span>
+                                    <span class="mini-list__meta"><?= e(date('M j, g:i A', strtotime($l['locked_at']))) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>
