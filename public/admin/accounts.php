@@ -148,7 +148,24 @@ $pageTitle = 'Accounts';
                 </div>
 
                 <?php if (!$accounts): ?>
-                    <div class="table-empty">No accounts match these filters.</div>
+                    <?php $hasFilters = $q !== '' || $role !== '' || $categoryId !== '' || $status !== ''; ?>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="10" cy="10" r="7"></circle>
+                                <line x1="21" y1="21" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="empty-state__title"><?= $hasFilters ? 'No accounts match these filters' : 'No staff or admin accounts yet' ?></div>
+                        <p class="empty-state__hint"><?= $hasFilters ? 'Try a different search or clear the filters.' : 'Create the first staff or admin account to get started.' ?></p>
+                        <div class="empty-state__action">
+                            <?php if ($hasFilters): ?>
+                                <a href="/admin/accounts.php" class="btn btn--secondary btn--sm">Clear filters</a>
+                            <?php else: ?>
+                                <a href="/admin/account_create.php" class="btn btn--primary btn--sm">New Account</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php else: ?>
                     <div class="table-scroll">
                         <table class="table">
@@ -177,16 +194,19 @@ $pageTitle = 'Accounts';
 
                     <div class="table-pagination">
                         <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                        <?php if ($page <= 1): ?>
-                            <span class="btn btn--secondary btn--sm" aria-disabled="true">Prev</span>
-                        <?php else: ?>
-                            <a href="?<?= e(accounts_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm">Prev</a>
-                        <?php endif; ?>
-                        <?php if ($page >= $totalPages): ?>
-                            <span class="btn btn--secondary btn--sm" aria-disabled="true">Next</span>
-                        <?php else: ?>
-                            <a href="?<?= e(accounts_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm">Next</a>
-                        <?php endif; ?>
+                        <div class="table-pagination__controls">
+                            <span class="table-pagination__status">Page <?= $page ?> of <?= $totalPages ?></span>
+                            <?php if ($page <= 1): ?>
+                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
+                            <?php else: ?>
+                                <a href="?<?= e(accounts_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
+                            <?php endif; ?>
+                            <?php if ($page >= $totalPages): ?>
+                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
+                            <?php else: ?>
+                                <a href="?<?= e(accounts_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>

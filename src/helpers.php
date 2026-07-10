@@ -55,6 +55,52 @@ function redirect(string $path): void
 }
 
 /**
+ * Emits a script tag that pops a toast once the page has loaded.
+ * Used for transient success feedback on pages that re-render after
+ * a POST (this app doesn't redirect-after-POST); persistent messages
+ * (errors, temp passwords) stay as inline .alert markup instead.
+ * json_encode with the HEX flags makes the values safe to embed in
+ * an inline <script> (no </script> or quote breakouts).
+ */
+function toast_flash(string $type, string $message): string
+{
+    $args = json_encode(
+        [$type, $message],
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+    );
+
+    return '<script>document.addEventListener("DOMContentLoaded",function(){'
+        . 'window.showToast.apply(null,' . $args . ');});</script>';
+}
+
+/**
+ * Renders the inline error message(s) for one form field, or nothing
+ * when the field is clean. Values may be a string or a list of
+ * strings (e.g. several password-strength failures on one field).
+ */
+function field_error(array $fieldErrors, string $key): string
+{
+    if (!isset($fieldErrors[$key])) {
+        return '';
+    }
+
+    $html = '';
+    foreach ((array) $fieldErrors[$key] as $message) {
+        $html .= '<span class="field-error">' . e($message) . '</span>';
+    }
+    return $html;
+}
+
+/**
+ * Class list for a .field wrapper: adds the invalid modifier (red
+ * border + red label via CSS) when the field has an error.
+ */
+function field_class(array $fieldErrors, string $key, string $base = 'field'): string
+{
+    return $base . (isset($fieldErrors[$key]) ? ' field--invalid' : '');
+}
+
+/**
  * Builds a display name like "Alice Carter" from a customer's
  * first/last name. Falls back to the username when the customer has no
  * name on file (not-yet-approved rows) or the joined row belongs to a

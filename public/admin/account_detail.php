@@ -189,7 +189,9 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                     </div>
                 </div>
 
-                <?php if ($flash): ?>
+                <?php if ($flash && $flash['type'] === 'success'): ?>
+                    <?= toast_flash('success', $flash['message']) ?>
+                <?php elseif ($flash): ?>
                     <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
                 <?php endif; ?>
 
@@ -197,7 +199,10 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                     <div class="temp-password-banner">
                         <div class="temp-password-banner__heading">Temporary password generated</div>
                         <div>Give this to <?= e($account['username']) ?> via NIH email &mdash; it will not be shown again.</div>
-                        <div class="temp-password-banner__password"><?= e($tempPasswordReveal) ?></div>
+                        <div class="temp-password-banner__row">
+                            <span class="temp-password-banner__password" id="temp-password-value"><?= e($tempPasswordReveal) ?></span>
+                            <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
+                        </div>
                         <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
                     </div>
                 <?php endif; ?>
@@ -235,7 +240,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="edit_category">
 
-                            <div class="field mb-0">
+                            <div class="field mb-0<?= $categoryError !== '' ? ' field--invalid' : '' ?>">
                                 <label for="category_id">Category <span class="required-mark">*</span></label>
                                 <select id="category_id" name="category_id">
                                     <?php foreach ($categories as $category): ?>
@@ -259,24 +264,44 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                     <div class="flex gap-3">
                         <?php if ($isSelf && $account['active']): ?>
                             <button type="button" class="btn btn--danger" disabled title="You cannot deactivate your own account.">Deactivate Account</button>
-                        <?php else: ?>
-                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" onsubmit="return confirm('<?= $account['active'] ? 'Deactivate this account? They will be signed out immediately and unable to log in.' : 'Reactivate this account? They will be able to log in again.' ?>');">
+                        <?php elseif ($account['active']): ?>
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                                  data-confirm="Deactivate <?= e($account['username']) ?>? They will be signed out immediately and unable to log in."
+                                  data-confirm-title="Deactivate account"
+                                  data-confirm-verb="Deactivate"
+                                  data-confirm-danger>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="toggle_active">
-                                <button type="submit" class="btn <?= $account['active'] ? 'btn--danger' : 'btn--secondary' ?>"><?= $account['active'] ? 'Deactivate Account' : 'Reactivate Account' ?></button>
+                                <button type="submit" class="btn btn--danger">Deactivate Account</button>
+                            </form>
+                        <?php else: ?>
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                                  data-confirm="Reactivate <?= e($account['username']) ?>? They will be able to log in again."
+                                  data-confirm-title="Reactivate account"
+                                  data-confirm-verb="Reactivate">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="toggle_active">
+                                <button type="submit" class="btn btn--secondary">Reactivate Account</button>
                             </form>
                         <?php endif; ?>
 
                         <?php if ($isSelf): ?>
                             <button type="button" class="btn btn--secondary" disabled title="You cannot reset your own password here. Use Change Password instead.">Reset Password</button>
                         <?php else: ?>
-                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" onsubmit="return confirm('Generate a new temporary password for this account? Their current password will stop working immediately.');">
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                                  data-confirm="Generate a new temporary password for <?= e($account['username']) ?>? Their current password will stop working immediately."
+                                  data-confirm-title="Reset password"
+                                  data-confirm-verb="Reset password"
+                                  data-confirm-danger>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="reset_password">
                                 <button type="submit" class="btn btn--secondary">Reset Password</button>
                             </form>
                         <?php endif; ?>
                     </div>
+                    <?php if ($isSelf): ?>
+                        <p class="field-hint mt-2 mb-0">This is your own account &mdash; deactivation is blocked, and password changes go through <a href="/change_password.php">Change Password</a>.</p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </main>

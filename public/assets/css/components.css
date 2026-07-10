@@ -3,7 +3,10 @@
    Sections: 9. Auth  9b. Page header  10. Forms  11. Buttons
              12. Cards  13. Tables  14. Alerts
              15. Badges  16. Utilities  17. Responsive
-             18. Accessibility
+             18. Accessibility  19. Detail list  20. Toasts
+             21. Modals  22. Spinners / loading  23. Empty states
+             24. Dashboard (stat tiles, grids, quick actions)
+             25. Radio cards  26. Order-page components
    ============================================================ */
 
 /* ============================================================
@@ -25,10 +28,8 @@
   max-width: 380px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
-  border-radius: 8px;
-  box-shadow:
-    0 1px 2px var(--color-shadow),
-    0 8px 24px var(--color-shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -72,7 +73,7 @@
 }
 
 .auth-card__subtitle {
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   font-size: 13px;
   margin-top: 2px;
 }
@@ -87,7 +88,7 @@
   border-top: 1px solid var(--color-border-hr);
   text-align: center;
   font-size: 13px;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
 }
 .auth-card__foot div + div {
   margin-top: var(--sp-2);
@@ -112,6 +113,38 @@
   font-size: 12px;
 }
 
+/* Terminal success state (e.g. registration submitted) — a calm,
+   centered confirmation rather than a transient toast. */
+.success-panel {
+  text-align: center;
+  padding: var(--sp-2) 0;
+}
+.success-panel__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto var(--sp-3);
+  border-radius: var(--radius-full);
+  background: var(--status-success-tint);
+  color: var(--status-success-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.success-panel__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-2);
+}
+.success-panel__text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+.success-panel__action {
+  margin-top: var(--sp-4);
+}
+
 /* ============================================================
    9b. PAGE HEADER (eyebrow + title + right-aligned actions)
    Every main page opens with one of these.
@@ -130,9 +163,9 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   margin-bottom: var(--sp-1);
 }
 /* Small muted link above the title (e.g. "back to dashboard").
@@ -141,7 +174,7 @@
 .page-header__back {
   display: block;
   font-size: 12px;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   margin-bottom: var(--sp-2);
 }
 .page-header__back:hover {
@@ -158,14 +191,15 @@
   align-items: center;
   gap: var(--sp-3);
   flex-wrap: wrap;
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 .page-header__meta {
   display: block;
   font-size: 13px;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   margin-top: var(--sp-1);
 }
 .page-header__actions {
@@ -185,9 +219,9 @@
 label {
   display: block;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-placeholder);
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
   margin-bottom: var(--sp-1);
 }
 
@@ -205,8 +239,14 @@ textarea {
   color: var(--color-text-primary);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-input);
-  border-radius: 0;
-  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-text-tertiary);
 }
 input:focus,
 select:focus,
@@ -226,6 +266,7 @@ textarea:disabled {
   background: var(--color-bg-primary);
   color: var(--color-text-placeholder);
   cursor: not-allowed;
+  border-color: var(--color-border-input);
 }
 
 textarea {
@@ -236,15 +277,32 @@ textarea {
 /* Small helper text under a field (lead time notes, format hints) */
 .field-hint {
   font-size: 12px;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   margin-top: var(--sp-1);
 }
 
 /* Inline validation message under a field */
 .field-error {
+  display: block;
   font-size: 12px;
-  color: var(--color-error);
+  color: var(--status-error-text);
   margin-top: var(--sp-1);
+}
+
+/* Invalid field: red border + red focus ring on the input itself */
+.field--invalid input,
+.field--invalid select,
+.field--invalid textarea {
+  border-color: var(--color-error);
+}
+.field--invalid input:focus,
+.field--invalid select:focus,
+.field--invalid textarea:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+.field--invalid > label {
+  color: var(--status-error-text);
 }
 
 /* Two fields side by side; stacks on mobile */
@@ -274,32 +332,50 @@ textarea {
   display: block;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   margin-bottom: var(--sp-4);
+}
+/* Quiet aside after a section title (e.g. "— optional") */
+.form-section__suffix {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
 }
 
 /* ============================================================
    11. BUTTONS
+   Compact by default (~32px). Variants: primary (solid accent),
+   secondary (white + border), danger (outline red — the loud
+   solid red lives in .btn--danger-solid for modal confirms),
+   ghost (borderless). Sizes: --sm (~26px), --lg (~38px, auth
+   submits only).
    ============================================================ */
 
 .btn {
   display: inline-block;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  padding: 0.6rem 1.1rem;
+  line-height: 1.4;
+  padding: 0.4rem 0.85rem;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: center;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.btn:active {
+  transform: scale(0.985);
 }
 
 .btn--primary {
   background: var(--color-btn-primary-bg);
   color: var(--color-text-on-accent);
+  box-shadow: var(--shadow-xs);
 }
 .btn--primary:hover {
   background: var(--color-btn-primary-bg-hover);
@@ -311,15 +387,48 @@ textarea {
   background: var(--color-btn-secondary-bg);
   color: var(--color-btn-secondary-text);
   border-color: var(--color-border-input);
+  box-shadow: var(--shadow-xs);
 }
 .btn--secondary:hover {
   background: var(--color-btn-secondary-bg-hover);
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
+/* Outline red: destructive actions on pages. The confirm modal
+   carries the solid red so danger reads loudest at the moment of
+   commitment, not all over the page. */
 .btn--danger {
+  background: var(--color-bg-surface);
+  color: var(--status-error-text);
+  border-color: var(--color-error);
+}
+.btn--danger:hover {
   background: var(--color-error);
   color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.btn--danger-solid {
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
+  box-shadow: var(--shadow-xs);
+}
+.btn--danger-solid:hover {
+  background: var(--status-error-text);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btn--ghost:hover {
+  background: var(--color-hover-primary);
+  color: var(--color-text-primary);
+  text-decoration: none;
 }
 
 .btn--block {
@@ -328,8 +437,39 @@ textarea {
 }
 
 .btn--sm {
-  font-size: 13px;
-  padding: 0.35rem 0.7rem;
+  font-size: 12px;
+  padding: 0.25rem 0.6rem;
+}
+
+.btn--lg {
+  font-size: 14px;
+  padding: 0.55rem 1.1rem;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn:disabled:hover {
+  /* freeze hover styles per-variant by re-asserting the base */
+  text-decoration: none;
+}
+
+/* Submitting state — spinner element is inserted by script.js;
+   pointer-events (not `disabled`) so submitted values are kept. */
+.btn.is-loading {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.btn .spinner {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+  margin-right: 6px;
+  vertical-align: -2px;
 }
 
 /* ============================================================
@@ -339,6 +479,8 @@ textarea {
 .card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   padding: var(--sp-5);
   margin-top: var(--sp-5);
   margin-bottom: var(--sp-5);
@@ -371,19 +513,32 @@ textarea {
 }
 .table th {
   text-align: left;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-placeholder);
-  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   background: var(--color-bg-primary);
-  padding: 0.6rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--color-border-hr);
+  white-space: nowrap;
 }
 .table td {
   font-size: 14px;
   color: var(--color-text-secondary);
-  padding: 0.65rem 0.75rem;
+  padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--color-bg-primary);
+}
+/* First column is the row's anchor (name/email) — worth a shade
+   more weight so rows scan by their identity. */
+.table td:first-child {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+/* Last column holds row actions — tuck them against the right edge. */
+.table th:last-child,
+.table td:last-child {
+  text-align: right;
 }
 .table tr:last-child td {
   border-bottom: none;
@@ -392,11 +547,11 @@ textarea {
   background: var(--color-bg-primary);
 }
 
-/* Friendly empty state inside a table card */
+/* Friendly empty state inside a table card (see also .empty-state) */
 .table-empty {
   padding: var(--sp-6) var(--sp-4);
   text-align: center;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   font-size: 14px;
 }
 .table-empty .btn {
@@ -408,7 +563,10 @@ textarea {
 .table-card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   margin-bottom: var(--sp-5);
+  overflow: hidden; /* clip table corners to the card radius */
 }
 
 .table-card-header {
@@ -469,29 +627,39 @@ textarea {
 .table-action {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
 }
 .table-action:hover {
-  color: var(--color-text-primary);
+  color: var(--color-link);
   text-decoration: none;
 }
 
-/* Prev/Next + "Page X of Y" strip below a paginated table */
+/* Prev/Next + "Showing a–b of n" strip below a paginated table */
 .table-pagination {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   border-top: 1px solid var(--color-border-hr);
 }
 .table-pagination__status {
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
+}
+.table-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.table-pagination .btn {
+  min-width: 30px;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
 }
 .table-pagination .btn[aria-disabled="true"] {
   opacity: 0.4;
@@ -501,56 +669,75 @@ textarea {
 
 /* ============================================================
    14. ALERTS / MESSAGES
-   The clear feedback the legacy system lacked.
+   Persistent inline messages: errors, warnings, must-read info.
+   Transient success feedback goes through toasts instead.
    ============================================================ */
 
 .alert {
   font-size: 13px;
+  line-height: 1.5;
   padding: 0.7rem 0.9rem;
   border-left: 3px solid;
+  border-radius: var(--radius-md);
   margin-bottom: var(--sp-4);
 }
 .alert--error {
-  color: var(--color-error);
+  color: var(--status-error-text);
   border-color: var(--color-error);
-  background: rgba(220, 38, 38, 0.1);
+  background: var(--status-error-tint);
 }
 .alert--success {
-  color: var(--color-success);
+  color: var(--status-success-text);
   border-color: var(--color-success);
-  background: rgba(5, 150, 105, 0.1);
+  background: var(--status-success-tint);
 }
 .alert--warning {
-  color: var(--color-warning);
+  color: var(--status-warning-text);
   border-color: var(--color-warning);
-  background: rgba(217, 119, 6, 0.1);
+  background: var(--status-warning-tint);
+}
+.alert--info {
+  color: var(--status-info-text);
+  border-color: var(--status-info);
+  background: var(--status-info-tint);
+}
+.alert div + div {
+  margin-top: var(--sp-1);
 }
 
 /* Prominent one-time password reveal -- larger and harder to miss than
    the standard .alert, since this is the only chance to copy the value. */
 .temp-password-banner {
-  background: rgba(5, 150, 105, 0.08);
-  border: 2px solid var(--color-success);
+  background: var(--status-success-tint);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-lg);
   padding: var(--sp-5);
   margin-bottom: var(--sp-5);
 }
 .temp-password-banner__heading {
   font-size: 15px;
-  font-weight: 700;
-  color: var(--color-success);
+  font-weight: 600;
+  color: var(--status-success-text);
   margin-bottom: var(--sp-2);
+}
+.temp-password-banner__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
 }
 .temp-password-banner__password {
   display: inline-block;
-  font-family: monospace;
-  font-size: 22px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--color-text-primary);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-md);
   padding: var(--sp-2) var(--sp-4);
-  margin: var(--sp-2) 0;
 }
 .temp-password-banner__warning {
   font-size: 13px;
@@ -561,39 +748,85 @@ textarea {
 
 /* ============================================================
    15. BADGES
-   Subtle tint + text color, not solid loud fills.
+   The app-wide status vocabulary. Two shapes, two meanings:
+   - status  = pill + leading dot (active, pending, rejected, …)
+   - role    = square chip, no dot (admin, staff)
    ============================================================ */
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  padding: 0.15rem 0.5rem;
-  border: 1px solid var(--color-border-hr);
-  color: var(--color-text-placeholder);
-  background: var(--color-bg-primary);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
+  white-space: nowrap;
 }
-.badge--active {
-  color: var(--color-success);
-  border-color: var(--color-success);
-  background: rgba(5, 150, 105, 0.1);
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--badge-dot, var(--status-neutral));
+  flex-shrink: 0;
 }
-.badge--inactive {
-  color: var(--color-text-placeholder);
-  border-color: var(--color-border-hr);
-  background: var(--color-bg-primary);
+
+/* Status variants — shared tones per meaning:
+   good (green): active / approved / completed
+   waiting (amber): pending
+   bad (red): rejected
+   off (gray): inactive / canceled
+   in-flight (blue): accepted */
+.badge--active,
+.badge--approved,
+.badge--completed {
+  --badge-dot: var(--status-success);
+  color: var(--status-success-text);
+  background: var(--status-success-tint);
+}
+.badge--pending {
+  --badge-dot: var(--status-warning);
+  color: var(--status-warning-text);
+  background: var(--status-warning-tint);
+}
+.badge--rejected {
+  --badge-dot: var(--status-error);
+  color: var(--status-error-text);
+  background: var(--status-error-tint);
+}
+.badge--inactive,
+.badge--canceled {
+  --badge-dot: var(--status-neutral);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
+}
+.badge--accepted {
+  --badge-dot: var(--status-info);
+  color: var(--status-info-text);
+  background: var(--status-info-tint);
+}
+
+/* Role chips — square, no dot: a fact, not a state */
+.badge--role-admin,
+.badge--role-staff {
+  border-radius: var(--radius-sm);
+}
+.badge--role-admin::before,
+.badge--role-staff::before {
+  display: none;
 }
 .badge--role-admin {
-  color: var(--accent-600);
-  border-color: var(--accent-500);
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--status-info-text);
+  background: var(--status-info-tint);
 }
 .badge--role-staff {
-  color: var(--color-text-placeholder);
-  border-color: var(--color-border-hr);
-  background: var(--color-bg-primary);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
 }
 
 /* ============================================================
@@ -601,13 +834,19 @@ textarea {
    ============================================================ */
 
 .muted {
-  color: var(--color-text-placeholder);
+  color: var(--color-text-tertiary);
 }
 .text-sm {
   font-size: 13px;
 }
 .mt-0 {
   margin-top: 0;
+}
+.mt-2 {
+  margin-top: var(--sp-2);
+}
+.mt-4 {
+  margin-top: var(--sp-4);
 }
 .mb-0 {
   margin-bottom: 0;
@@ -632,6 +871,9 @@ textarea {
 }
 .gap-3 {
   gap: var(--sp-3);
+}
+.justify-end {
+  justify-content: flex-end;
 }
 
 /* ============================================================
@@ -693,4 +935,528 @@ textarea {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ============================================================
+   19. DETAIL LIST (label/value rows inside a card)
+   ============================================================ */
+
+.detail-list {
+  display: block;
+}
+.detail-list__row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--sp-4);
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+}
+.detail-list__row:first-child {
+  padding-top: 0;
+}
+.detail-list__row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.detail-list__label {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.detail-list__value {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .detail-list__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* ============================================================
+   20. TOASTS (transient success/info feedback — script.js)
+   ============================================================ */
+
+.toast-region {
+  position: fixed;
+  bottom: var(--sp-5);
+  right: var(--sp-5);
+  z-index: 70; /* above modals: feedback outlives a closing dialog */
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(340px, calc(100vw - 2 * var(--sp-4)));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.65rem 0.75rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  animation: toast-in 0.2s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+.toast--leaving {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-neutral);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.toast--success .toast__dot { background: var(--status-success); }
+.toast--error   .toast__dot { background: var(--status-error); }
+.toast--warning .toast__dot { background: var(--status-warning); }
+.toast--info    .toast__dot { background: var(--status-info); }
+
+.toast__msg {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-top: 1px;
+}
+
+.toast__close {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+.toast__close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-hover-primary);
+}
+
+/* ============================================================
+   21. MODALS (confirmations — script.js)
+   Overlay sits above the sidebar (z 50) and its backdrop (z 40).
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: rgba(33, 37, 41, 0.45);
+  animation: modal-fade-in 0.15s ease;
+}
+.modal-overlay[hidden] {
+  display: none;
+}
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: modal-pop-in 0.15s ease;
+  max-height: calc(100vh - 2 * var(--sp-4));
+  overflow-y: auto;
+}
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.modal__body {
+  padding: var(--sp-5);
+}
+.modal__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-2);
+}
+.modal__message {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+.modal__body .field {
+  margin-top: var(--sp-4);
+}
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--color-border-hr);
+  background: var(--color-bg-primary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* Scroll lock while any modal is open (independent of the mobile
+   sidebar's own lock, which uses data-sidebar-mobile) */
+[data-modal-open],
+[data-modal-open] body {
+  overflow-y: hidden;
+}
+
+/* ============================================================
+   22. SPINNERS / LOADING
+   ============================================================ */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: spinner-turn 0.6s linear infinite;
+  vertical-align: -3px;
+}
+.spinner--lg {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================
+   23. EMPTY STATES (friendly, directive — not just gray text)
+   ============================================================ */
+
+.empty-state {
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+}
+.empty-state__icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--sp-3);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-state__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--sp-1);
+}
+.empty-state__hint {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 0;
+}
+.empty-state__action {
+  margin-top: var(--sp-4);
+}
+/* Tighter variant for dashboard panels */
+.empty-state--compact {
+  padding: var(--sp-5) var(--sp-4);
+}
+
+/* ============================================================
+   24. DASHBOARD (stat tiles, panel grid, quick actions)
+   ============================================================ */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+
+.stat-tile {
+  display: block;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-hr);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: var(--sp-4) var(--sp-5);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+a.stat-tile:hover {
+  border-color: var(--accent-500);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+}
+
+.stat-tile__label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--sp-2);
+}
+.stat-tile__value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile__meta {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: var(--sp-1);
+}
+/* Word-valued tiles (a category name, not a count) */
+.stat-tile__value--text {
+  font-size: 20px;
+}
+
+/* Small status dot, usable anywhere (stat labels, list rows) */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-neutral);
+  flex-shrink: 0;
+}
+.dot--success { background: var(--status-success); }
+.dot--warning { background: var(--status-warning); }
+.dot--error   { background: var(--status-error); }
+.dot--info    { background: var(--status-info); }
+
+/* Two-column panel area below the tiles; stacks on tablets down */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--sp-4);
+  align-items: start;
+}
+.dash-grid--even {
+  grid-template-columns: 1fr 1fr;
+}
+.dash-grid > .card,
+.dash-grid > .table-card {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+/* Vertical run of cards inside one dash-grid column */
+.dash-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+@media (max-width: 900px) {
+  .dash-grid,
+  .dash-grid--even {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compact list inside a dashboard panel (recent items) */
+.mini-list {
+  list-style: none;
+}
+.mini-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+  font-size: 13px;
+}
+.mini-list li:first-child {
+  padding-top: 0;
+}
+.mini-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.mini-list__main {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mini-list__meta {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}
+
+/* ============================================================
+   25. RADIO CARDS (selectable bordered options)
+   Checked styling uses :has() where supported; the native radio
+   stays visible as the baseline signal everywhere else.
+   ============================================================ */
+
+.radio-card-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 640px) {
+  .radio-card-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+.radio-card {
+  display: block;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+  margin-bottom: 0;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  /* undo global label styling */
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  letter-spacing: 0;
+}
+.radio-card:hover {
+  border-color: var(--color-text-tertiary);
+}
+.radio-card input[type="radio"] {
+  margin-right: var(--sp-2);
+  accent-color: var(--accent-600);
+}
+.radio-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.radio-card__desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  padding-left: calc(13px + var(--sp-2)); /* aligns under the title, past the radio */
+}
+@supports selector(:has(*)) {
+  .radio-card:has(input:checked) {
+    border-color: var(--accent-600);
+    background: var(--status-info-tint);
+  }
+  .radio-card:has(input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 1px;
+  }
+}
+
+/* ============================================================
+   26. ORDER-PAGE COMPONENTS (baseline for Phase E)
+   Used today only by the customer order prototypes; defined here
+   so those pages inherit the system when the orders phase lands.
+   ============================================================ */
+
+.customer-order-form-card {
+  max-width: 760px;
+}
+
+/* Horizontal step strip: pending → accepted → completed */
+.status-timeline {
+  display: flex;
+  gap: var(--sp-2);
+  list-style: none;
+  flex-wrap: wrap;
+}
+.status-timeline__item {
+  flex: 1 1 0;
+  min-width: 110px;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 3px solid var(--color-border-hr);
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+.status-timeline__item--current {
+  border-top-color: var(--accent-600);
+  color: var(--color-text-primary);
+}
+.status-timeline__label {
+  display: block;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+}
+.status-timeline__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+/* Append-only comment thread */
+.comment-list {
+  list-style: none;
+}
+.comment-item {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--color-bg-primary);
+  font-size: 14px;
+}
+.comment-item:last-child {
+  border-bottom: none;
+}
+.comment-item__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+.comment-item__author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.comment-item__timestamp {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+.comment-item__body {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }

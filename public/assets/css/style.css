@@ -25,23 +25,59 @@
   /* Accent (blue) */
   --accent-500: #3b82f6;
   --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
   --accent-100: #dbeafe;
 
-  /* Status */
-  --status-success: #059669;
-  --status-warning: #d97706;
-  --status-error:   #dc2626;
+  /* Status — each state has a dot (saturated), a text tone (dark
+     enough for AA on its tint), and a tint (background wash). */
+  --status-success:      #059669;
+  --status-success-text: #047857;
+  --status-success-tint: #e7f5f0;
+
+  --status-warning:      #d97706;
+  --status-warning-text: #b45309;
+  --status-warning-tint: #fbf0e0;
+
+  --status-error:        #dc2626;
+  --status-error-text:   #b91c1c;
+  --status-error-tint:   #fbeaea;
+
+  --status-info:         #2563eb;
+  --status-info-text:    #1d4ed8;
+  --status-info-tint:    #e7eefc;
+
+  --status-neutral:      #adb5bd;
+  --status-neutral-text: #495057;
+  --status-neutral-tint: #f1f3f5;
 
   /* Shadow — used sparingly, not decorative */
   --color-shadow: rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.14), 0 4px 8px rgba(0, 0, 0, 0.06);
+
+  /* Corner radii — sm: chips/small controls, md: buttons/inputs,
+     lg: cards/modals/toasts, full: pills/avatars/dots */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 999px;
 
   /* Type — system stack only; this app has no external
      dependencies (intranet server, no internet). */
   --font:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
     sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
 
-  /* Spacing scale */
+  /* Spacing scale — usage convention:
+     sp-1 label↔input, badge padding   sp-2 inline/chip gaps
+     sp-3 control gaps, cell padding   sp-4 field stacks, card rhythm
+     sp-5 card padding, section gaps   sp-6 page padding
+     sp-8 auth-page breathing room */
   --sp-1: 0.25rem;
   --sp-2: 0.5rem;
   --sp-3: 0.75rem;
@@ -65,9 +101,12 @@
    ============================================================ */
 
 :root {
-  /* Text */
+  /* Text — primary: headings/emphasis, secondary: body,
+     tertiary: labels/table headers/eyebrows (readable functional
+     text), placeholder: actual placeholders + disabled only. */
   --color-text-primary:     var(--gunmetal);
   --color-text-secondary:   var(--iron-grey);
+  --color-text-tertiary:    var(--slate-grey);
   --color-text-placeholder: var(--pale-slate-2);
   --color-text-on-accent:   var(--white);
 
@@ -88,17 +127,21 @@
   --color-hover-secondary: var(--alabaster-grey);
 
   /* Buttons */
-  --color-btn-primary-bg:         var(--accent-500);
-  --color-btn-primary-bg-hover:   var(--accent-600);
-  --color-btn-secondary-bg:       var(--color-bg-secondary);
-  --color-btn-secondary-bg-hover: var(--color-hover-secondary);
+  --color-btn-primary-bg:         var(--accent-600);
+  --color-btn-primary-bg-hover:   var(--accent-700);
+  --color-btn-secondary-bg:       var(--color-bg-surface);
+  --color-btn-secondary-bg-hover: var(--color-bg-primary);
   --color-btn-secondary-text:     var(--color-text-secondary);
+
+  /* Links */
+  --color-link:       var(--accent-600);
+  --color-link-hover: var(--accent-700);
 
   /* Logo square */
   --color-logo-bg:   var(--gunmetal);
   --color-logo-text: var(--white);
 
-  /* Status (success/warning/error) */
+  /* Status (success/warning/error) — dot/border tones */
   --color-success: var(--status-success);
   --color-warning: var(--status-warning);
   --color-error:   var(--status-error);
@@ -134,6 +177,8 @@ html {
 body {
   background: var(--color-bg-primary);
   color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 
@@ -149,21 +194,29 @@ h3 {
   line-height: 1.25;
   margin: 0 0 var(--sp-4);
 }
-h1 { font-size: 22px; }
-h2 { font-size: 18px; }
-h3 { font-size: 16px; }
+h1 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+h2 { font-size: 16px; }
+h3 { font-size: 15px; }
 
 p {
   margin: 0 0 var(--sp-4);
 }
 
 a {
-  color: var(--accent-500);
+  color: var(--color-link);
   text-decoration: none;
 }
 a:hover {
-  color: var(--accent-600);
+  color: var(--color-link-hover);
   text-decoration: underline;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
 }
 
 /* Numbers (mCi, dates) line up in columns */

@@ -29,14 +29,6 @@ function administration_category_id(PDO $pdo): int
     return (int) $pdo->query("SELECT category_id FROM categories WHERE category_name = 'Administration'")->fetchColumn();
 }
 
-function field_error(array $fieldErrors, string $key): string
-{
-    if (!isset($fieldErrors[$key])) {
-        return '';
-    }
-    return '<span class="field-error">' . e($fieldErrors[$key]) . '</span>';
-}
-
 $fieldErrors = [];
 $successReveal = null;
 
@@ -154,16 +146,15 @@ $pageTitle = 'New Account';
             </div>
 
             <?php if ($successReveal !== null): ?>
-                <div class="alert alert--success">
-                    <?= $successReveal['role'] === 'admin' ? 'Admin' : 'Staff' ?> account created for
-                    <strong><?= e($successReveal['email']) ?></strong>.
-                    <a href="/admin/account_detail.php?id=<?= (int) $successReveal['user_id'] ?>">View account</a>.
-                </div>
                 <div class="temp-password-banner">
-                    <div class="temp-password-banner__heading">Temporary password generated</div>
-                    <div>Give this to <?= e($successReveal['email']) ?> via NIH email &mdash; it will not be shown again.</div>
-                    <div class="temp-password-banner__password"><?= e($successReveal['tempPassword']) ?></div>
+                    <div class="temp-password-banner__heading"><?= $successReveal['role'] === 'admin' ? 'Admin' : 'Staff' ?> account created for <?= e($successReveal['email']) ?></div>
+                    <div>Relay this temporary password via NIH email &mdash; it will not be shown again.</div>
+                    <div class="temp-password-banner__row">
+                        <span class="temp-password-banner__password" id="temp-password-value"><?= e($successReveal['tempPassword']) ?></span>
+                        <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
+                    </div>
                     <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
+                    <div class="mt-2"><a href="/admin/account_detail.php?id=<?= (int) $successReveal['user_id'] ?>">View the new account &rarr;</a></div>
                 </div>
             <?php endif; ?>
 
@@ -172,21 +163,30 @@ $pageTitle = 'New Account';
                 <form method="post" action="/admin/account_create.php">
                     <?= csrf_field() ?>
 
-                    <div class="field">
+                    <div class="<?= field_class($fieldErrors, 'email') ?>">
                         <label for="email">Email <span class="required-mark">*</span></label>
                         <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
+                        <span class="field-hint">Must be an @nih.gov address &mdash; it becomes their username.</span>
                         <?= field_error($fieldErrors, 'email') ?>
                     </div>
 
                     <div class="field">
                         <span class="form-section__title">Role <span class="required-mark">*</span></span>
-                        <div class="flex gap-3">
-                            <label><input type="radio" name="role" value="staff" id="role_staff" <?= $old['role'] === 'staff' ? 'checked' : '' ?>> Staff</label>
-                            <label><input type="radio" name="role" value="admin" id="role_admin" <?= $old['role'] === 'admin' ? 'checked' : '' ?>> Admin</label>
+                        <div class="radio-card-group">
+                            <label class="radio-card">
+                                <input type="radio" name="role" value="staff" id="role_staff" <?= $old['role'] === 'staff' ? 'checked' : '' ?>>
+                                <span class="radio-card__title">Staff</span>
+                                <span class="radio-card__desc">Processes orders in one assigned category</span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="role" value="admin" id="role_admin" <?= $old['role'] === 'admin' ? 'checked' : '' ?>>
+                                <span class="radio-card__title">Admin</span>
+                                <span class="radio-card__desc">Everything staff can do, plus management &amp; approvals</span>
+                            </label>
                         </div>
                     </div>
 
-                    <div class="field mb-0" id="category_field">
+                    <div class="<?= field_class($fieldErrors, 'category_id', 'field mb-0') ?>" id="category_field">
                         <label for="category_id">Category <span class="required-mark">*</span></label>
                         <select id="category_id" name="category_id">
                             <option value="">Select category&hellip;</option>
