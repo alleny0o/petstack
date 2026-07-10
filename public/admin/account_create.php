@@ -34,6 +34,8 @@ $successReveal = null;
 
 $old = [
     'email'       => '',
+    'first_name'  => '',
+    'last_name'   => '',
     'role'        => 'staff',
     'category_id' => '',
 ];
@@ -42,6 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $old['email'] = trim($_POST['email'] ?? '');
+    $old['first_name'] = trim($_POST['first_name'] ?? '');
+    $old['last_name'] = trim($_POST['last_name'] ?? '');
     $old['role'] = ($_POST['role'] ?? '') === 'admin' ? 'admin' : 'staff';
     $old['category_id'] = trim((string) ($_POST['category_id'] ?? ''));
 
@@ -49,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fieldErrors['email'] = 'A valid email is required.';
     } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
         $fieldErrors['email'] = 'Email must be an @nih.gov address.';
+    }
+
+    if ($old['first_name'] === '') {
+        $fieldErrors['first_name'] = 'First name is required.';
+    }
+    if ($old['last_name'] === '') {
+        $fieldErrors['last_name'] = 'Last name is required.';
     }
 
     $categoryId = null;
@@ -92,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )->execute([$old['email'], $tempHash]);
             $newUserId = (int) $pdo->lastInsertId();
 
-            $pdo->prepare('INSERT INTO staff (user_id, category_id) VALUES (?, ?)')
-                ->execute([$newUserId, $categoryId]);
+            $pdo->prepare('INSERT INTO staff (user_id, first_name, last_name, category_id) VALUES (?, ?, ?, ?)')
+                ->execute([$newUserId, $old['first_name'], $old['last_name'], $categoryId]);
 
             if ($old['role'] === 'admin') {
                 $pdo->prepare('INSERT INTO admins (user_id) VALUES (?)')->execute([$newUserId]);
@@ -109,11 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $successReveal = [
                 'user_id'      => $newUserId,
                 'email'        => $old['email'],
+                'first_name'   => $old['first_name'],
+                'last_name'    => $old['last_name'],
                 'role'         => $old['role'],
                 'tempPassword' => $tempPassword,
             ];
 
-            $old = ['email' => '', 'role' => 'staff', 'category_id' => ''];
+            $old = ['email' => '', 'first_name' => '', 'last_name' => '', 'role' => 'staff', 'category_id' => ''];
         } catch (PDOException $e) {
             $pdo->rollBack();
             $fieldErrors['email'] = 'Could not create the account. An account for this email may already exist.';
@@ -148,7 +161,7 @@ $pageTitle = 'New Account';
             <?php if ($successReveal !== null): ?>
                 <div class="temp-password-banner">
                     <div class="temp-password-banner__heading"><?= $successReveal['role'] === 'admin' ? 'Admin' : 'Staff' ?> account created for <?= e($successReveal['email']) ?></div>
-                    <div>Relay this temporary password via NIH email &mdash; it will not be shown again.</div>
+                    <div>Give this to <?= e($successReveal['first_name'] . ' ' . $successReveal['last_name']) ?> via NIH email &mdash; it will not be shown again.</div>
                     <div class="temp-password-banner__row">
                         <span class="temp-password-banner__password" id="temp-password-value"><?= e($successReveal['tempPassword']) ?></span>
                         <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
@@ -168,6 +181,19 @@ $pageTitle = 'New Account';
                         <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
                         <span class="field-hint">Must be an @nih.gov address &mdash; it becomes their username.</span>
                         <?= field_error($fieldErrors, 'email') ?>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="<?= field_class($fieldErrors, 'first_name') ?>">
+                            <label for="first_name">First name <span class="required-mark">*</span></label>
+                            <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                            <?= field_error($fieldErrors, 'first_name') ?>
+                        </div>
+                        <div class="<?= field_class($fieldErrors, 'last_name') ?>">
+                            <label for="last_name">Last name <span class="required-mark">*</span></label>
+                            <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                            <?= field_error($fieldErrors, 'last_name') ?>
+                        </div>
                     </div>
 
                     <div class="field">

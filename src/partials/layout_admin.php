@@ -99,6 +99,13 @@ $accountsSectionActive = in_array($currentPage, $accountsChildPages, true);
     </nav>
   </div>
 
+  <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+  <div class="sidebar-mode-toggle">
+    <a href="/admin/dashboard.php" class="sidebar-mode-toggle__option is-active">Admin</a>
+    <a href="/staff/dashboard.php" class="sidebar-mode-toggle__option">Staff</a>
+  </div>
+  <?php endif; ?>
+
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
     <div class="sidebar-account">
