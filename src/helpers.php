@@ -3,7 +3,7 @@
  * Session bootstrap, CSRF tokens, HTML escaping, redirects.
  */
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/config.sample.php';
 
 /**
  * Starts the session with hardened cookie flags. Every page must call

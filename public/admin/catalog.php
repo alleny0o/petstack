@@ -4,15 +4,18 @@ bootstrap_session();
 require __DIR__ . '/../../src/auth.php';
 require_role('admin');
 
-// Generate Mock Data (Now including Isotopes and Compounds)
+const CATALOG_PAGE_SIZE = 20;
+
+// 1. Generate Mock Data (Now including an 'active' flag and ID)
 $all_products = [];
 $sample_isotopes = ['C-14', 'H-3', 'P-32', 'I-125', 'S-35'];
 $sample_compounds = ['Glucose', 'Thymidine', 'ATP', 'Water', 'Methionine'];
 
 for ($i = 1; $i <= 60; $i++) {
-    // Picking random isotopes and compounds for the dummy data
     $iso = $sample_isotopes[array_rand($sample_isotopes)];
     $comp = $sample_compounds[array_rand($sample_compounds)];
+    // Randomly assign ~85% of products as active, 15% as inactive
+    $is_active = (rand(1, 100) <= 85); 
     
     $all_products[] = [
         'id' => $i,
@@ -20,131 +23,185 @@ for ($i = 1; $i <= 60; $i++) {
         'sku' => 'SKU-' . str_pad($i, 4, '0', STR_PAD_LEFT),
         'isotope' => $iso,
         'compound' => $comp,
-        'description' => "Standard specifications for $comp labeled with $iso. Manufactured in-house."
+        'description' => "Standard specifications for $comp labeled with $iso. Manufactured in-house.",
+        'active' => $is_active
     ];
 }
 
-// Handle Search Requests
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
-$search_isotope = isset($_GET['isotope']) ? trim($_GET['isotope']) : '';
-$search_compound = isset($_GET['compound']) ? trim($_GET['compound']) : '';
+// 2. Capture GET Parameters
+$q = trim($_GET['q'] ?? '');
+$isotope = trim($_GET['isotope'] ?? '');
+$compound = trim($_GET['compound'] ?? '');
+$status = trim($_GET['status'] ?? '');
+$page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 
+// 3. Filter the Data
 $filtered_products = $all_products;
+if ($q !== '' || $isotope !== '' || $compound !== '' || $status !== '') {
+    $filtered_products = array_filter($all_products, function($product) use ($q, $isotope, $compound, $status) {
+        $match_q = true;
+        $match_iso = true;
+        $match_comp = true;
+        $match_status = true;
 
-// Only filter if at least one search field was used
-if ($search_query !== '' || $search_isotope !== '' || $search_compound !== '') {
-    $filtered_products = array_filter($all_products, function($product) use ($search_query, $search_isotope, $search_compound) {
-        $match_general = true;
-        $match_isotope = true;
-        $match_compound = true;
-
-        if ($search_query !== '') {
-            $match_general = (stripos($product['name'], $search_query) !== false || stripos($product['sku'], $search_query) !== false);
+        if ($q !== '') {
+            $match_q = (stripos($product['name'], $q) !== false || stripos($product['sku'], $q) !== false);
         }
-        if ($search_isotope !== '') {
-            $match_isotope = (stripos($product['isotope'], $search_isotope) !== false);
+        if ($isotope !== '') {
+            $match_iso = (stripos($product['isotope'], $isotope) !== false);
         }
-        if ($search_compound !== '') {
-            $match_compound = (stripos($product['compound'], $search_compound) !== false);
+        if ($compound !== '') {
+            $match_comp = (stripos($product['compound'], $compound) !== false);
+        }
+        if ($status === 'active') {
+            $match_status = ($product['active'] === true);
+        } elseif ($status === 'inactive') {
+            $match_status = ($product['active'] === false);
         }
 
-        // The product must match ALL the fields the user typed into
-        return $match_general && $match_isotope && $match_compound;
+        return $match_q && $match_iso && $match_comp && $match_status;
     });
 }
 
-// Handle Pagination Logic
-$items_per_page = 24;
-$total_items = count($filtered_products);
-$total_pages = ceil($total_items / $items_per_page);
+// 4. Pagination Math
+$totalCount = count($filtered_products);
+$totalPages = max(1, (int) ceil($totalCount / CATALOG_PAGE_SIZE));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * CATALOG_PAGE_SIZE;
 
-// Get current page from URL, default to 1
-$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$current_page = max(1, min($current_page, max(1, $total_pages))); 
+$display_products = array_slice($filtered_products, $offset, CATALOG_PAGE_SIZE);
 
-// Calculate offset and slice the array
-$offset = ($current_page - 1) * $items_per_page;
-$display_products = array_slice($filtered_products, $offset, $items_per_page);
+$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
+$rangeEnd = min($offset + CATALOG_PAGE_SIZE, $totalCount);
 
-// Helper function to build pagination URLs without losing search terms
-$url_params = [];
-if ($search_query) $url_params['search'] = $search_query;
-if ($search_isotope) $url_params['isotope'] = $search_isotope;
-if ($search_compound) $url_params['compound'] = $search_compound;
-$query_string = http_build_query($url_params); // Magically turns array into &search=...&isotope=...
+function catalog_query(array $overrides = []): string
+{
+    $params = array_merge($_GET, $overrides);
+    foreach ($params as $key => $value) {
+        if ($value === '' || $value === null) {
+            unset($params[$key]);
+        }
+    }
+    return http_build_query($params);
+}
+
+$pageTitle = 'Manage Catalog';
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <?php $pageTitle = 'Catalog'; $roleCss = 'customer';
-    include __DIR__ . '/../../src/partials/head.php'; ?>
-    <link rel="stylesheet" href="../assets/css/components/catalog.css">
+    <?php include __DIR__ . '/../../src/partials/head.php'; ?>
 </head>
-
 <body>
-
     <div class="app-shell">
-      <?php include __DIR__ . '/../../src/partials/layout_admin.php'; ?>
-
+        <?php include __DIR__ . '/../../src/partials/layout_admin.php'; ?>
         <main class="app-main">
-
-
-            <div class="catalog-header">
-                <h1>Catalog</h1>
+            
+            <div class="page-header">
+                <h1>Manage Catalog</h1>
+                <a href="/admin/product_add.php" class="btn btn--primary">Add Product</a>
             </div>
 
-            <form class="search-container" method="GET" action="">
-                <input type="text" name="search" placeholder="Search Name or SKU..." value="<?php echo htmlspecialchars($search_query); ?>">
-                <input type="text" name="isotope" placeholder="Filter Isotope (e.g., C-14)" value="<?php echo htmlspecialchars($search_isotope); ?>">
-                <input type="text" name="compound" placeholder="Filter Compound (e.g., Glucose)" value="<?php echo htmlspecialchars($search_compound); ?>">
-                <button type="submit">Search</button>
-                
-                <?php if($search_query || $search_isotope || $search_compound): ?>
-                    <a href="customer_catalog.php" class="clear-btn">Clear</a>
-                <?php endif; ?>
-            </form>
+            <div class="table-card">
+                <div class="table-card-header">
+                    <span class="table-card-title">Inventory Index</span>
+                    <form method="get" class="table-card-controls">
+                        <!-- Search Inputs -->
+                        <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search Name or SKU&hellip;">
+                        <input type="text" name="isotope" value="<?= e($isotope) ?>" placeholder="Isotope (e.g., C-14)">
+                        <input type="text" name="compound" value="<?= e($compound) ?>" placeholder="Compound (e.g., Glucose)">
+                        
+                        <!-- Status Dropdown -->
+                        <select name="status">
+                            <option value="">All statuses</option>
+                            <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active only</option>
+                            <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>Inactive only</option>
+                        </select>
 
-            <p style="text-align: left;">Showing <?php echo count($display_products); ?> of <?php echo $total_items; ?> products.</p>
-
-            <div class="catalog-grid">
-                <?php if(count($display_products) > 0): ?>
-                    <?php foreach($display_products as $product): ?>
-                        <div class="product-card">
-                            <h3><?php echo htmlspecialchars($product['name']); ?></h3>
-                            <div class="sku"><?php echo htmlspecialchars($product['sku']); ?></div>
-                            <div style="margin-bottom: 10px; font-size: 0.9em;">
-                                <strong>Isotope:</strong> <?php echo htmlspecialchars($product['isotope']); ?><br>
-                                <strong>Compound:</strong> <?php echo htmlspecialchars($product['compound']); ?>
-                            </div>
-                            <p><?php echo htmlspecialchars($product['description']); ?></p>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p style="grid-column: 1 / -1; text-align: center;">No products found matching your search criteria.</p>
-                <?php endif; ?>
-            </div>
-
-            <?php if($total_pages > 1): ?>
-                <div class="pagination">
-                    <?php for($i = 1; $i <= $total_pages; $i++): ?>
-                        <?php 
-                            // Attach the specific page number to our search query string
-                            $page_url = "?page=" . $i . ($query_string ? '&' . $query_string : ''); 
-                        ?>
-                        <a href="<?php echo $page_url; ?>" class="<?php echo $i === $current_page ? 'active' : ''; ?>">
-                        <?php echo $i; ?>
-                        </a>
-                    <?php endfor; ?>
+                        <button type="submit" class="btn btn--secondary btn--sm">Filter</button>
+                    </form>
                 </div>
-            <?php endif; ?>
+
+                <?php if (!$display_products): ?>
+                    <?php $hasFilters = $q !== '' || $isotope !== '' || $compound !== '' || $status !== ''; ?>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="10" cy="10" r="7"></circle>
+                                <line x1="21" y1="21" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="empty-state__title"><?= $hasFilters ? 'No products match these filters' : 'No products available' ?></div>
+                        <p class="empty-state__hint"><?= $hasFilters ? 'Try a different search or clear the filters.' : 'Click "Add Product" to create your first catalog entry.' ?></p>
+                        <div class="empty-state__action">
+                            <?php if ($hasFilters): ?>
+                                <a href="admin_catalog.php" class="btn btn--secondary btn--sm">Clear filters</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="table-scroll">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Name</th>
+                                    <th>SKU</th>
+                                    <th>Isotope</th>
+                                    <th>Compound</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($display_products as $p): ?>
+                                    <tr>
+                                        <!-- Restored Status Indicator (Dot + Text) -->
+                                        <td>
+                                            <span class="status-indicator">
+                                                <span class="status-dot <?= $p['active'] ? 'active' : 'inactive' ?>"></span>
+                                                <?= $p['active'] ? 'Active' : 'Inactive' ?>
+                                            </span>
+                                        </td>
+                                        
+                                        <td><strong><?= e($p['name']) ?></strong></td>
+                                        <td><span class="badge" style="font-family: monospace;"><?= e($p['sku']) ?></span></td>
+                                        <td><?= e($p['isotope']) ?></td>
+                                        <td><?= e($p['compound']) ?></td>
+                                        <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= e($p['description']) ?>">
+                                            <?= e($p['description']) ?>
+                                        </td>
+                                        
+                                        <!-- Admin Actions -->
+                                        <td>
+                                            <a href="/admin/product_edit.php?id=<?= (int) $p['id'] ?>" class="table-action">Edit</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-pagination">
+                        <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
+                        <div class="table-pagination__controls">
+                            <span class="table-pagination__status">Page <?= $page ?> of <?= $totalPages ?></span>
+                            <?php if ($page <= 1): ?>
+                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
+                            <?php else: ?>
+                                <a href="?<?= e(catalog_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
+                            <?php endif; ?>
+                            <?php if ($page >= $totalPages): ?>
+                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
+                            <?php else: ?>
+                                <a href="?<?= e(catalog_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
         </main>
-
     </div>
-
 </body>
-
-<script src="assets/js/script.js" defer></script>
-
+<script src="/assets/js/script.js" defer></script>
 </html>

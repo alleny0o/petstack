@@ -3,7 +3,7 @@
  * PDO connection, shared across a single request.
  */
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/config.sample.php';
 
 function get_db(): PDO
 {

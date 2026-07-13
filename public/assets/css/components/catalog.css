@@ -1,133 +1,226 @@
-.catalog-header {
-  text-align: left;
+/* =========================================
+   1. Catalog Layout & Shell
+========================================= */
+
+/* The new elevated container */
+.catalog-main {
+  background-color: var(--color-bg-surface);
+  padding: 30px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-hr);
+  margin: 0 auto; /* Centers the shell on wide screens */
+}
+
+/* =========================================
+ 2. Search Form
+========================================= */
+.search-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 20px;
 }
 
-.order-banner {
-  background-color: #fff3cd;
-  color: #856404;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 15px;
-  border: 1px solid #ffeeba;
-}
-
-.order-banner a {
-  font-weight: bold;
-  color: #856404;
-}
-
-.search-container {
-  display: flex;
-  justify-content: left;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-
 .search-container input[type="text"] {
-  padding: 8px 10px;
+  padding: 10px 15px;
   width: 200px;
   border: 1px solid var(--color-border-hr);
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 14px;
 }
 
 .search-container button {
-  padding: 8px 20px;
-  background-color: var(--accent-500);
-  color: var(--white);
+  padding: 10px 20px;
+  background-color: var(--accent, #0056b3);
+  color: var(--white, #ffffff);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
 }
 
 .search-container button:hover {
-  background-color: var(--accent-600);
+  background-color: #004085;
 }
 
 .clear-btn {
-  padding: 8px 20px;
-  background-color: var(--color-bg-surface); 
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-hr);
-  border-radius: 4px;
-  text-decoration: none; 
+  padding: 10px 20px;
+  background-color: #e2e6ea;
+  color: #333;
+  border: 1px solid #dae0e5;
+  border-radius: 6px;
+  text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s ease;
 }
 
 .clear-btn:hover {
-  background-color: var(--color-hover-primary);
-  color: var(--color-hover-mini);
+  background-color: #d3d9df;
+  color: #111;
 }
 
-.catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
+.results-count {
+  text-align: left;
+  color: #6c757d;
+  font-size: 0.95em;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 15px;
 }
 
-.product-card {
+/* =========================================
+ 3. Accordion Layout (Isotopes)
+========================================= */
+.accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; 
+  margin-bottom: 30px;
+}
+
+.isotope-row {
   background-color: var(--color-bg-surface);
-  padding: 20px;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden; 
 }
 
-.product-card h3 {
-  margin-top: 0;
-  font-size: 1.1em;
+.isotope-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 1.15em;
+  font-weight: bold;
+  list-style: none;
+  transition: background-color 0.2s ease;
 }
 
-.product-card .sku {
-  color: var(--color-text-secondary);
+.isotope-summary::-webkit-details-marker {
+  display: none;
+}
+
+.isotope-summary:hover {
+  background-color: var(--color-bg-secondary); 
+}
+
+.compound-count {
+  font-size: 0.8em;
+  font-weight: normal;
+  /* background: rgba(255, 255, 255, 0.2); */
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* =========================================
+ 4. Compound Lists (Inside Accordion)
+========================================= */
+.compound-list {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: var(--color-bg-primary); 
+}
+
+.compound-item {
+  background-color: var(--color-bg-surface);
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.compound-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.compound-item .sku {
+  font-size: 0.85em;
+  color: #6c757d;
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: monospace; 
+}
+
+.compound-item .desc {
+  margin: 0;
   font-size: 0.9em;
-  margin-bottom: 10px;
+  color: #495057;
+  line-height: 1.4;
 }
 
-@media (max-width: 768px) {
-  .search-container input[type="text"] {
-    padding: 12px 10px;
-  }
+/* =========================================
+ 5. Status Indicators
+========================================= */
 
-  .search-container button {
-    padding: 12px 25px;
-    font-size: 16px;
-  }
-
-  .clear-btn {
-    padding: 12px 20px;
-  }
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9em;
+  color: var(--color-text-primary, #333);
+}
+.status-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.status-dot.active {
+  background-color: var(--color-success, #22c55e);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+.status-dot.inactive {
+  background-color: var(--color-danger, #ef4444);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
-/* Pagination Controls */
-.pagination {
+/* Flex layout to put the 'Add Product' button on the right */
+.page-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* =========================================
+ 6. Pagination Controls
+========================================= */
+.catalog-pagination {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-.pagination a {
-  padding: 8px 16px;
+.catalog-pagination a {
+  padding: 8px 14px;
   background-color: var(--color-bg-surface);
   border: 1px solid var(--color-border-hr);
   text-decoration: none;
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.pagination a:hover {
-  background-color: var(--color-hover-primary);
-  color: var(--color-hover-mini);
+.catalog-pagination a:hover {
+  background-color: #e2e6ea;
 }
 
-.pagination a.active {
-  background-color: var(--accent-500);
-  color: var(--white);
-  border-color: var(--accent-500);
+.catalog-pagination a.active {
+  background-color: var(--accent, #0056b3);
+  color: var(--white, #ffffff);
+  border-color: var(--accent, #0056b3);
 }
