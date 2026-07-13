@@ -72,3 +72,24 @@
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
+
+/* ============================================================
+   Order form (Phase G.3)
+   ============================================================ */
+
+/* "+ Add new location / product user" button sitting under its select */
+.field__inline-action {
+  margin-top: var(--sp-2);
+}
+
+/* #order-details wraps the Order Details/Delivery/Submit sections behind
+   one hidden toggle; that wrapper breaks forms.css's
+   `.form-section + .form-section` adjacent-sibling rule for the first
+   section inside it, so give the wrapper the same top-spacing treatment
+   directly. */
+.form-section + #order-details {
+  border-top: 1px solid var(--color-border-hr);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-5);
+}
+

@@ -77,7 +77,7 @@ $recentRejections = $pdo->query(
         <main class="app-main">
             <div class="page-header">
                 <div>
-                    <span class="page-header__eyebrow">Overview</span>
+                    <span class="page-header__eyebrow">Admin</span>
                     <h1>Dashboard</h1>
                     <span class="page-header__meta">Signed in as <?= e($_SESSION['username']) ?></span>
                 </div>

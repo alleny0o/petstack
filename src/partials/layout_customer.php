@@ -1,11 +1,22 @@
 <?php
-// TODO(auth): read the logged-in customer instead of this placeholder.
-$accountName = 'Jane Doe';
+$accountStmt = get_db()->prepare('SELECT first_name, last_name FROM customers WHERE user_id = ?');
+$accountStmt->execute([(int) $_SESSION['user_id']]);
+$accountRow = $accountStmt->fetch();
+$accountName = $accountRow['first_name'] . ' ' . $accountRow['last_name'];
 $accountInitials = implode('', array_map(
     fn($w) => mb_substr($w, 0, 1),
     array_slice(explode(' ', $accountName), 0, 2)
 ));
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
+
+// The profile-edit modal below always redirects back here, tagging the
+// outcome via a query flag (no session-flash mechanism in this app —
+// mirrors the ?placed=1 pattern in customer/new_order.php).
+if (($_GET['profile_updated'] ?? null) === '1') {
+    echo toast_flash('success', 'Profile updated.');
+} elseif (($_GET['profile_error'] ?? null) === '1') {
+    echo toast_flash('error', 'First and last name are required.');
+}
 ?>
 <!-- App topbar: always present (see layout/sidebar.css). The
      hamburger button inside it is the only mobile-specific part. -->
@@ -53,12 +64,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         </li>
 
         <li class="menu-item">
-          <a href="/customer/catalog.php" class="menu-link <?= $currentPage === 'catalog' ? 'active' : '' ?>">
+          <a href="/customer/new_order.php" class="menu-link <?= $currentPage === 'new_order' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="10" cy="10" r="7"></circle>
-              <line x1="21" y1="21" x2="15" y2="15"></line>
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Catalog</span></span>
+            <span class="menu-label"><span class="menu-label__text">New Order</span></span>
           </a>
         </li>
 
@@ -68,10 +79,10 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
-    <a href="/customer/account.php" class="sidebar-account">
+    <button type="button" class="sidebar-account" id="profile-edit-trigger" aria-haspopup="dialog">
       <div class="account-avatar"><?= htmlspecialchars($accountInitials) ?></div>
       <span class="account-name"><?= htmlspecialchars($accountName) ?></span>
-    </a>
+    </button>
 
     <div class="sidebar-footer-actions">
       <a href="/logout.php" class="logout-link">
@@ -84,3 +95,45 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     </div>
   </div>
 </aside>
+
+<!-- Profile edit modal: self-service first/last name edit, opened from
+     the sidebar account block above. -->
+<div class="modal-overlay" id="profile-edit-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-modal-title">
+    <form method="post" action="/account_profile.php">
+      <?= csrf_field() ?>
+      <input type="hidden" name="redirect_to" id="profile-redirect-to" value="">
+      <div class="modal__body">
+        <h2 class="modal__title" id="profile-edit-modal-title">Edit profile</h2>
+        <div class="field-row">
+          <div class="field">
+            <label for="profile-first-name">First name <span class="required-mark">*</span></label>
+            <input type="text" id="profile-first-name" name="first_name" value="<?= htmlspecialchars($accountRow['first_name']) ?>" required data-modal-focus>
+          </div>
+          <div class="field">
+            <label for="profile-last-name">Last name <span class="required-mark">*</span></label>
+            <input type="text" id="profile-last-name" name="last_name" value="<?= htmlspecialchars($accountRow['last_name']) ?>" required>
+          </div>
+        </div>
+        <p class="field-hint mb-0">Need to update your password? <a href="/change_password.php">Change Password</a></p>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var trigger = document.getElementById('profile-edit-trigger');
+  var modal = document.getElementById('profile-edit-modal');
+  var redirectInput = document.getElementById('profile-redirect-to');
+
+  trigger.addEventListener('click', function (e) {
+    redirectInput.value = window.location.pathname + window.location.search;
+    window.petcomOpenModal(modal, { opener: e.currentTarget });
+  });
+});
+</script>

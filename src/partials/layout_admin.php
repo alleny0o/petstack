@@ -11,7 +11,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
 // The profile-edit modal below always redirects back here, tagging the
 // outcome via a query flag (no session-flash mechanism in this app —
-// mirrors the ?placed=1 pattern in customer/order_detail.php).
+// mirrors the ?placed=1 pattern in customer/new_order.php).
 if (($_GET['profile_updated'] ?? null) === '1') {
     echo toast_flash('success', 'Profile updated.');
 } elseif (($_GET['profile_error'] ?? null) === '1') {

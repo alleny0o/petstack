@@ -57,10 +57,18 @@
   color: var(--status-neutral-text);
   background: var(--status-neutral-tint);
 }
-.badge--accepted {
+.badge--accepted,
+.badge--processing {
   --badge-dot: var(--status-info);
   color: var(--status-info-text);
   background: var(--status-info-tint);
+}
+/* orders.status uses 'cancelled' (double-L) -- the single-L .badge--canceled
+   above belongs to the dead order prototype and is left alone, unused here. */
+.badge--cancelled {
+  --badge-dot: var(--status-neutral);
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-tint);
 }
 
 /* Role chips — square, no dot: a fact, not a state */
