@@ -61,7 +61,7 @@ petcom/
           feedback.css          (spinners, empty states)
           dashboard.css         (stat tiles, panel grid, masonry)
           radio-cards.css
-          order-page.css        (baseline for Phase E)
+          order-page.css        (baseline for future order-page work)
       js/
         script.js        (single file, no bundler — sidebar collapse +
                           mobile off-canvas toggle, toasts, confirm modals,
@@ -82,14 +82,18 @@ petcom/
       layout_admin.php
 
   sql/
-    schema.sql          (see Database section below)
+    schema.sql          (see docs/SCHEMA.md)
     seed.sql            (test data)
+
+  docs/
+    SCHEMA.md            (full DB schema: tables, build status, FK structure)
+    STYLEGUIDE.md         (CSS file structure + UI feedback conventions)
 
   tools/
     set_temp_passwords.php (one-time setup for seeded accounts)
 ```
 
-No `docs/` folder yet — `DEPLOY.md` is expected to show up as part of the deployment-polish phase; nothing currently reads a `SCHEMA.md`, and it isn't committed anywhere yet either.
+`docs/` holds reference material split out of this file — see `docs/SCHEMA.md` and `docs/STYLEGUIDE.md` below. `DEPLOY.md` is still expected to show up there as part of the deployment-polish phase; not yet written.
 
 ## Three Security Rules
 
@@ -134,39 +138,7 @@ require_role('customer');
 
 ## Database
 
-Tables are grouped by area below; the group composition is stable even as tables
-within it get built out. Tables marked **(built)** exist in `sql/schema.sql` today
-— see that file for exact columns/constraints and build order (FK-safe order,
-not the narrative order here). Unmarked tables are designed but not yet built.
-
-**Identity (11 tables, all built):**
-1. `institutes` (built)
-2. `labs` (built)
-3. `pis` (built)
-4. `lab_pis` (built) — join: a lab can have multiple PIs, a PI can oversee multiple labs
-5. `users` (built) — shared login table: username, password_hash, must_change_password, failed_login_count, locked_until — used by all three roles
-6. `password_history` (built) — prior password hashes, for reuse prevention in `change_password.php`
-7. `lockout_events` (built) — records a lockout event each time a login attempt trips the failed-attempt threshold
-8. `customers` (built) — extends `users` via `user_id`; institute/lab/supervising_pi locked at approval. `registration_status` is set to `'approved'` when the row is created by the C.2 approval flow — a `customers` row only ever exists once a request is approved, so this is effectively a constant, kept because `customer/dashboard.php` displays it. The old `approved_by`/`approved_at` columns were dropped in C.2 as genuinely unused (see `customer_registration_requests.reviewed_by_admin_id`/`reviewed_at` for that bookkeeping now)
-9. `customer_registration_requests` (built) — holds a public self-registration submission until an admin reviews it (see Business Rules)
-10. `staff` (built) — extends `users` via `user_id`; has a single `category_id` — one category per staff member, not a junction table
-11. `admins` (built) — extends `users` via `user_id`
-
-**Menu (6 tables, 1 built):**
-12. `isotopes`
-13. `categories` (built) — e.g. Radiopharmacy, Cyclotron — admin-editable, referenced by both `staff.category_id` and the future `compounds.category_id`
-14. `compounds`
-15. `compound_isotopes` (join: usually 1:1, occasionally a compound allows multiple isotopes)
-16. `delivery_options`
-17. `compound_delivery_options` (join: each compound lists its own allowed delivery methods)
-
-**Orders (6 tables, none built yet):**
-18. `orders`
-19. `order_type_a_details` (dose orders: activity_mci, requested_datetime)
-20. `order_type_b_details` (cyclotron orders: either beam_current+bombardment_minutes OR eob_activity_mci+eob_datetime, never both)
-21. `order_public_comments` (append-only, visible to customer + staff)
-22. `order_internal_notes` (append-only, staff-only)
-23. `order_audit_log` (status changes only — pending→accepted→completed/canceled, timestamp, who — not field-level diffing)
+See `docs/SCHEMA.md` for the full schema (tables, build status, FK-safe build order, per-table notes).
 
 ## Business Rules (Non-Negotiable)
 
@@ -201,24 +173,7 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 
 ## CSS Architecture
 
-- **style.css:** System fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`), reset, design tokens (colors + status text/tint pairs, spacing, radii `--radius-sm/md/lg/full`, shadows `--shadow-xs…lg`), typography, accessibility (`:focus-visible`, `prefers-reduced-motion`, `.sr-only`)
-- **layout/shell.css:** App-shell grid, header/main/footer chrome bindings
-- **layout/sidebar.css:** Sidebar (sticky, collapse on desktop, off-canvas on mobile), topbar, dark mode hooks
-- **components/:** One file per concern — auth, page-structure (page header + cards + detail list), forms, buttons, tables, alerts (incl. temp-password banner), badges, utilities, toasts, modals, feedback (spinners + empty states), dashboard (stat tiles + masonry), radio-cards, order-page
-
-**No role-specific CSS files.** All three roles share the same component library.
-
-**UI feedback conventions (post-D.2 overhaul):**
-- Transient success → toast via `toast_flash($type, $message)` (helpers.php); pages re-render on POST (no PRG), so the helper emits a DOMContentLoaded `showToast()` call
-- Errors/warnings → inline `.alert--error/--warning` banners; per-field validation → `field_class()` on the `.field` wrapper + `field_error()` below the input
-- Destructive/irreversible actions → `data-confirm` / `data-confirm-title` / `data-confirm-verb` / `data-confirm-danger` attributes on the form; script.js intercepts submit and shows a custom modal (never `window.confirm`)
-- Temp-password reveals → `.temp-password-banner` with a `data-copy-target` Copy button; never a toast
-- Status language: pill badges with a leading dot (`.badge--active/pending/approved/rejected/…`); role chips are square (`.badge--role-admin/staff`)
-- Submit buttons get a spinner + double-submit guard automatically from script.js — no per-form wiring needed
-
-**Dark mode:** Not implemented right now. Tokens may exist in CSS for future use but no toggle is wired up.
-
-**Sidebar collapse (desktop only):** Pre-paint script reads `localStorage['petcom:sidebar']` and sets `data-sidebar="collapsed"` on `<html>`. CSS changes `--sidebar-width`. Mobile sidebar (off-canvas) uses `data-sidebar-mobile="open"` on `<html>` instead — a separate, independent state.
+See `docs/STYLEGUIDE.md` for file structure and UI feedback conventions.
 
 ## Git Workflow
 
@@ -233,12 +188,35 @@ Branch → PR → merge. Never push directly to `main`.
 
 ## Build Phases
 
-PETCOM is built in lettered phases (A–F); the detailed phase/sub-phase plan is
+PETCOM is built in lettered phases (A–K); the detailed phase/sub-phase plan is
 tracked outside this file, not here — this section is intentionally just a
 high-level status marker so it doesn't need editing every time a sub-phase
-ships. Current status: **A, B, and C are complete. D is in progress (D.1
-customer management and D.2 staff/admin account management are done; D.3
-institute/lab/PI CRUD has not started). E and F have not started.**
+ships.
+
+- **A** — Role/schema foundation — complete
+- **B** — Core auth hardening — complete
+- **C** — Self-registration + admin approval — complete
+- **D** — Account management — in progress (D.1 customer management complete,
+  D.2 staff/admin management complete, D.3 institute/lab/PI CRUD not started —
+  deprioritized indefinitely, current manual seeding is sufficient for now)
+- **E** — Dashboards + staff/admin toggle — in progress (admin dashboard
+  complete, S/A toggle complete; staff/customer dashboard polish deferred
+  until Phase G ships, since dashboards need real order data to be meaningful
+  rather than empty shells)
+- **F** — Catalog/menu schema + seed data (isotopes, compounds, delivery
+  options, institute custom lists) — not started, next up
+- **G** — Order core — not started (G.1 delivery locations + product users
+  CRUD, customer-managed; G.2 orders/order_type_a_details/order_type_b_details
+  schema; G.3 Type A order form)
+- **H** — Staff order processing UI — not started
+- **I** — Audit logging — not started (moved up from its original
+  end-of-plan position; real order status changes should be logged as soon as
+  they exist, since admin/staff both operate on sensitive order data)
+- **J** — Type B (cyclotron) order form — not started
+- **K** — Admin catalog config UI + optional order-form preview (stretch) —
+  not started
+
+**Current status: A–C complete. D and E in progress. F next.**
 
 ## Verification Policy
 
