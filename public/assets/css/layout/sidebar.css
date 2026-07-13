@@ -282,9 +282,20 @@
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
-  text-decoration: none; /* the account block links to the account page */
+  text-decoration: none;
+  /* Button, not a link (opens the profile-edit modal) — Safari paints
+     native button chrome over any override unless appearance is reset
+     first, same issue as .menu-link above. */
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
 }
-.sidebar .sidebar-footer a.sidebar-account:hover .account-name {
+.sidebar .sidebar-footer .sidebar-account:hover .account-name {
   color: var(--accent-600);
 }
 .sidebar .sidebar-footer .account-avatar {
