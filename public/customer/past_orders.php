@@ -1,5 +1,6 @@
 <?php
 <<<<<<< HEAD
+<<<<<<< HEAD
 require __DIR__ . '/../../src/helpers.php';
 bootstrap_session();
 require __DIR__ . '/../../src/auth.php';
@@ -10,11 +11,16 @@ $pdo = get_db();
 // Assuming your auth system stores the logged-in customer's ID here:
 $customerId = 4; 
 =======
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 session_start();
 require __DIR__ . '/../src/demo_orders.php';
 
 $allOrders = demo_orders();
+<<<<<<< HEAD
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 
 // ---------------------------------------------------------
 // 1. Capture Filter Inputs
@@ -27,6 +33,7 @@ $filterDateEnd   = $_GET['date_end'] ?? '';
 $page            = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage    = 10;
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 $hasAdvancedFilters = ($filterStatus !== '' || $filterIsotope !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
 
@@ -108,6 +115,8 @@ $stmt->execute();
 
 $paginatedOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 =======
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 // Determine if the advanced drawer should be open on load
 $hasAdvancedFilters = ($filterStatus !== '' || $filterIsotope !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
 
@@ -156,7 +165,10 @@ $page = min($page, $totalPages);
 
 $offset = ($page - 1) * $itemsPerPage;
 $paginatedOrders = array_slice($filteredOrders, $offset, $itemsPerPage);
+<<<<<<< HEAD
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 
 function buildUrl($pageUpdate) {
     $params = $_GET;
@@ -166,29 +178,42 @@ function buildUrl($pageUpdate) {
 ?>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
+<<<<<<< HEAD
 <<<<<<< HEAD
     <?php include __DIR__ . '/../../src/partials/head.php'; ?>
 =======
     <?php $pageTitle = 'Past Orders'; $roleCss = 'customer';
     include '../src/partials/head.php'; ?>
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+    <?php $pageTitle = 'Past Orders'; $roleCss = 'customer';
+    include '../src/partials/head.php'; ?>
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 </head>
 
 <body>
 
     <div class="app-shell">
 <<<<<<< HEAD
+<<<<<<< HEAD
         <?php include __DIR__ . '/../../src/partials/layout_customer.php'; ?>
 =======
         <?php include '../src/partials/layout_customer.php'; ?>
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+        <?php include '../src/partials/layout_customer.php'; ?>
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 
         <main class="app-main">
 
@@ -204,10 +229,14 @@ function buildUrl($pageUpdate) {
                     <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
 <<<<<<< HEAD
+<<<<<<< HEAD
                     <form method="GET" action="past_orders.php" id="filter-form">
 =======
                     <form method="GET" action="customer_past_orders.php" id="filter-form">
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+                    <form method="GET" action="customer_past_orders.php" id="filter-form">
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
                         <input type="hidden" name="page" value="1"> 
                         
                         <div class="search-bar-top">
@@ -287,6 +316,7 @@ function buildUrl($pageUpdate) {
                                 <?php foreach ($paginatedOrders as $o): ?>
                                     <tr>
 <<<<<<< HEAD
+<<<<<<< HEAD
                                         <td class="muted tabular"><?= htmlspecialchars($o['order_id']) ?></td>
                                         <td><?= htmlspecialchars($o['compound_name'] ?? 'Unknown') ?></td>
                                         <td class="muted"><?= htmlspecialchars($o['isotope'] ?? 'Unknown') ?></td>
@@ -294,13 +324,18 @@ function buildUrl($pageUpdate) {
                                         <td><span class="badge badge--<?= htmlspecialchars($o['status']) ?>"><?= ucfirst(htmlspecialchars($o['status'])) ?></span></td>
                                         <td><a href="order_detail.php?id=<?= $o['order_id'] ?>" class="table-action">View →</a></td>
 =======
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
                                         <td class="muted tabular"><?= htmlspecialchars($o['id']) ?></td>
                                         <td><?= htmlspecialchars($o['compound']) ?></td>
                                         <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
                                         <td class="muted tabular"><?= htmlspecialchars($o['requested'] ?? $o['b_datetime'] ?? '—') ?></td>
                                         <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>
                                         <td><a href="order_detail.php?id=<?= $o['id'] ?>" class="table-action">View →</a></td>
+<<<<<<< HEAD
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -336,10 +371,14 @@ function buildUrl($pageUpdate) {
 </body>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 <script src="/assets/js/script.js" defer></script>
 =======
 <script src="assets/js/script.js" defer></script>
 >>>>>>> f1a9c500e83897e6bbb28035eec951eae49bc042
+=======
+<script src="assets/js/script.js" defer></script>
+>>>>>>> 1b7dc665cd30e229661305c70df77e57d53e758b
 <script>
     // Toggle the advanced filter drawer open/closed
     document.getElementById('toggle-advanced-search').addEventListener('click', function() {
