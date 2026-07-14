@@ -53,12 +53,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         </li>
 
         <li class="menu-item">
-          <a href="/customer/catalog.php" class="menu-link <?= $currentPage === 'catalog' ? 'active' : '' ?>">
+          <a href="/customer/past_orders.php" class="menu-link <?= $currentPage === 'past_orders' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="10" cy="10" r="7"></circle>
               <line x1="21" y1="21" x2="15" y2="15"></line>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Catalog</span></span>
+            <span class="menu-label"><span class="menu-label__text">Past orders</span></span>
           </a>
         </li>
 

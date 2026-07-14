@@ -38,3 +38,4 @@
 <link rel="stylesheet" href="/assets/css/components/dashboard.css">
 <link rel="stylesheet" href="/assets/css/components/radio-cards.css">
 <link rel="stylesheet" href="/assets/css/components/order-page.css">
+<link rel="stylesheet" href="/assets/css/components/catalog.css">

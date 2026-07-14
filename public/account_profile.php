@@ -2,7 +2,7 @@
 require __DIR__ . '/../src/helpers.php';
 bootstrap_session();
 require __DIR__ . '/../src/auth.php';
-require_role(['staff', 'admin']);
+require_role(['staff', 'admin', 'customer']);
 
 /**
  * Same-origin path only: exactly one leading '/', never '//...'
@@ -32,7 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect($target . $sep . 'profile_error=1');
     }
 
-    get_db()->prepare('UPDATE staff SET first_name = ?, last_name = ? WHERE user_id = ?')
+    // Customers and staff/admins live in separate tables (see CLAUDE.md
+    // Roles) -- $_SESSION['role'] is session-derived, never request input,
+    // so this is a closed two-way choice, not an injection surface.
+    $table = $_SESSION['role'] === 'customer' ? 'customers' : 'staff';
+    get_db()->prepare("UPDATE {$table} SET first_name = ?, last_name = ? WHERE user_id = ?")
         ->execute([$firstName, $lastName, (int) $_SESSION['user_id']]);
 
     redirect($target . $sep . 'profile_updated=1');
