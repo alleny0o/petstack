@@ -145,7 +145,7 @@ function buildUrl($pageUpdate) {
                             </button>
                             
                             <?php if ($filterSearch !== '' || $hasAdvancedFilters): ?>
-                                <a href="customer_past_orders.php" class="btn btn--secondary">Clear</a>
+                                <a href="past_orders.php" class="btn btn--secondary">Clear</a>
                             <?php endif; ?>
                         </div>
 
