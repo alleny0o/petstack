@@ -1,11 +1,22 @@
 <?php
-// TODO(auth): read the logged-in staff member instead of this placeholder.
-$accountName = 'Staff Member';
+$accountStmt = get_db()->prepare('SELECT first_name, last_name FROM staff WHERE user_id = ?');
+$accountStmt->execute([(int) $_SESSION['user_id']]);
+$accountRow = $accountStmt->fetch();
+$accountName = $accountRow['first_name'] . ' ' . $accountRow['last_name'];
 $accountInitials = implode('', array_map(
     fn($w) => mb_substr($w, 0, 1),
     array_slice(explode(' ', $accountName), 0, 2)
 ));
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
+
+// The profile-edit modal below always redirects back here, tagging the
+// outcome via a query flag (no session-flash mechanism in this app —
+// mirrors the ?placed=1 pattern in customer/order_detail.php).
+if (($_GET['profile_updated'] ?? null) === '1') {
+    echo toast_flash('success', 'Profile updated.');
+} elseif (($_GET['profile_error'] ?? null) === '1') {
+    echo toast_flash('error', 'First and last name are required.');
+}
 ?>
 <!-- App topbar: always present (see layout/sidebar.css). The
      hamburger button inside it is the only mobile-specific part. -->
@@ -66,12 +77,19 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     </nav>
   </div>
 
+  <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+  <div class="sidebar-mode-toggle">
+    <a href="/admin/dashboard.php" class="sidebar-mode-toggle__option">Admin</a>
+    <a href="/staff/dashboard.php" class="sidebar-mode-toggle__option is-active">Staff</a>
+  </div>
+  <?php endif; ?>
+
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
-    <div class="sidebar-account">
+    <button type="button" class="sidebar-account" id="profile-edit-trigger" aria-haspopup="dialog">
       <div class="account-avatar"><?= htmlspecialchars($accountInitials) ?></div>
       <span class="account-name"><?= htmlspecialchars($accountName) ?></span>
-    </div>
+    </button>
 
     <div class="sidebar-footer-actions">
       <a href="/logout.php" class="logout-link">
@@ -84,3 +102,46 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     </div>
   </div>
 </aside>
+
+<!-- Profile edit modal: self-service first/last name edit, opened from
+     the sidebar account block above. Separate from admin/account_detail.php,
+     which edits *other* accounts -- this always targets $_SESSION['user_id']. -->
+<div class="modal-overlay" id="profile-edit-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-modal-title">
+    <form method="post" action="/account_profile.php">
+      <?= csrf_field() ?>
+      <input type="hidden" name="redirect_to" id="profile-redirect-to" value="">
+      <div class="modal__body">
+        <h2 class="modal__title" id="profile-edit-modal-title">Edit profile</h2>
+        <div class="field-row">
+          <div class="field">
+            <label for="profile-first-name">First name <span class="required-mark">*</span></label>
+            <input type="text" id="profile-first-name" name="first_name" value="<?= htmlspecialchars($accountRow['first_name']) ?>" required data-modal-focus>
+          </div>
+          <div class="field">
+            <label for="profile-last-name">Last name <span class="required-mark">*</span></label>
+            <input type="text" id="profile-last-name" name="last_name" value="<?= htmlspecialchars($accountRow['last_name']) ?>" required>
+          </div>
+        </div>
+        <p class="field-hint mb-0">Need to update your password? <a href="/change_password.php">Change Password</a></p>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var trigger = document.getElementById('profile-edit-trigger');
+  var modal = document.getElementById('profile-edit-modal');
+  var redirectInput = document.getElementById('profile-redirect-to');
+
+  trigger.addEventListener('click', function (e) {
+    redirectInput.value = window.location.pathname + window.location.search;
+    window.petcomOpenModal(modal, { opener: e.currentTarget });
+  });
+});
+</script>

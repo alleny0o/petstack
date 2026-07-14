@@ -19,10 +19,11 @@ $params = [];
 
 if ($q !== '') {
     // Escape LIKE wildcards in the search term itself, same convention
-    // as customers.php -- no name field exists on staff/admins, so this
-    // only ever matches the username (email).
+    // as customers.php -- matches either the staff member's name or
+    // their username (email).
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
-    $where[] = "u.username LIKE ? ESCAPE '\\\\'";
+    $where[] = "(CONCAT(s.first_name, ' ', s.last_name) LIKE ? ESCAPE '\\\\' OR u.username LIKE ? ESCAPE '\\\\')";
+    $params[] = '%' . $escaped . '%';
     $params[] = '%' . $escaped . '%';
 }
 if ($role === 'staff') {
@@ -62,6 +63,7 @@ $offset = ($page - 1) * ACCOUNTS_PAGE_SIZE;
 // same convention as customers.php.
 $listStmt = $pdo->prepare(
     "SELECT u.user_id, u.username, u.active,
+            s.first_name, s.last_name,
             cat.category_id, cat.category_name,
             (a.user_id IS NOT NULL) AS is_admin
      FROM staff s
@@ -171,6 +173,7 @@ $pageTitle = 'Accounts';
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th>Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>Category</th>
@@ -181,6 +184,7 @@ $pageTitle = 'Accounts';
                             <tbody>
                                 <?php foreach ($accounts as $acc): ?>
                                     <tr>
+                                        <td><?= e($acc['first_name'] . ' ' . $acc['last_name']) ?></td>
                                         <td><?= e($acc['username']) ?></td>
                                         <td><span class="badge badge--role-<?= $acc['is_admin'] ? 'admin' : 'staff' ?>"><?= $acc['is_admin'] ? 'Admin' : 'Staff' ?></span></td>
                                         <td><?= e($acc['category_name']) ?></td>

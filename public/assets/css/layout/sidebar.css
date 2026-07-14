@@ -282,9 +282,20 @@
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
-  text-decoration: none; /* the account block links to the account page */
+  text-decoration: none;
+  /* Button, not a link (opens the profile-edit modal) — Safari paints
+     native button chrome over any override unless appearance is reset
+     first, same issue as .menu-link above. */
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
 }
-.sidebar .sidebar-footer a.sidebar-account:hover .account-name {
+.sidebar .sidebar-footer .sidebar-account:hover .account-name {
   color: var(--accent-600);
 }
 .sidebar .sidebar-footer .account-avatar {
@@ -324,6 +335,36 @@
 }
 .sidebar .sidebar-footer .logout-link:hover {
   color: var(--color-error);
+}
+
+/* --- Sidebar: admin Staff/Admin view toggle (sits directly above the
+   identity/footer row; admin-only, see layout_admin.php/layout_staff.php) --- */
+.sidebar .sidebar-mode-toggle {
+  display: flex;
+  gap: 2px;
+  margin: 0 var(--sp-5) var(--sp-3);
+  padding: 3px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+}
+.sidebar .sidebar-mode-toggle__option {
+  flex: 1;
+  text-align: center;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+.sidebar .sidebar-mode-toggle__option:hover {
+  color: var(--color-text-primary);
+}
+.sidebar .sidebar-mode-toggle__option.is-active {
+  background: var(--color-bg-primary);
+  color: var(--accent-600);
+  box-shadow: var(--shadow-xs);
 }
 
 /* --- App topbar (always present, all breakpoints) ---
@@ -444,5 +485,8 @@
   [data-sidebar="collapsed"] .sidebar-footer-actions {
     flex-direction: column;
     margin-left: 0;
+  }
+  [data-sidebar="collapsed"] .sidebar-mode-toggle {
+    display: none;
   }
 }
