@@ -136,6 +136,8 @@ CREATE TABLE lockout_events (
 -- One category per staff member, not a junction table.
 CREATE TABLE staff (
   user_id     INT UNSIGNED PRIMARY KEY,
+  first_name  VARCHAR(100) NOT NULL,
+  last_name   VARCHAR(100) NOT NULL,
   category_id INT UNSIGNED NOT NULL,
   CONSTRAINT fk_staff_user     FOREIGN KEY (user_id)     REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_staff_category FOREIGN KEY (category_id) REFERENCES categories (category_id),

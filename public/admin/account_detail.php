@@ -33,6 +33,7 @@ function fetch_account(PDO $pdo, int $userId): ?array
 {
     $stmt = $pdo->prepare(
         'SELECT u.user_id, u.username, u.active, u.created_at,
+                s.first_name, s.last_name,
                 cat.category_id, cat.category_name,
                 (a.user_id IS NOT NULL) AS is_admin
          FROM staff s
@@ -52,14 +53,37 @@ $isSelf = $account !== null && $userId === (int) $_SESSION['user_id'];
 
 $flash = null;
 $categoryError = '';
+$profileErrors = [];
 $tempPasswordReveal = null;
+
+$profileOld = $account !== null
+    ? ['first_name' => $account['first_name'], 'last_name' => $account['last_name']]
+    : ['first_name' => '', 'last_name' => ''];
 
 if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'edit_category' && !$account['is_admin']) {
+    if ($action === 'edit_profile') {
+        $profileOld['first_name'] = trim($_POST['first_name'] ?? '');
+        $profileOld['last_name'] = trim($_POST['last_name'] ?? '');
+
+        if ($profileOld['first_name'] === '') {
+            $profileErrors['first_name'] = 'First name is required.';
+        }
+        if ($profileOld['last_name'] === '') {
+            $profileErrors['last_name'] = 'Last name is required.';
+        }
+
+        if (!$profileErrors) {
+            $pdo->prepare('UPDATE staff SET first_name = ?, last_name = ? WHERE user_id = ?')
+                ->execute([$profileOld['first_name'], $profileOld['last_name'], $userId]);
+            $account = fetch_account($pdo, $userId);
+            $profileOld = ['first_name' => $account['first_name'], 'last_name' => $account['last_name']];
+            $flash = ['type' => 'success', 'message' => 'Profile updated.'];
+        }
+    } elseif ($action === 'edit_category' && !$account['is_admin']) {
         $newCategoryId = trim((string) ($_POST['category_id'] ?? ''));
 
         if ($newCategoryId === '' || !ctype_digit($newCategoryId)) {
@@ -159,7 +183,7 @@ $categories = $pdo->query(
     "SELECT category_id, category_name FROM categories WHERE category_name != 'Administration' ORDER BY category_name"
 )->fetchAll();
 
-$pageTitle = $account !== null ? $account['username'] : 'Account not found';
+$pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_name']) : 'Account not found';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -185,7 +209,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                         <a href="/admin/accounts.php" class="page-header__back mb-4">&larr; Back to Accounts</a>
                         <span class="badge badge--<?= $account['active'] ? 'active' : 'inactive' ?> page-header__status"><?= $account['active'] ? 'Active' : 'Inactive' ?></span>
                         <span class="badge badge--role-<?= $account['is_admin'] ? 'admin' : 'staff' ?> page-header__status"><?= $account['is_admin'] ? 'Admin' : 'Staff' ?></span>
-                        <h1><?= e($account['username']) ?></h1>
+                        <h1><?= e($account['first_name'] . ' ' . $account['last_name']) ?></h1>
                     </div>
                 </div>
 
@@ -198,7 +222,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
                         <div class="temp-password-banner__heading">Temporary password generated</div>
-                        <div>Give this to <?= e($account['username']) ?> via NIH email &mdash; it will not be shown again.</div>
+                        <div>Give this to <?= e($account['first_name'] . ' ' . $account['last_name']) ?> via NIH email &mdash; it will not be shown again.</div>
                         <div class="temp-password-banner__row">
                             <span class="temp-password-banner__password" id="temp-password-value"><?= e($tempPasswordReveal) ?></span>
                             <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
@@ -206,6 +230,31 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                         <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
                     </div>
                 <?php endif; ?>
+
+                <div class="card">
+                    <span class="card__title">Profile</span>
+                    <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="edit_profile">
+
+                        <div class="field-row">
+                            <div class="<?= field_class($profileErrors, 'first_name') ?>">
+                                <label for="first_name">First name <span class="required-mark">*</span></label>
+                                <input type="text" id="first_name" name="first_name" value="<?= e($profileOld['first_name']) ?>" required>
+                                <?= field_error($profileErrors, 'first_name') ?>
+                            </div>
+                            <div class="<?= field_class($profileErrors, 'last_name') ?>">
+                                <label for="last_name">Last name <span class="required-mark">*</span></label>
+                                <input type="text" id="last_name" name="last_name" value="<?= e($profileOld['last_name']) ?>" required>
+                                <?= field_error($profileErrors, 'last_name') ?>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <button type="submit" class="btn btn--primary">Save Profile</button>
+                        </div>
+                    </form>
+                </div>
 
                 <div class="card">
                     <span class="card__title">Account</span>
@@ -266,7 +315,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                             <button type="button" class="btn btn--danger" disabled title="You cannot deactivate your own account.">Deactivate Account</button>
                         <?php elseif ($account['active']): ?>
                             <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
-                                  data-confirm="Deactivate <?= e($account['username']) ?>? They will be signed out immediately and unable to log in."
+                                  data-confirm="Deactivate <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? They will be signed out immediately and unable to log in."
                                   data-confirm-title="Deactivate account"
                                   data-confirm-verb="Deactivate"
                                   data-confirm-danger>
@@ -276,7 +325,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                             </form>
                         <?php else: ?>
                             <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
-                                  data-confirm="Reactivate <?= e($account['username']) ?>? They will be able to log in again."
+                                  data-confirm="Reactivate <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? They will be able to log in again."
                                   data-confirm-title="Reactivate account"
                                   data-confirm-verb="Reactivate">
                                 <?= csrf_field() ?>
@@ -289,7 +338,7 @@ $pageTitle = $account !== null ? $account['username'] : 'Account not found';
                             <button type="button" class="btn btn--secondary" disabled title="You cannot reset your own password here. Use Change Password instead.">Reset Password</button>
                         <?php else: ?>
                             <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
-                                  data-confirm="Generate a new temporary password for <?= e($account['username']) ?>? Their current password will stop working immediately."
+                                  data-confirm="Generate a new temporary password for <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? Their current password will stop working immediately."
                                   data-confirm-title="Reset password"
                                   data-confirm-verb="Reset password"
                                   data-confirm-danger>

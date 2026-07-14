@@ -72,6 +72,23 @@ function attempt_login(string $username, string $password): array
 }
 
 /**
+ * Whether a session role satisfies a page's role requirement.
+ *
+ * admin ⊆ staff is a hard DB-level invariant (admins.user_id -> staff.user_id
+ * FK, Phase A.2) — every admin also has a staff row, so an admin session
+ * must satisfy staff-only pages. This is one-directional: staff does NOT
+ * satisfy admin-only pages.
+ */
+function role_satisfies(string $sessionRole, string $requiredRole): bool
+{
+    if ($sessionRole === $requiredRole) {
+        return true;
+    }
+
+    return $sessionRole === 'admin' && $requiredRole === 'staff';
+}
+
+/**
  * @param string|string[] $allowedRoles One role, or several (e.g. a page
  *                                      reachable by every role such as
  *                                      change_password.php).
@@ -96,7 +113,15 @@ function require_role($allowedRoles): void
         redirect('/login.php');
     }
 
-    if (!in_array($_SESSION['role'], (array) $allowedRoles, true)) {
+    $satisfiesRequirement = false;
+    foreach ((array) $allowedRoles as $required) {
+        if (role_satisfies($_SESSION['role'], $required)) {
+            $satisfiesRequirement = true;
+            break;
+        }
+    }
+
+    if (!$satisfiesRequirement) {
         redirect(dashboard_path_for_role($_SESSION['role']));
     }
 
