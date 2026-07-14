@@ -29,6 +29,9 @@ DROP TABLE IF EXISTS lab_pis;
 DROP TABLE IF EXISTS pis;
 DROP TABLE IF EXISTS labs;
 DROP TABLE IF EXISTS institutes;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS compounds;
+DROP TABLE IF EXISTS isotopes;
 
 
 -- ============================================================
@@ -204,4 +207,40 @@ CREATE TABLE customer_registration_requests (
   KEY idx_reg_requests_status (status),
   KEY idx_reg_requests_email (email),
   KEY idx_reg_requests_lab_id (lab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- temporary: change with real databsecode later
+CREATE TABLE isotopes (
+  isotope_name  VARCHAR(30) PRIMARY KEY,
+  active        TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE compounds (
+  compound_id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  isotope_name        VARCHAR(30) NOT NULL,
+  name                VARCHAR(255) NOT NULL,
+  category            VARCHAR(30) NOT NULL,
+  standard_cost       DECIMAL(10,2) NOT NULL,
+  min_lead_time_hours DECIMAL(6,1) NULL,
+  active              TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE orders (
+  order_id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  customer_id           INT UNSIGNED NOT NULL,
+  compound_id           INT NOT NULL,
+  activity_mci          DECIMAL(10,1) NULL,
+  status                VARCHAR(20) NOT NULL,
+  created_at            TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by            INT NOT NULL,
+  delivery_option       VARCHAR(20) NOT NULL,
+  delivery_time         TIMESTAMP NOT NULL,
+  processed_by          INT UNSIGNED NULL,
+  processed_at          TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  cost_snapshot         DECIMAL(10,2) NOT NULL,
+  last_modified_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  last_modified_by      INT UNSIGNED NULL,
+  special_instructions  VARCHAR(500) NULL,
+  cancelation_notes     VARCHAR(500) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
