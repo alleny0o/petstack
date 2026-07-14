@@ -132,7 +132,7 @@ function buildUrl($pageUpdate) {
                 <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
                     <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
-                    <form method="GET" action="customer_past_orders.php" id="filter-form">
+                    <form method="GET" action="past_orders.php" id="filter-form">
                         <input type="hidden" name="page" value="1"> 
                         
                         <div class="search-bar-top">
