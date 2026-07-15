@@ -223,6 +223,7 @@ CREATE TABLE compounds (
   category            VARCHAR(30) NOT NULL,
   standard_cost       DECIMAL(10,2) NOT NULL,
   min_lead_time_hours DECIMAL(6,1) NULL,
+  fulfillment         
   active              TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -231,7 +232,7 @@ CREATE TABLE orders (
   customer_id           INT UNSIGNED NOT NULL,
   compound_id           INT NOT NULL,
   activity_mci          DECIMAL(10,1) NULL,
-  status                VARCHAR(20) NOT NULL,
+  status                ENUM('pending', 'accepted', 'ready for pickup', 'completed', 'canceled', 'returned') DEFAULT 'pending',
   created_at            TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   created_by            INT NOT NULL,
   delivery_option       VARCHAR(20) NOT NULL,
@@ -241,6 +242,6 @@ CREATE TABLE orders (
   cost_snapshot         DECIMAL(10,2) NOT NULL,
   last_modified_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   last_modified_by      INT UNSIGNED NULL,
-  special_instructions  VARCHAR(500) NULL,
+  additional_notes      VARCHAR(500) NULL,
   cancelation_notes     VARCHAR(500) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

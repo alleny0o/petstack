@@ -7,24 +7,24 @@ require_role('customer');
 $pdo = get_db();
 
 // Assuming your auth system stores the logged-in customer's ID here:
-$customerId = 4; 
+$customerId = $_SESSION['user_id'] ?? 1; 
 
 // ---------------------------------------------------------
 // 1. Capture Filter Inputs
 // ---------------------------------------------------------
 $filterSearch    = $_GET['search'] ?? '';
 $filterStatus    = $_GET['status'] ?? '';
-$filterIsotope   = $_GET['isotope'] ?? '';
+$filterNuclide   = $_GET['nuclide'] ?? '';
 $filterDateStart = $_GET['date_start'] ?? '';
 $filterDateEnd   = $_GET['date_end'] ?? '';
 $page            = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage    = 10;
 
-$hasAdvancedFilters = ($filterStatus !== '' || $filterIsotope !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
+$hasAdvancedFilters = ($filterStatus !== '' || $filterNuclide !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
 
-// Get active isotopes for the dropdown directly from your new table
-$stmtIso = $pdo->query("SELECT isotope_name FROM isotopes WHERE active = 1 ORDER BY isotope_name");
-$uniqueIsotopes = $stmtIso->fetchAll(PDO::FETCH_COLUMN);
+// Get active nuclides for the dropdown directly from your new table
+$stmtNuclide = $pdo->query("SELECT nuclide_name FROM nuclides WHERE active = 1 ORDER BY nuclide_name");
+$uniqueNuclides = $stmtNuclide->fetchAll(PDO::FETCH_COLUMN);
 
 // ---------------------------------------------------------
 // 2. Build the SQL Database Query dynamically
@@ -36,10 +36,10 @@ if ($filterStatus !== '') {
     $whereSql .= " AND o.status = :status";
     $params[':status'] = $filterStatus;
 }
-if ($filterIsotope !== '') {
-    // Look at the compounds table for the isotope instead of orders
-    $whereSql .= " AND c.isotope_name = :isotope";
-    $params[':isotope'] = $filterIsotope;
+if ($filterNuclide !== '') {
+    // Look at the products table for the nuclide instead of orders
+    $whereSql .= " AND p.nuclide_name = :nuclide";
+    $params[':nuclide'] = $filterNuclide;
 }
 if ($filterDateStart !== '') {
     $whereSql .= " AND DATE(o.created_at) >= :date_start";
@@ -50,7 +50,8 @@ if ($filterDateEnd !== '') {
     $params[':date_end'] = $filterDateEnd;
 }
 if ($filterSearch !== '') {
-    $whereSql .= " AND (o.order_id LIKE :search OR c.name LIKE :search)";
+    // Check if search matches order_id OR the product name
+    $whereSql .= " AND (o.order_id LIKE :search OR p.name LIKE :search)";
     $params[':search'] = "%{$filterSearch}%";
 }
 
@@ -61,7 +62,7 @@ if ($filterSearch !== '') {
 $stmtCount = $pdo->prepare("
     SELECT COUNT(*) 
     FROM orders o 
-    LEFT JOIN compounds c ON o.compound_id = c.compound_id 
+    LEFT JOIN products p ON o.product_id = p.product_id 
     $whereSql
 ");
 $stmtCount->execute($params);
@@ -78,10 +79,10 @@ $query = "
         o.order_id, 
         o.status, 
         o.delivery_time, 
-        c.name AS compound_name,
-        c.isotope_name AS isotope
+        p.name AS product_name,
+        p.nuclide_name AS nuclide
     FROM orders o
-    LEFT JOIN compounds c ON o.compound_id = c.compound_id
+    LEFT JOIN products p ON o.product_id = p.product_id
     $whereSql 
     ORDER BY o.created_at DESC 
     LIMIT :limit OFFSET :offset
@@ -132,11 +133,11 @@ function buildUrl($pageUpdate) {
                 <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
                     <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
-                    <form method="GET" action="past_orders.php" id="filter-form">
+                    <form method="GET" action="customer_past_orders.php" id="filter-form">
                         <input type="hidden" name="page" value="1"> 
                         
                         <div class="search-bar-top">
-                            <input type="text" name="search" placeholder="Search Order # or compound…" value="<?= htmlspecialchars($filterSearch) ?>">
+                            <input type="text" name="search" placeholder="Search Order # or product…" value="<?= htmlspecialchars($filterSearch) ?>">
                             
                             <button type="submit" class="btn btn--primary">Search</button>
 
@@ -145,7 +146,7 @@ function buildUrl($pageUpdate) {
                             </button>
                             
                             <?php if ($filterSearch !== '' || $hasAdvancedFilters): ?>
-                                <a href="past_orders.php" class="btn btn--secondary">Clear</a>
+                                <a href="customer_past_orders.php" class="btn btn--secondary">Clear</a>
                             <?php endif; ?>
                         </div>
 
@@ -162,12 +163,12 @@ function buildUrl($pageUpdate) {
                             </div>
 
                             <div class="filter-group">
-                                <label for="filter-isotope">Isotope</label>
-                                <select name="isotope" id="filter-isotope" onchange="this.form.submit()">
-                                    <option value="">All Isotopes</option>
-                                    <?php foreach ($uniqueIsotopes as $iso): ?>
-                                        <option value="<?= htmlspecialchars($iso) ?>" <?= $filterIsotope === $iso ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($iso) ?>
+                                <label for="filter-nuclide">Nuclide</label>
+                                <select name="nuclide" id="filter-nuclide" onchange="this.form.submit()">
+                                    <option value="">All Nuclides</option>
+                                    <?php foreach ($uniqueNuclides as $nuc): ?>
+                                        <option value="<?= htmlspecialchars($nuc) ?>" <?= $filterNuclide === $nuc ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($nuc) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -179,6 +180,8 @@ function buildUrl($pageUpdate) {
                                     <option value="">All Statuses</option>
                                     <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
                                     <option value="accepted" <?= $filterStatus === 'accepted' ? 'selected' : '' ?>>Accepted</option>
+                                    <option value="ready for pickup" <?= $filterStatus === 'ready for pickup' ? 'selected' : '' ?>>Ready for Pickup</option>
+                                    <option value="returned" <?= $filterStatus === 'returned' ? 'selected' : '' ?>>Returned</option>
                                     <option value="completed" <?= $filterStatus === 'completed' ? 'selected' : '' ?>>Completed</option>
                                     <option value="canceled" <?= $filterStatus === 'canceled' ? 'selected' : '' ?>>Canceled</option>
                                 </select>
@@ -192,8 +195,8 @@ function buildUrl($pageUpdate) {
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Compound</th>
-                                <th>Isotope</th>
+                                <th>Product</th>
+                                <th>Nuclide</th>
                                 <th>Requested</th>
                                 <th>Status</th>
                                 <th></th>
@@ -206,12 +209,16 @@ function buildUrl($pageUpdate) {
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($paginatedOrders as $o): ?>
+                                    <?php 
+                                        $displayStatus = ucwords(htmlspecialchars($o['status']));
+                                        $cssStatusClass = str_replace(' ', '-', htmlspecialchars($o['status']));
+                                    ?>
                                     <tr>
                                         <td class="muted tabular"><?= htmlspecialchars($o['order_id']) ?></td>
-                                        <td><?= htmlspecialchars($o['compound_name'] ?? 'Unknown') ?></td>
-                                        <td class="muted"><?= htmlspecialchars($o['isotope'] ?? 'Unknown') ?></td>
+                                        <td><?= htmlspecialchars($o['product_name'] ?? 'Unknown') ?></td>
+                                        <td class="muted"><?= htmlspecialchars($o['nuclide'] ?? 'Unknown') ?></td>
                                         <td class="muted tabular"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($o['delivery_time']))) ?></td>
-                                        <td><span class="badge badge--<?= htmlspecialchars($o['status']) ?>"><?= ucfirst(htmlspecialchars($o['status'])) ?></span></td>
+                                        <td><span class="badge badge--<?= $cssStatusClass ?>"><?= $displayStatus ?></span></td>
                                         <td><a href="order_detail.php?id=<?= $o['order_id'] ?>" class="table-action">View →</a></td>
                                     </tr>
                                 <?php endforeach; ?>
