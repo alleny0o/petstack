@@ -223,6 +223,7 @@ CREATE TABLE compounds (
   category            VARCHAR(30) NOT NULL,
   standard_cost       DECIMAL(10,2) NOT NULL,
   min_lead_time_hours DECIMAL(6,1) NULL,
+  description         VARCHAR(500) NULL,
   active              TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -1,5 +1,5 @@
 <?php
-$accountStmt = get_db()->prepare('SELECT first_name, last_name FROM staff WHERE user_id = ?');
+$accountStmt = get_db()->prepare('SELECT first_name, last_name FROM users WHERE user_id = ?');
 $accountStmt->execute([(int) $_SESSION['user_id']]);
 $accountRow = $accountStmt->fetch();
 $accountName = $accountRow['first_name'] . ' ' . $accountRow['last_name'];
@@ -103,6 +103,18 @@ $accountsSectionActive = in_array($currentPage, $accountsChildPages, true);
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
             <span class="menu-label"><span class="menu-label__text">Catalog Config</span></span>
+          </a>
+        </li>
+
+        <li class="Reports">
+          <a href="/admin/dashboard.php" class="menu-link <?= $currentPage === 'reports' ? 'active' : '' ?>">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span class="menu-label"><span class="menu-label__text">Reports</span></span>
           </a>
         </li>
 
