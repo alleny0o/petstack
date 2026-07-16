@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require __DIR__ . '/../../src/helpers.php';
 bootstrap_session();
 require __DIR__ . '/../../src/auth.php';
@@ -6,8 +10,8 @@ require_role('customer');
 
 $pdo = get_db();
 
-// Assuming your auth system stores the logged-in customer's ID here:
-$customerId = $_SESSION['user_id'] ?? 1; 
+// Assuming your auth system stores the logged-in user's ID here
+$userId = $_SESSION['user_id'] ?? 1; 
 
 // ---------------------------------------------------------
 // 1. Capture Filter Inputs
@@ -22,22 +26,22 @@ $itemsPerPage    = 10;
 
 $hasAdvancedFilters = ($filterStatus !== '' || $filterNuclide !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
 
-// Get active nuclides for the dropdown directly from your new table
-$stmtNuclide = $pdo->query("SELECT nuclide_name FROM nuclides WHERE active = 1 ORDER BY nuclide_name");
+// Get active nuclides for the dropdown
+$stmtNuclide = $pdo->query("SELECT nuclide_name FROM nuclides WHERE is_active = 1 ORDER BY nuclide_name");
 $uniqueNuclides = $stmtNuclide->fetchAll(PDO::FETCH_COLUMN);
 
 // ---------------------------------------------------------
 // 2. Build the SQL Database Query dynamically
 // ---------------------------------------------------------
-$whereSql = "WHERE o.customer_id = :customer_id";
-$params = [':customer_id' => $customerId];
+// Updated to use the new created_by column
+$whereSql = "WHERE o.created_by = :created_by";
+$params = [':created_by' => $userId];
 
 if ($filterStatus !== '') {
     $whereSql .= " AND o.status = :status";
     $params[':status'] = $filterStatus;
 }
 if ($filterNuclide !== '') {
-    // Look at the products table for the nuclide instead of orders
     $whereSql .= " AND p.nuclide_name = :nuclide";
     $params[':nuclide'] = $filterNuclide;
 }
@@ -50,8 +54,8 @@ if ($filterDateEnd !== '') {
     $params[':date_end'] = $filterDateEnd;
 }
 if ($filterSearch !== '') {
-    // Check if search matches order_id OR the product name
-    $whereSql .= " AND (o.order_id LIKE :search OR p.name LIKE :search)";
+    // Now searches Order ID, Product Name, OR the User's Name
+    $whereSql .= " AND (o.order_id LIKE :search OR p.product_name LIKE :search OR lpu.name LIKE :search)";
     $params[':search'] = "%{$filterSearch}%";
 }
 
@@ -63,6 +67,7 @@ $stmtCount = $pdo->prepare("
     SELECT COUNT(*) 
     FROM orders o 
     LEFT JOIN products p ON o.product_id = p.product_id 
+    LEFT JOIN lab_product_users lpu ON o.product_user_id = lpu.product_user_id
     $whereSql
 ");
 $stmtCount->execute($params);
@@ -79,10 +84,12 @@ $query = "
         o.order_id, 
         o.status, 
         o.delivery_time, 
-        p.name AS product_name,
-        p.nuclide_name AS nuclide
+        p.product_name,
+        p.nuclide_name AS nuclide,
+        lpu.name AS product_user_name
     FROM orders o
     LEFT JOIN products p ON o.product_id = p.product_id
+    LEFT JOIN lab_product_users lpu ON o.product_user_id = lpu.product_user_id
     $whereSql 
     ORDER BY o.created_at DESC 
     LIMIT :limit OFFSET :offset
@@ -133,11 +140,11 @@ function buildUrl($pageUpdate) {
                 <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
                     <span class="table-card-title mb-0">All Orders (<?= $totalItems ?>)</span>
                     
-                    <form method="GET" action="customer_past_orders.php" id="filter-form">
+                    <form method="GET" action="past_orders.php" id="filter-form">
                         <input type="hidden" name="page" value="1"> 
                         
                         <div class="search-bar-top">
-                            <input type="text" name="search" placeholder="Search Order # or product…" value="<?= htmlspecialchars($filterSearch) ?>">
+                            <input type="text" name="search" placeholder="Search Order #, product, or user…" value="<?= htmlspecialchars($filterSearch) ?>">
                             
                             <button type="submit" class="btn btn--primary">Search</button>
 
@@ -146,7 +153,7 @@ function buildUrl($pageUpdate) {
                             </button>
                             
                             <?php if ($filterSearch !== '' || $hasAdvancedFilters): ?>
-                                <a href="customer_past_orders.php" class="btn btn--secondary">Clear</a>
+                                <a href="past_orders.php" class="btn btn--secondary">Clear</a>
                             <?php endif; ?>
                         </div>
 
@@ -197,6 +204,7 @@ function buildUrl($pageUpdate) {
                                 <th>#</th>
                                 <th>Product</th>
                                 <th>Nuclide</th>
+                                <th>User</th>
                                 <th>Requested</th>
                                 <th>Status</th>
                                 <th></th>
@@ -205,7 +213,7 @@ function buildUrl($pageUpdate) {
                         <tbody>
                             <?php if (empty($paginatedOrders)): ?>
                                 <tr>
-                                    <td colspan="6" style="text-align: center; padding: 20px;" class="muted">No orders match your filters.</td>
+                                    <td colspan="7" style="text-align: center; padding: 20px;" class="muted">No orders match your filters.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($paginatedOrders as $o): ?>
@@ -217,6 +225,7 @@ function buildUrl($pageUpdate) {
                                         <td class="muted tabular"><?= htmlspecialchars($o['order_id']) ?></td>
                                         <td><?= htmlspecialchars($o['product_name'] ?? 'Unknown') ?></td>
                                         <td class="muted"><?= htmlspecialchars($o['nuclide'] ?? 'Unknown') ?></td>
+                                        <td><?= htmlspecialchars($o['product_user_name'] ?? '—') ?></td>
                                         <td class="muted tabular"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($o['delivery_time']))) ?></td>
                                         <td><span class="badge badge--<?= $cssStatusClass ?>"><?= $displayStatus ?></span></td>
                                         <td><a href="order_detail.php?id=<?= $o['order_id'] ?>" class="table-action">View →</a></td>

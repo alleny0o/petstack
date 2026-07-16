@@ -114,126 +114,73 @@ INSERT INTO customers (user_id, first_name, last_name, lab_id, supervising_pi_id
 
 -- ---- Orders ----
 INSERT INTO orders (
-  customer_id, 
-  compound_id, 
-  isotope, 
-  activity_mci, 
-  status, 
-  created_at, 
-  created_by, 
-  delivery_option, 
-  delivery_time, 
-  processed_by, 
-  processed_at, 
-  cost_snapshot, 
-  last_modified_at, 
-  last_modified_by, 
-  special_instructions, 
-  cancelation_notes
+  customer_id, compound_id, product_user_id, product_id, location_id, 
+  activity_mci, status, created_at, created_by, delivery_option, 
+  delivery_time, processed_by, processed_at, cost_snapshot, 
+  last_modified_by, special_instructions, cancelation_notes
 ) VALUES 
--- Scenario 1: A completed/processed order with special instructions
+-- Row 1: Completed delivery order
 (
-  4, 
-  5002, 
-  'Fluorine-18', 
-  15.5, 
-  'Delivered', 
-  '2026-07-10 08:30:00', 
-  201, 
-  'Courier-Express', 
-  '2026-07-10 11:30:00', 
-  305, 
-  '2026-07-10 08:45:00', 
-  1250.00, 
-  '2026-07-10 11:35:00', 
-  305, 
-  'Deliver directly to Hot Lab. Handle with standard lead shielding.', 
-  NULL
+  101, 5001, 201, 301, 10, 
+  150.5, 'completed', '2026-07-10 09:00:00', 101, 'delivery', 
+  '2026-07-10 14:00:00', 99, '2026-07-10 14:15:00', 125.50, 
+  99, 'Leave at the front desk, ring bell.', NULL
 ),
 
--- Scenario 2: A newly placed order that hasn't been processed yet (processed_by and processed_at are NULL)
+-- Row 2: Pending pharmacy pickup
 (
-  4, 
-  5009, 
-  'Technetium-99m', 
-  25.0, 
-  'Pending', 
-  '2026-07-14 09:15:00', 
-  201, 
-  'Standard Delivery', 
-  '2026-07-15 09:00:00', 
-  NULL, 
-  NULL, 
-  450.00, 
-  '2026-07-14 09:15:00', 
-  201, 
-  NULL, 
-  NULL
+  102, 5002, NULL, 302, 12, 
+  NULL, 'pending', '2026-07-16 08:30:00', 102, 'pharmacy', 
+  '2026-07-17 12:00:00', NULL, NULL, 45.00, 
+  102, NULL, NULL
 ),
 
--- Scenario 3: A cancelled order with cancellation notes
+-- Row 3: Canceled order with notes
 (
-  4, 
-  5011, 
-  'Iodine-131', 
-  5.0, 
-  'Cancelled', 
-  '2026-07-12 14:00:00', 
-  203, 
-  'Priority Air', 
-  '2026-07-13 10:00:00', 
-  NULL, 
-  NULL, 
-  890.00, 
-  '2026-07-12 16:30:00', 
-  203, 
-  'Keep refrigerated during transit.', 
-  'Customer requested cancellation due to patient rescheduling.'
+  103, 5001, 203, 303, NULL, 
+  75.0, 'canceled', '2026-07-15 11:00:00', 103, 'pickup', 
+  '2026-07-16 10:00:00', 99, '2026-07-15 11:30:00', 89.99, 
+  99, 'Needs refrigeration', 'Customer called to cancel due to travel plans.'
 ),
 
--- Scenario 4: A processed order currently in transit
+-- Row 4: Ready for pickup order
 (
-  4, 
-  5005, 
-  'Lutetium-177', 
-  120.0, 
-  'In Transit', 
-  '2026-07-13 07:00:00', 
-  202, 
-  'Specialist Courier', 
-  '2026-07-14 14:00:00', 
-  302, 
-  '2026-07-13 08:15:00', 
-  3400.00, 
-  '2026-07-13 08:15:00', 
-  302, 
-  'Calibrate activity measurements to 12:00 PM EST on day of delivery.', 
-  NULL
+  104, 5003, 204, 301, 15, 
+  320.0, 'ready for pickup', '2026-07-16 06:00:00', 104, 'pickup', 
+  '2026-07-16 16:00:00', 98, '2026-07-16 08:00:00', 210.00, 
+  98, 'Signature required on pickup.', NULL
 ),
 
--- Scenario 5: Minimal data order (minimal fields, lower activity, standard delivery)
+-- Row 5: Accepted order, direct delivery option
 (
-  4, 
-  5022, 
-  'Carbon-11', 
-  8.2, 
-  'Delivered', 
-  '2026-07-14 06:00:00', 
-  201, 
-  'Standard Delivery', 
-  '2026-07-14 08:00:00', 
-  305, 
-  '2026-07-14 06:15:00', 
-  620.00, 
-  '2026-07-14 08:05:00', 
-  305, 
-  NULL, 
-  NULL
+  105, 5004, NULL, 305, 10, 
+  NULL, 'accepted', '2026-07-16 10:15:00', 105, 'delivery', 
+  '2026-07-17 09:00:00', 98, '2026-07-16 10:45:00', 15.25, 
+  98, 'Call upon arrival.', NULL
 );
 
-INSERT INTO compounds (
-  compound_id,
-  isotope_name,
+-- Lab Product users --
+INSERT INTO lab_product_users (
+  product_user_id, lab_id, name, active
+) VALUES 
+-- Row 1: Active user (referenced in Order Row 1)
+(201, 10, 'Dr. Aris Thorne', 1),
+
+-- Row 2: Active user
+(202, 10, 'Jane Doe', 1),
+
+-- Row 3: Inactive user (referenced in Order Row 3)
+(203, 11, 'Sarah Jenkins', 0),
+
+-- Row 4: Active user (referenced in Order Row 4)
+(204, 12, 'Dr. Robert Chen', 1),
+
+-- Row 5: Active user
+(205, 12, 'Emily Rodriguez', 1);
+
+INSERT INTO products (
+  product_name,
+  nuclide_name,
   name
 ) VALUES
 (5002, 'Fluorine-18', 'Compound1'),
@@ -242,8 +189,8 @@ INSERT INTO compounds (
 (5005, 'Lutetium-177', 'Compound4'),
 (5022, 'Carbon-11', 'Compound5');
 
-INSERT INTO isotopes (
-  isotope_name,
+INSERT INTO nuclides (
+  nuclide_name,
   active
   ) VALUES
   ('Fluorine-18', 1),
