@@ -1,8 +1,3 @@
-/* =========================================
-   1. Catalog Layout & Shell
-========================================= */
-
-/* The new elevated container */
 .catalog-main {
   background-color: var(--color-bg-surface);
   padding: 30px;
@@ -11,168 +6,25 @@
   margin: 0 auto; /* Centers the shell on wide screens */
 }
 
-/* =========================================
- 2. Search Form
-========================================= */
-.search-container {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.search-container input[type="text"] {
-  padding: 10px 15px;
-  width: 200px;
-  border: 1px solid var(--color-border-hr);
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.search-container button {
-  padding: 10px 20px;
-  background-color: var(--accent, #0056b3);
-  color: var(--white, #ffffff);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease;
-}
-
-.search-container button:hover {
-  background-color: #004085;
-}
-
-.clear-btn {
-  padding: 10px 20px;
-  background-color: #e2e6ea;
-  color: #333;
-  border: 1px solid #dae0e5;
-  border-radius: 6px;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease;
-}
-
-.clear-btn:hover {
-  background-color: #d3d9df;
-  color: #111;
-}
-
-.results-count {
-  text-align: left;
-  color: #6c757d;
-  font-size: 0.95em;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 15px;
-}
-
-/* =========================================
- 3. Accordion Layout (Isotopes)
-========================================= */
-.accordion-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px; 
-  margin-bottom: 30px;
-}
-
-.isotope-row {
-  background-color: var(--color-bg-surface);
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden; 
-}
-
-.isotope-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: var(--color-bg-surface);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-size: 1.15em;
-  font-weight: bold;
-  list-style: none;
-  transition: background-color 0.2s ease;
-}
-
-.isotope-summary::-webkit-details-marker {
-  display: none;
-}
-
-.isotope-summary:hover {
-  background-color: var(--color-bg-secondary); 
-}
-
-.compound-count {
-  font-size: 0.8em;
-  font-weight: normal;
-  /* background: rgba(255, 255, 255, 0.2); */
-  padding: 4px 12px;
-  border-radius: 12px;
-}
-
-/* =========================================
- 4. Compound Lists (Inside Accordion)
-========================================= */
-.compound-list {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background-color: var(--color-bg-primary); 
-}
-
-.compound-item {
-  background-color: var(--color-bg-surface);
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.compound-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.compound-item .sku {
-  font-size: 0.85em;
-  color: #6c757d;
-  background: #e9ecef;
+/* Drop down for catalog*/
+.catalog-actions {
   padding: 4px 8px;
+  border: 1px solid var(--color-border-hr);
   border-radius: 4px;
-  font-family: monospace; 
+  background: var(--color-bg-surface);
+  cursor: pointer;
 }
 
-.compound-item .desc {
-  margin: 0;
-  font-size: 0.9em;
-  color: #495057;
-  line-height: 1.4;
-}
-
-/* =========================================
- 5. Status Indicators
-========================================= */
+/* ---- Status Indications ---- */
 
 .status-indicator {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.9em;
-  color: var(--color-text-primary, #333);
+  color: var(--color-text-primary);
 }
+
 .status-dot {
   display: block;
   width: 8px;
@@ -195,32 +47,68 @@
   align-items: center;
 }
 
-/* =========================================
- 6. Pagination Controls
-========================================= */
-.catalog-pagination {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-}
 
-.catalog-pagination a {
-  padding: 8px 14px;
-  background-color: var(--color-bg-surface);
-  border: 1px solid var(--color-border-hr);
-  text-decoration: none;
-  color: var(--color-text-primary);
-  border-radius: 6px;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
+/* -------- Add product -------- */
 
-.catalog-pagination a:hover {
-  background-color: #e2e6ea;
+/* Form Layout Styles - Adjust these to match your site's variables if needed */
+.form-card {
+    background-color: var(--color-bg-surface, #ffffff);
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-hr, #ccc);
+    max-width: 600px;
+    margin: 0 auto;
 }
-
-.catalog-pagination a.active {
-  background-color: var(--accent, #0056b3);
-  color: var(--white, #ffffff);
-  border-color: var(--accent, #0056b3);
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--color-text-primary, #333);
+}
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--color-border-hr, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+.form-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+.form-check label {
+    margin-bottom: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+.alert-error {
+    background-color: #f8d7da;
+    color: #842029;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c2c7;
+}
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border-hr, #ccc);
 }

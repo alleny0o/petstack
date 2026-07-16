@@ -4,76 +4,76 @@ bootstrap_session();
 require __DIR__ . '/../../src/auth.php';
 require_role('admin');
 
-const CATALOG_PAGE_SIZE = 20;
+$pdo = get_db();
 
-// 1. Generate Mock Data (Now including an 'active' flag and ID)
-$all_products = [];
-$sample_isotopes = ['C-14', 'H-3', 'P-32', 'I-125', 'S-35'];
-$sample_compounds = ['Glucose', 'Thymidine', 'ATP', 'Water', 'Methionine'];
+const CATALOG_PAGE_SIZE = 10;
 
-for ($i = 1; $i <= 60; $i++) {
-    $iso = $sample_isotopes[array_rand($sample_isotopes)];
-    $comp = $sample_compounds[array_rand($sample_compounds)];
-    // Randomly assign ~85% of products as active, 15% as inactive
-    $is_active = (rand(1, 100) <= 85); 
-    
-    $all_products[] = [
-        'id' => $i,
-        'name' => "Radiolabeled $comp ($iso)",
-        'sku' => 'SKU-' . str_pad($i, 4, '0', STR_PAD_LEFT),
-        'isotope' => $iso,
-        'compound' => $comp,
-        'description' => "Standard specifications for $comp labeled with $iso. Manufactured in-house.",
-        'active' => $is_active
-    ];
+// 1. Fetch active nuclides for the dropdown filter
+$nuclidesStmt = $pdo->query("SELECT nuclide_name FROM nuclides WHERE is_active = 1 ORDER BY nuclide_name ASC");
+$active_nuclides = $nuclidesStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// 2. Handle Filters
+$q = $_GET['q'] ?? '';
+$filter_nuclide = $_GET['nuclide'] ?? ''; 
+$product = $_GET['product'] ?? '';
+$status = $_GET['status'] ?? '';
+
+$where = [];
+$params = [];
+
+// Search across Name or ID
+if ($q !== '') {
+    $where[] = "(p.product_name LIKE :q OR p.product_id LIKE :q)";
+    $params[':q'] = "%$q%";
 }
 
-// 2. Capture GET Parameters
-$q = trim($_GET['q'] ?? '');
-$isotope = trim($_GET['isotope'] ?? '');
-$compound = trim($_GET['compound'] ?? '');
-$status = trim($_GET['status'] ?? '');
-$page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-
-// 3. Filter the Data
-$filtered_products = $all_products;
-if ($q !== '' || $isotope !== '' || $compound !== '' || $status !== '') {
-    $filtered_products = array_filter($all_products, function($product) use ($q, $isotope, $compound, $status) {
-        $match_q = true;
-        $match_iso = true;
-        $match_comp = true;
-        $match_status = true;
-
-        if ($q !== '') {
-            $match_q = (stripos($product['name'], $q) !== false || stripos($product['sku'], $q) !== false);
-        }
-        if ($isotope !== '') {
-            $match_iso = (stripos($product['isotope'], $isotope) !== false);
-        }
-        if ($compound !== '') {
-            $match_comp = (stripos($product['compound'], $compound) !== false);
-        }
-        if ($status === 'active') {
-            $match_status = ($product['active'] === true);
-        } elseif ($status === 'inactive') {
-            $match_status = ($product['active'] === false);
-        }
-
-        return $match_q && $match_iso && $match_comp && $match_status;
-    });
+if ($filter_nuclide !== '') {
+    $where[] = "p.nuclide_name = :nuclide";
+    $params[':nuclide'] = $filter_nuclide;
 }
 
-// 4. Pagination Math
-$totalCount = count($filtered_products);
+if ($product !== '') {
+    $where[] = "p.product_name LIKE :product";
+    $params[':product'] = "%$product%";
+}
+
+if ($status === 'active') {
+    $where[] = "p.is_active = 1";
+} elseif ($status === 'inactive') {
+    $where[] = "p.is_active = 0";
+}
+
+$whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
+
+// 3. Get Total Count for Pagination
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM products p $whereSql");
+$countStmt->execute($params);
+$totalCount = (int) $countStmt->fetchColumn();
+
+// 4. Calculate Pagination Math
+$page = max(1, (int)($_GET['page'] ?? 1)); 
 $totalPages = max(1, (int) ceil($totalCount / CATALOG_PAGE_SIZE));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * CATALOG_PAGE_SIZE;
 
-$display_products = array_slice($filtered_products, $offset, CATALOG_PAGE_SIZE);
-
 $rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + CATALOG_PAGE_SIZE, $totalCount);
+$rangeEnd = min($totalCount, $offset + CATALOG_PAGE_SIZE);
 
+// 5. Fetch the Actual Data (Swapped description for delivery_option)
+$listStmt = $pdo->prepare(
+    "SELECT p.product_id, p.nuclide_name, p.product_name, p.default_delivery_option, p.is_active 
+     FROM products p 
+     $whereSql 
+     ORDER BY p.is_active DESC, p.nuclide_name ASC, p.product_name ASC 
+     LIMIT $offset, " . CATALOG_PAGE_SIZE
+);
+$listStmt->execute($params);
+$display_products = $listStmt->fetchAll(PDO::FETCH_ASSOC);
+
+/**
+ * Builds a query string from the current GET params with the given
+ * overrides applied, dropping empty values -- used for pagination links
+ */
 function catalog_query(array $overrides = []): string
 {
     $params = array_merge($_GET, $overrides);
@@ -97,7 +97,7 @@ $pageTitle = 'Manage Catalog';
         <?php include __DIR__ . '/../../src/partials/layout_admin.php'; ?>
         <main class="app-main">
             
-            <div class="page-header">
+            <div class="page-header page-header-flex">
                 <h1>Manage Catalog</h1>
                 <a href="/admin/product_add.php" class="btn btn--primary">Add Product</a>
             </div>
@@ -105,13 +105,20 @@ $pageTitle = 'Manage Catalog';
             <div class="table-card">
                 <div class="table-card-header">
                     <span class="table-card-title">Inventory Index</span>
-                    <form method="get" class="table-card-controls">
-                        <!-- Search Inputs -->
-                        <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search Name or SKU&hellip;">
-                        <input type="text" name="isotope" value="<?= e($isotope) ?>" placeholder="Isotope (e.g., C-14)">
-                        <input type="text" name="compound" value="<?= e($compound) ?>" placeholder="Compound (e.g., Glucose)">
+                    <form method="get" action="catalog.php" class="table-card-controls">
+                        <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search Name or ID&hellip;">
                         
-                        <!-- Status Dropdown -->
+                        <select name="nuclide">
+                            <option value="">All Nuclides</option>
+                            <?php foreach ($active_nuclides as $n_name): ?>
+                                <option value="<?= e($n_name) ?>" <?= $filter_nuclide === $n_name ? 'selected' : '' ?>>
+                                    <?= e($n_name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        
+                        <input type="text" name="product" value="<?= e($product) ?>" placeholder="Product (e.g., Glucose)">
+                        
                         <select name="status">
                             <option value="">All statuses</option>
                             <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active only</option>
@@ -123,7 +130,7 @@ $pageTitle = 'Manage Catalog';
                 </div>
 
                 <?php if (!$display_products): ?>
-                    <?php $hasFilters = $q !== '' || $isotope !== '' || $compound !== '' || $status !== ''; ?>
+                    <?php $hasFilters = $q !== '' || $filter_nuclide !== '' || $product !== '' || $status !== ''; ?>
                     <div class="empty-state">
                         <div class="empty-state__icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -135,7 +142,7 @@ $pageTitle = 'Manage Catalog';
                         <p class="empty-state__hint"><?= $hasFilters ? 'Try a different search or clear the filters.' : 'Click "Add Product" to create your first catalog entry.' ?></p>
                         <div class="empty-state__action">
                             <?php if ($hasFilters): ?>
-                                <a href="admin_catalog.php" class="btn btn--secondary btn--sm">Clear filters</a>
+                                <a href="catalog.php" class="btn btn--secondary btn--sm">Clear filters</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -145,36 +152,43 @@ $pageTitle = 'Manage Catalog';
                             <thead>
                                 <tr>
                                     <th>Status</th>
-                                    <th>Name</th>
-                                    <th>SKU</th>
-                                    <th>Isotope</th>
-                                    <th>Compound</th>
-                                    <th>Description</th>
+                                    <th>ID</th>
+                                    <th>Product Name</th>
+                                    <th>Nuclide</th>
+                                    <th>Default Delivery Option</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($display_products as $p): ?>
                                     <tr>
-                                        <!-- Restored Status Indicator (Dot + Text) -->
                                         <td>
                                             <span class="status-indicator">
-                                                <span class="status-dot <?= $p['active'] ? 'active' : 'inactive' ?>"></span>
-                                                <?= $p['active'] ? 'Active' : 'Inactive' ?>
+                                                <span class="status-dot <?= !empty($p['is_active']) ? 'active' : 'inactive' ?>"></span>
+                                                <?= !empty($p['is_active']) ? 'Active' : 'Inactive' ?>
                                             </span>
                                         </td>
                                         
-                                        <td><strong><?= e($p['name']) ?></strong></td>
-                                        <td><span class="badge" style="font-family: monospace;"><?= e($p['sku']) ?></span></td>
-                                        <td><?= e($p['isotope']) ?></td>
-                                        <td><?= e($p['compound']) ?></td>
-                                        <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= e($p['description']) ?>">
-                                            <?= e($p['description']) ?>
+                                        <td>
+                                            <span class="badge" style="font-family: monospace;">
+                                                <?= str_pad((string) ($p['product_id'] ?? 0), 4, '0', STR_PAD_LEFT) ?>
+                                            </span>
                                         </td>
                                         
-                                        <!-- Admin Actions -->
+                                        <td><strong><?= e($p['product_name'] ?? '') ?></strong></td>
+                                        <td><?= e($p['nuclide_name'] ?? '') ?></td>
+                                        
+                                        <!-- Displays the Enum securely and capitalizes it (e.g. "Direct Delivery") -->
+                                        <td><?= e(ucwords($p['default_delivery_option'] ?? '')) ?></td>
+                                        
                                         <td>
-                                            <a href="/admin/product_edit.php?id=<?= (int) $p['id'] ?>" class="table-action">Edit</a>
+                                            <select class="catalog-actions" style="max-width: 140px" onchange="if(this.value) window.location.href=this.value;">
+                                                <option value="">Actions</option>
+                                                <option value="/admin/product_edit.php?id=<?= (int) $p['product_id'] ?>">View / Edit</option>
+                                                <option value="/admin/catalog_product_toggle.php?id=<?= (int) $p['product_id'] ?>&status=<?= $p['is_active'] ? '0' : '1' ?>&<?= e(catalog_query([])) ?>">
+                                                    Set as <?= $p['is_active'] ? 'Inactive' : 'Active' ?>
+                                                </option>
+                                            </select>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -202,6 +216,6 @@ $pageTitle = 'Manage Catalog';
             </div>
         </main>
     </div>
+    <script src="/assets/js/script.js" defer></script>
 </body>
-<script src="/assets/js/script.js" defer></script>
 </html>
