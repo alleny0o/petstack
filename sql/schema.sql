@@ -51,7 +51,7 @@ CREATE TABLE institutes (
   institute_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name           VARCHAR(255) NOT NULL,
   shorthand_name VARCHAR(10),
-  active         TINYINT(1) NOT NULL DEFAULT 1,
+  is_active         TINYINT(1) NOT NULL DEFAULT 1,
   UNIQUE KEY uq_institutes_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -59,9 +59,7 @@ CREATE TABLE labs (
   lab_id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   institute_id  INT UNSIGNED NOT NULL,
   lab_name      VARCHAR(100) NOT NULL,
-  building      VARCHAR(50),
-  room          VARCHAR(20),
-  active        TINYINT(1) NOT NULL DEFAULT 1,
+  is_active     TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_labs_institute FOREIGN KEY (institute_id) REFERENCES institutes (institute_id),
   KEY idx_labs_institute_id (institute_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -84,20 +82,14 @@ CREATE TABLE lab_pis (
   KEY idx_lab_pis_pi_id (pi_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Categories built here (not with the rest of the menu tables below)
--- because staff.category_id needs it to already exist.
-CREATE TABLE categories (
-  category_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  category_name VARCHAR(50) NOT NULL,
-  UNIQUE KEY uq_categories_name (category_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- Shared login table for all three roles. Role is determined by which
 -- of admins/staff/customers a user_id appears in — no role column here.
 CREATE TABLE users (
-  user_id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username              VARCHAR(50) NOT NULL,
   password_hash         VARCHAR(255) NOT NULL,
+  first_name            VARCHAR(100) NOT NULL,
+  last_name             VARCHAR(100) NOT NULL
   must_change_password  TINYINT(1) NOT NULL DEFAULT 1,
   failed_login_count    TINYINT UNSIGNED NOT NULL DEFAULT 0,
   locked_until          DATETIME NULL,
@@ -135,13 +127,8 @@ CREATE TABLE lockout_events (
 
 -- One category per staff member, not a junction table.
 CREATE TABLE staff (
-  user_id     INT UNSIGNED PRIMARY KEY,
-  first_name  VARCHAR(100) NOT NULL,
-  last_name   VARCHAR(100) NOT NULL,
-  category_id INT UNSIGNED NOT NULL,
+  user_id           INT UNSIGNED PRIMARY KEY,
   CONSTRAINT fk_staff_user     FOREIGN KEY (user_id)     REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_staff_category FOREIGN KEY (category_id) REFERENCES categories (category_id),
-  KEY idx_staff_category_id (category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Every admin is also staff (admin subset-of staff) — enforced here via FK
@@ -160,15 +147,9 @@ CREATE TABLE admins (
 -- registration_status lives directly here — no separate requests table.
 CREATE TABLE customers (
   user_id              INT UNSIGNED PRIMARY KEY,
-  first_name           VARCHAR(100) NOT NULL,
-  last_name            VARCHAR(100) NOT NULL,
-  phone                VARCHAR(20) NULL,
   lab_id               INT UNSIGNED NULL,
   supervising_pi_id    INT UNSIGNED NULL,
   registration_status  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
-  nrc_contact_name     VARCHAR(255) NULL,
-  nrc_contact_phone    VARCHAR(20) NULL,
-  nrc_contact_email    VARCHAR(255) NULL,
   CONSTRAINT fk_customers_user         FOREIGN KEY (user_id)           REFERENCES users (user_id)         ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_customers_lab          FOREIGN KEY (lab_id)            REFERENCES labs (lab_id)             ON DELETE SET NULL,
   CONSTRAINT fk_customers_pi           FOREIGN KEY (supervising_pi_id) REFERENCES pis (pi_id)               ON DELETE SET NULL,
@@ -186,16 +167,13 @@ CREATE TABLE customers (
 -- rejected request is allowed to be resubmitted — so duplicate
 -- prevention is enforced at the app layer (see register.php).
 CREATE TABLE customer_registration_requests (
-  request_id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  lab_id                 INT UNSIGNED NOT NULL,
-  pi_id                  INT UNSIGNED NOT NULL,
-  first_name             VARCHAR(100) NOT NULL,
-  last_name              VARCHAR(100) NOT NULL,
+  request_id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  lab_id                  INT UNSIGNED NOT NULL,
+  pi_id                   INT UNSIGNED NOT NULL,
+  first_name              VARCHAR(100) NOT NULL,
+  last_name               VARCHAR(100) NOT NULL,
   email                   VARCHAR(254) NOT NULL,
   phone                   VARCHAR(20) NOT NULL,
-  nrc_contact_name        VARCHAR(255) NULL,
-  nrc_contact_phone       VARCHAR(20) NULL,
-  nrc_contact_email       VARCHAR(255) NULL,
   status                  ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
   rejection_reason        VARCHAR(500) NULL,
   reviewed_by_admin_id    INT UNSIGNED NULL,
@@ -210,12 +188,43 @@ CREATE TABLE customer_registration_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- temporary: change with real databsecode later
+
+-- Lab-scoped, not per-customer -- multiple customers in the same lab
+-- share the same delivery locations. Soft-delete via active so a
+-- historical order's location_id reference survives even after the
+-- location is later deactivated.
+CREATE TABLE lab_delivery_locations (
+  location_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  lab_id         INT UNSIGNED NOT NULL,
+  location_name  VARCHAR(100) NOT NULL,
+  room           VARCHAR(20),
+  active         TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_lab_delivery_locations_lab FOREIGN KEY (lab_id) REFERENCES labs (lab_id),
+  KEY idx_lab_delivery_locations_lab_id (lab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Represents the actual person who will receive/use the dose, who may
+-- not be the ordering customer (e.g. Jane Doe orders on behalf of John
+-- Doe, a lab member who isn't a registered system user and has no row in
+-- customers). Lab-scoped for the same reason as lab_delivery_locations
+-- above. Soft-delete via active so a historical order's product_user_id
+-- reference survives deactivation.
+CREATE TABLE lab_product_users (
+  product_user_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  lab_id           INT UNSIGNED NOT NULL,
+  name             VARCHAR(150) NOT NULL,
+  active           TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_lab_product_users_lab FOREIGN KEY (lab_id) REFERENCES labs (lab_id),
+  KEY idx_lab_product_users_lab_id (lab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Holds a list of available nuclides. In the context of this database, a nuclide is an attribute of a product
 CREATE TABLE nuclide (
   nuclide_name  VARCHAR(30) PRIMARY KEY,
   is_active     TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Holds a list of available products.
 CREATE TABLE products (
   product_id                INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   nuclide_name              VARCHAR(30) NOT NULL,
@@ -224,21 +233,63 @@ CREATE TABLE products (
   is_active                 TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- One unified form for every order type -- no Type A/B split, no
+-- separate per-type detail tables. Cyclotron-run specifics (beam
+-- current, bombardment time, EOB activity, destination) are typed into
+-- notes like any other order's notes, never given dedicated columns.
+-- notes is the single shared, overwritable communication channel on an
+-- order -- last-write-wins, no history or threading; staff/admin can
+-- always edit it, a customer only on their own order. status has no
+-- 'returned' value: a return is a transition back to 'pending', recorded
+-- as a normal row in order_audit_log, not a status of its own. order_id
+-- is a plain AUTO_INCREMENT: MySQL/MariaDB never reuses an
+-- AUTO_INCREMENT value even after the owning row's status becomes
+-- 'cancelled' (and this app never DELETEs orders), satisfying
+-- "sequential, never reused" with no extra bookkeeping. product_user_id
+-- is nullable -- NULL means the ordering customer is the recipient; a
+-- row is only required when someone else is. delivery method is no
+-- longer chosen per-order -- it's derived from the selected product's
+-- delivery_method. location_id is nullable at the DB level -- most
+-- delivery methods legitimately have no location -- but the app layer
+-- treats it as required whenever the order's product has
+-- delivery_method = 'direct_delivery'. That conditional requirement is
+-- enforced in new_order.php's validation, not as a DB constraint -- a
+-- plain NOT NULL can't be made conditional on another column's value
+-- without a trigger, which is more complexity than this needs. There is
+-- no cost column of any kind here -- this project does not track cost.
 CREATE TABLE orders (
   order_id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  customer_id           INT UNSIGNED NOT NULL,
-  compound_id           INT NOT NULL,
+  product_user_id       INT UNSIGNED NULL,
+  product_id            INT NOT NULL,
+  location_id           INT UNSIGNED NULL,
   activity_mci          DECIMAL(10,1) NULL,
-  status                VARCHAR(20) NOT NULL,
+  status                ENUM('pending', 'accepted', 'ready for pickup', 'completed', 'canceled', 'returned') DEFAULT 'pending' NOT NULL,
   created_at            TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by            INT NOT NULL,
-  delivery_option       ENUM('direct delivery', 'pickup', 'pharmacy'),
+  created_by            INT UNSIGNED NOT NULL,
+  delivery_option       ENUM('delivery', 'pickup', 'pharmacy'),
   delivery_time         TIMESTAMP NOT NULL,
   processed_by          INT UNSIGNED NULL,
   processed_at          TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  cost_snapshot         DECIMAL(10,2) NOT NULL,
-  last_modified_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  last_modified_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   last_modified_by      INT UNSIGNED NULL,
-  special_instructions  VARCHAR(500) NULL,
-  cancelation_notes     VARCHAR(500) NULL
+  additional_notes      VARCHAR(500) NULL,
+  cancelation_notes     VARCHAR(500) NULL,
+  CONSTRAINT fk_orders_compound FOREIGN KEY ('compound_id') REFERENCES compounds('compound_id'),
+  CONSTRAINT fk_orders_created_by FOREIGN KEY ('created_by') REFERENCES users('user_id'),
+  CONSTRAINT fk_orders_processed_by FOREIGN KEY ('processed_by') REFERENCES staff('user_id'),
+  CONSTRAINT fk_orers_last_modified_by FOREIGN KEY ('last_modified_by') REFERENCES users('user_id'),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE order_audit_log (
+  audit_id                                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id                                  INT UNSIGNED NOT NULL,
+  status_from                               ENUM('pending', 'accepted', 'ready for pickup', 'completed', 'cancelled', 'returned') NOT NULL,
+  status_to                                 ENUM('pending', 'accepted', 'ready for pickup', 'completed', 'cancelled', 'returned') NOT NULL,
+  changed_by_user_id                        INT UNSIGNED NOT NULL,
+  changed_at                                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_order_audit_log_order FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_audit_log_changed_by FOREIGN KEY (changed_by_user_id) REFERENCES users (user_id),
+  KEY idx_order_audit_log_order_id (order_id),
+  KEY idx_order_audit_log_changed_by_user_id (changed_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8m

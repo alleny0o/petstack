@@ -94,10 +94,10 @@ INSERT INTO users (username, password_hash, must_change_password, active) VALUES
 -- ---- Staff (3) ----
 -- Must be inserted before admins: admins.user_id now FKs to staff.user_id
 -- (every admin is also staff), so the admin's staff row has to exist first.
-INSERT INTO staff (user_id, first_name, last_name, category_id) VALUES
-  (1, 'Robert', 'Nguyen',   3), -- robert.nguyen -> Administration (admin; category is cosmetic)
-  (2, 'Maria',  'Santos',   1), -- maria.santos -> Radiopharmacy
-  (3, 'James',  'O''Connor', 2); -- james.oconnor -> Cyclotron
+INSERT INTO staff (user_id, category_id) VALUES
+  (1, 3), -- robert.nguyen -> Administration (admin; category is cosmetic)
+  (2, 1), -- maria.santos -> Radiopharmacy
+  (3, 2); -- james.oconnor -> Cyclotron
 
 -- ---- Admin (1) ----
 -- References the staff row above.
@@ -240,7 +240,7 @@ INSERT INTO compounds (
 (5009, 'Technetium-99m', 'Compound2'),
 (5011, 'Iodine-131', 'Compound3'),
 (5005, 'Lutetium-177', 'Compound4'),
-(5022, 'Carbon-11', 'Compound5')
+(5022, 'Carbon-11', 'Compound5');
 
 INSERT INTO isotopes (
   isotope_name,
@@ -250,4 +250,4 @@ INSERT INTO isotopes (
   ('Technetium-99m', 1),
   ('Iodine-131', 1),
   ('Lutetium-177', 1),
-  ('Carbon-11', 1)
+  ('Carbon-11', 1);

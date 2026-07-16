@@ -18,8 +18,8 @@
     display: none; /* Hidden by default */
     gap: 15px;
     align-items: flex-end; /* Aligns dropdowns with date inputs */
-    margin-top: 15px;
-    padding-top: 15px;
+    margin-top: 12px;
+    padding-top: 8px;
     border-top: 1px dashed var(--color-border-hr);
     flex-wrap: wrap;
   }
@@ -52,4 +52,91 @@
   
   .past-orders-pagination-controls .btn { 
     padding: 5px 12px; 
+  }
+
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+/* Base badge styling (You might already have this!) */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Color Modifiers for each ENUM status */
+
+/* Pending (Warning / Yellow) */
+.badge--pending {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+/* Accepted (Info / Blue) */
+.badge--accepted {
+  background-color: #cce5ff;
+  color: #004085;
+  border: 1px solid #b8daff;
+}
+
+/* Ready for Pickup (Primary / Purple) */
+.badge--ready-for-pickup {
+  background-color: #e0cffc;
+  color: #3b0a8c;
+  border: 1px solid #d0bdf4;
+}
+
+/* Completed (Success / Green) */
+.badge--completed {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+/* Canceled (Neutral / Gray) */
+.badge--canceled {
+  background-color: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+/* Returned (Danger / Red) */
+.badge--returned {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* ============================================================
+   TABLE LAYOUT STABILITY
+   ============================================================ */
+
+   #orders-table {
+    /* This forces the browser to obey our column widths strictly */
+    table-layout: fixed; 
+    width: 100%;
+  }
+  
+  /* Assign specific percentage widths to each column header. 
+    Make sure these add up to exactly 100%.
+  */
+  #orders-table th:nth-child(1) { width: 8%; }  /* Order # */
+  #orders-table th:nth-child(2) { width: 27%; } /* Product */
+  #orders-table th:nth-child(3) { width: 15%; } /* Nuclide */
+  #orders-table th:nth-child(4) { width: 20%; } /* Requested Date */
+  #orders-table th:nth-child(5) { width: 20%; } /* Status */
+  #orders-table th:nth-child(6) { width: 10%; text-align: right; } /* View Link */
+  
+  /* Ensure long product names don't break the layout */
+  #orders-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds '...' if text is too long for the column */
   }

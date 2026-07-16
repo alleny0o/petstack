@@ -1,68 +1,105 @@
 <?php
-session_start();
-require __DIR__ . '/../src/demo_orders.php';
+require __DIR__ . '/../../src/helpers.php';
+bootstrap_session();
+require __DIR__ . '/../../src/auth.php';
+require_role('customer');
 
-$allOrders = demo_orders();
+$pdo = get_db();
+
+// Assuming your auth system stores the logged-in customer's ID here:
+$customerId = $_SESSION['user_id'] ?? 1; 
 
 // ---------------------------------------------------------
 // 1. Capture Filter Inputs
 // ---------------------------------------------------------
 $filterSearch    = $_GET['search'] ?? '';
 $filterStatus    = $_GET['status'] ?? '';
-$filterIsotope   = $_GET['isotope'] ?? '';
+$filterNuclide   = $_GET['nuclide'] ?? '';
 $filterDateStart = $_GET['date_start'] ?? '';
 $filterDateEnd   = $_GET['date_end'] ?? '';
 $page            = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage    = 10;
 
-// Determine if the advanced drawer should be open on load
-$hasAdvancedFilters = ($filterStatus !== '' || $filterIsotope !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
+$hasAdvancedFilters = ($filterStatus !== '' || $filterNuclide !== '' || $filterDateStart !== '' || $filterDateEnd !== '');
 
-$uniqueIsotopes = array_unique(array_column($allOrders, 'isotope'));
-sort($uniqueIsotopes);
-
-// ---------------------------------------------------------
-// 2. Apply Filters
-// ---------------------------------------------------------
-$filteredOrders = array_filter($allOrders, function($o) use ($filterSearch, $filterStatus, $filterIsotope, $filterDateStart, $filterDateEnd) {
-    // 1. Search (ID or Compound)
-    $matchesSearch = $filterSearch === '' || 
-                     stripos($o['id'], $filterSearch) !== false || 
-                     stripos($o['compound'], $filterSearch) !== false;
-    
-    // 2. Status & Isotope
-    $matchesStatus = $filterStatus === '' || $o['status'] === $filterStatus;
-    $matchesIsotope = $filterIsotope === '' || strcasecmp($o['isotope'], $filterIsotope) === 0;
-
-    // 3. Date Range Logic
-    $matchesDate = true;
-    // Fallback through your available date keys to find the timestamp
-    $orderDateRaw = $o['placed_at'] ?? $o['requested'] ?? $o['b_datetime'] ?? null;
-    
-    if ($orderDateRaw) {
-        // Extract just the YYYY-MM-DD part for a clean comparison
-        $dateOnly = substr($orderDateRaw, 0, 10);
-        
-        if ($filterDateStart !== '' && $dateOnly < $filterDateStart) {
-            $matchesDate = false;
-        }
-        if ($filterDateEnd !== '' && $dateOnly > $filterDateEnd) {
-            $matchesDate = false;
-        }
-    }
-
-    return $matchesSearch && $matchesStatus && $matchesIsotope && $matchesDate;
-});
+// Get active nuclides for the dropdown directly from your new table
+$stmtNuclide = $pdo->query("SELECT nuclide_name FROM nuclides WHERE active = 1 ORDER BY nuclide_name");
+$uniqueNuclides = $stmtNuclide->fetchAll(PDO::FETCH_COLUMN);
 
 // ---------------------------------------------------------
-// 3. Pagination Logic
+// 2. Build the SQL Database Query dynamically
 // ---------------------------------------------------------
-$totalItems = count($filteredOrders);
+$whereSql = "WHERE o.customer_id = :customer_id";
+$params = [':customer_id' => $customerId];
+
+if ($filterStatus !== '') {
+    $whereSql .= " AND o.status = :status";
+    $params[':status'] = $filterStatus;
+}
+if ($filterNuclide !== '') {
+    // Look at the products table for the nuclide instead of orders
+    $whereSql .= " AND p.nuclide_name = :nuclide";
+    $params[':nuclide'] = $filterNuclide;
+}
+if ($filterDateStart !== '') {
+    $whereSql .= " AND DATE(o.created_at) >= :date_start";
+    $params[':date_start'] = $filterDateStart;
+}
+if ($filterDateEnd !== '') {
+    $whereSql .= " AND DATE(o.created_at) <= :date_end";
+    $params[':date_end'] = $filterDateEnd;
+}
+if ($filterSearch !== '') {
+    // Check if search matches order_id OR the product name
+    $whereSql .= " AND (o.order_id LIKE :search OR p.name LIKE :search)";
+    $params[':search'] = "%{$filterSearch}%";
+}
+
+// ---------------------------------------------------------
+// 3. Execute Pagination & Fetch Logic
+// ---------------------------------------------------------
+// Count total items
+$stmtCount = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM orders o 
+    LEFT JOIN products p ON o.product_id = p.product_id 
+    $whereSql
+");
+$stmtCount->execute($params);
+$totalItems = $stmtCount->fetchColumn();
+
+// Calculate pagination
 $totalPages = $totalItems > 0 ? ceil($totalItems / $itemsPerPage) : 1;
 $page = min($page, $totalPages); 
-
 $offset = ($page - 1) * $itemsPerPage;
-$paginatedOrders = array_slice($filteredOrders, $offset, $itemsPerPage);
+
+// Fetch the actual records 
+$query = "
+    SELECT 
+        o.order_id, 
+        o.status, 
+        o.delivery_time, 
+        p.name AS product_name,
+        p.nuclide_name AS nuclide
+    FROM orders o
+    LEFT JOIN products p ON o.product_id = p.product_id
+    $whereSql 
+    ORDER BY o.created_at DESC 
+    LIMIT :limit OFFSET :offset
+";
+
+$stmt = $pdo->prepare($query);
+
+// Bind standard params
+foreach ($params as $key => $val) {
+    $stmt->bindValue($key, $val);
+}
+// LIMIT and OFFSET must be bound as integers
+$stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+
+$paginatedOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 function buildUrl($pageUpdate) {
     $params = $_GET;
@@ -71,19 +108,17 @@ function buildUrl($pageUpdate) {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <?php $pageTitle = 'Past Orders'; $roleCss = 'customer';
-    include '../src/partials/head.php'; ?>
+    <?php include __DIR__ . '/../../src/partials/head.php'; ?>
 </head>
 
 <body>
 
     <div class="app-shell">
-        <?php include '../src/partials/layout_customer.php'; ?>
+        <?php include __DIR__ . '/../../src/partials/layout_customer.php'; ?>
 
         <main class="app-main">
 
@@ -102,7 +137,7 @@ function buildUrl($pageUpdate) {
                         <input type="hidden" name="page" value="1"> 
                         
                         <div class="search-bar-top">
-                            <input type="text" name="search" placeholder="Search Order # or compound…" value="<?= htmlspecialchars($filterSearch) ?>">
+                            <input type="text" name="search" placeholder="Search Order # or product…" value="<?= htmlspecialchars($filterSearch) ?>">
                             
                             <button type="submit" class="btn btn--primary">Search</button>
 
@@ -128,12 +163,12 @@ function buildUrl($pageUpdate) {
                             </div>
 
                             <div class="filter-group">
-                                <label for="filter-isotope">Isotope</label>
-                                <select name="isotope" id="filter-isotope" onchange="this.form.submit()">
-                                    <option value="">All Isotopes</option>
-                                    <?php foreach ($uniqueIsotopes as $iso): ?>
-                                        <option value="<?= htmlspecialchars($iso) ?>" <?= $filterIsotope === $iso ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($iso) ?>
+                                <label for="filter-nuclide">Nuclide</label>
+                                <select name="nuclide" id="filter-nuclide" onchange="this.form.submit()">
+                                    <option value="">All Nuclides</option>
+                                    <?php foreach ($uniqueNuclides as $nuc): ?>
+                                        <option value="<?= htmlspecialchars($nuc) ?>" <?= $filterNuclide === $nuc ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($nuc) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -145,6 +180,8 @@ function buildUrl($pageUpdate) {
                                     <option value="">All Statuses</option>
                                     <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
                                     <option value="accepted" <?= $filterStatus === 'accepted' ? 'selected' : '' ?>>Accepted</option>
+                                    <option value="ready for pickup" <?= $filterStatus === 'ready for pickup' ? 'selected' : '' ?>>Ready for Pickup</option>
+                                    <option value="returned" <?= $filterStatus === 'returned' ? 'selected' : '' ?>>Returned</option>
                                     <option value="completed" <?= $filterStatus === 'completed' ? 'selected' : '' ?>>Completed</option>
                                     <option value="canceled" <?= $filterStatus === 'canceled' ? 'selected' : '' ?>>Canceled</option>
                                 </select>
@@ -158,8 +195,8 @@ function buildUrl($pageUpdate) {
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Compound</th>
-                                <th>Isotope</th>
+                                <th>Product</th>
+                                <th>Nuclide</th>
                                 <th>Requested</th>
                                 <th>Status</th>
                                 <th></th>
@@ -172,13 +209,17 @@ function buildUrl($pageUpdate) {
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($paginatedOrders as $o): ?>
+                                    <?php 
+                                        $displayStatus = ucwords(htmlspecialchars($o['status']));
+                                        $cssStatusClass = str_replace(' ', '-', htmlspecialchars($o['status']));
+                                    ?>
                                     <tr>
-                                        <td class="muted tabular"><?= htmlspecialchars($o['id']) ?></td>
-                                        <td><?= htmlspecialchars($o['compound']) ?></td>
-                                        <td class="muted"><?= htmlspecialchars($o['isotope']) ?></td>
-                                        <td class="muted tabular"><?= htmlspecialchars($o['requested'] ?? $o['b_datetime'] ?? '—') ?></td>
-                                        <td><span class="badge badge--<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>
-                                        <td><a href="order_detail.php?id=<?= $o['id'] ?>" class="table-action">View →</a></td>
+                                        <td class="muted tabular"><?= htmlspecialchars($o['order_id']) ?></td>
+                                        <td><?= htmlspecialchars($o['product_name'] ?? 'Unknown') ?></td>
+                                        <td class="muted"><?= htmlspecialchars($o['nuclide'] ?? 'Unknown') ?></td>
+                                        <td class="muted tabular"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($o['delivery_time']))) ?></td>
+                                        <td><span class="badge badge--<?= $cssStatusClass ?>"><?= $displayStatus ?></span></td>
+                                        <td><a href="order_detail.php?id=<?= $o['order_id'] ?>" class="table-action">View →</a></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -213,7 +254,7 @@ function buildUrl($pageUpdate) {
 
 </body>
 
-<script src="assets/js/script.js" defer></script>
+<script src="/assets/js/script.js" defer></script>
 <script>
     // Toggle the advanced filter drawer open/closed
     document.getElementById('toggle-advanced-search').addEventListener('click', function() {

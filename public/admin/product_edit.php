@@ -8,7 +8,7 @@ $pdo = get_db();
 $errors = [];
 
 // Allowed values for the database enum
-$allowed_delivery_options = ['direct delivery', 'pickup', 'pharmacy'];
+$allowed_delivery_options = ['delivery', 'pickup', 'pharmacy'];
 
 // 1. Validate the Product ID from the URL
 $product_id = $_GET['id'] ?? null;
@@ -109,7 +109,7 @@ $pageTitle = 'Edit Product';
                 <h1>Edit Product</h1>
                 <!-- Handy badge showing the admin which ID they are editing -->
                 <p style="color: var(--color-text-secondary); margin-top: 5px;">
-                    SKU-<?= str_pad((string)$product_id, 4, '0', STR_PAD_LEFT) ?>
+                    <?= str_pad((string)$product_id, 4, '0', STR_PAD_LEFT) ?>
                 </p>
             </div>
 
@@ -150,7 +150,7 @@ $pageTitle = 'Edit Product';
                         <label for="delivery_option">Delivery Option *</label>
                         <select id="delivery_option" name="delivery_option" class="form-control" required>
                             <option value="">-- Select a Delivery Option --</option>
-                            <option value="direct delivery" <?= $val_delivery_option === 'direct delivery' ? 'selected' : '' ?>>Direct Delivery</option>
+                            <option value="delivery" <?= $val_delivery_option === 'delivery' ? 'selected' : '' ?>>Delivery</option>
                             <option value="pickup" <?= $val_delivery_option === 'pickup' ? 'selected' : '' ?>>Pickup</option>
                             <option value="pharmacy" <?= $val_delivery_option === 'pharmacy' ? 'selected' : '' ?>>Pharmacy</option>
                         </select>
