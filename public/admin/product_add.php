@@ -8,7 +8,7 @@ $pdo = get_db();
 $errors = [];
 
 // Allowed values for the database enum
-$allowed_delivery_options = ['direct delivery', 'pickup', 'pharmacy'];
+$allowed_delivery_options = ['delivery', 'pickup', 'pharmacy'];
 
 // 1. Fetch active nuclides for the dropdown
 // Assuming 'active' was also renamed to 'is_active' in the nuclides table for consistency
@@ -108,7 +108,7 @@ $pageTitle = 'Add Product';
                         <label for="default_delivery_option">Default Delivery Option *</label>
                         <select id="default_delivery_option" name="default_delivery_option" class="form-control" required>
                             <option value="">-- Select a Delivery Option --</option>
-                            <option value="direct delivery" <?= (isset($_POST['default_delivery_option']) && $_POST['default_delivery_option'] === 'direct delivery') ? 'selected' : '' ?>>Direct Delivery</option>
+                            <option value="delivery" <?= (isset($_POST['default_delivery_option']) && $_POST['default_delivery_option'] === 'delivery') ? 'selected' : '' ?>>Delivery</option>
                             <option value="pickup" <?= (isset($_POST['default_delivery_option']) && $_POST['default_delivery_option'] === 'pickup') ? 'selected' : '' ?>>Pickup</option>
                             <option value="pharmacy" <?= (isset($_POST['default_delivery_option']) && $_POST['default_delivery_option'] === 'pharmacy') ? 'selected' : '' ?>>Pharmacy</option>
                         </select>
