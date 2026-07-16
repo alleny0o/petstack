@@ -232,13 +232,12 @@ CREATE TABLE orders (
   status                ENUM('pending', 'accepted', 'ready for pickup', 'completed', 'canceled', 'returned') DEFAULT 'pending',
   created_at            TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   created_by            INT NOT NULL,
-  delivery_option       ENUM('direct delivery', 'pickup', 'pharmacy'),
   delivery_time         TIMESTAMP NOT NULL,
   processed_by          INT UNSIGNED NULL,
   processed_at          TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   cost_snapshot         DECIMAL(10,2) NOT NULL,
   last_modified_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   last_modified_by      INT UNSIGNED NULL,
-  additional_notes      VARCHAR(500) NULL,
-  cancelation_notes     VARCHAR(500) NULL
+  additional_notes      VARCHAR(250) NULL,
+  cancelation_notes     VARCHAR(250) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

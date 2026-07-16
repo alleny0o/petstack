@@ -119,24 +119,21 @@
    ============================================================ */
 
    #orders-table {
-    /* This forces the browser to obey our column widths strictly */
     table-layout: fixed; 
     width: 100%;
   }
   
-  /* Assign specific percentage widths to each column header. 
-    Make sure these add up to exactly 100%.
-  */
+  /* Updated math to perfectly fit the new User column (Totals 100%) */
   #orders-table th:nth-child(1) { width: 8%; }  /* Order # */
-  #orders-table th:nth-child(2) { width: 27%; } /* Product */
-  #orders-table th:nth-child(3) { width: 15%; } /* Nuclide */
-  #orders-table th:nth-child(4) { width: 20%; } /* Requested Date */
-  #orders-table th:nth-child(5) { width: 20%; } /* Status */
-  #orders-table th:nth-child(6) { width: 10%; text-align: right; } /* View Link */
+  #orders-table th:nth-child(2) { width: 22%; } /* Product */
+  #orders-table th:nth-child(3) { width: 12%; } /* Nuclide */
+  #orders-table th:nth-child(4) { width: 18%; } /* User */
+  #orders-table th:nth-child(5) { width: 17%; } /* Requested Date */
+  #orders-table th:nth-child(6) { width: 15%; } /* Status */
+  #orders-table th:nth-child(7) { width: 8%; text-align: right; } /* View Link */
   
-  /* Ensure long product names don't break the layout */
   #orders-table td {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds '...' if text is too long for the column */
+    text-overflow: ellipsis; 
   }

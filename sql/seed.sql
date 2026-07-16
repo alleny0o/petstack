@@ -114,52 +114,53 @@ INSERT INTO customers (user_id, first_name, last_name, lab_id, supervising_pi_id
 
 -- ---- Orders ----
 INSERT INTO orders (
-  customer_id, compound_id, product_user_id, product_id, location_id, 
-  activity_mci, status, created_at, created_by, delivery_option, 
-  delivery_time, processed_by, processed_at, cost_snapshot, 
-  last_modified_by, special_instructions, cancelation_notes
+  product_user_id, product_id, location_id, activity_mci, status, 
+  created_at, created_by, delivery_option, delivery_time, 
+  processed_by, processed_at, last_modified_by, 
+  additional_notes, cancelation_notes
 ) VALUES 
--- Row 1: Completed delivery order
+-- Row 1: Completed delivery order (active user 201)
 (
-  101, 5001, 201, 301, 10, 
-  150.5, 'completed', '2026-07-10 09:00:00', 101, 'delivery', 
-  '2026-07-10 14:00:00', 99, '2026-07-10 14:15:00', 125.50, 
-  99, 'Leave at the front desk, ring bell.', NULL
+  201, 301, 10, 150.5, 'completed', 
+  '2026-07-10 09:00:00', 201, 'delivery', '2026-07-10 14:00:00', 
+  99, '2026-07-10 14:15:00', 99, 
+  'Leave at front desk.', NULL
 ),
 
--- Row 2: Pending pharmacy pickup
+-- Row 2: Pending pharmacy pickup (no specific product user assigned yet)
 (
-  102, 5002, NULL, 302, 12, 
-  NULL, 'pending', '2026-07-16 08:30:00', 102, 'pharmacy', 
-  '2026-07-17 12:00:00', NULL, NULL, 45.00, 
-  102, NULL, NULL
+  NULL, 302, 12, NULL, 'pending', 
+  '2026-07-16 08:30:00', 102, 'pharmacy', '2026-07-17 12:00:00', 
+  NULL, NULL, NULL, 
+  'Patient will present ID at pickup.', NULL
 ),
 
--- Row 3: Canceled order with notes
+-- Row 3: Canceled order (inactive user 203)
 (
-  103, 5001, 203, 303, NULL, 
-  75.0, 'canceled', '2026-07-15 11:00:00', 103, 'pickup', 
-  '2026-07-16 10:00:00', 99, '2026-07-15 11:30:00', 89.99, 
-  99, 'Needs refrigeration', 'Customer called to cancel due to travel plans.'
+  203, 303, NULL, 75.0, 'canceled', 
+  '2026-07-15 11:00:00', 203, 'pickup', '2026-07-16 10:00:00', 
+  99, '2026-07-15 11:30:00', 99, 
+  'Needs refrigeration.', 'Customer canceled due to scheduling conflict.'
 ),
 
--- Row 4: Ready for pickup order
+-- Row 4: Ready for pickup (active user 204)
 (
-  104, 5003, 204, 301, 15, 
-  320.0, 'ready for pickup', '2026-07-16 06:00:00', 104, 'pickup', 
-  '2026-07-16 16:00:00', 98, '2026-07-16 08:00:00', 210.00, 
-  98, 'Signature required on pickup.', NULL
+  204, 301, 15, 320.0, 'ready for pickup', 
+  '2026-07-16 06:00:00', 204, 'pickup', '2026-07-16 16:00:00', 
+  98, '2026-07-16 08:00:00', 98, 
+  'Double check shielding packaging.', NULL
 ),
 
--- Row 5: Accepted order, direct delivery option
+-- Row 5: Accepted delivery order (no specific product user)
 (
-  105, 5004, NULL, 305, 10, 
-  NULL, 'accepted', '2026-07-16 10:15:00', 105, 'delivery', 
-  '2026-07-17 09:00:00', 98, '2026-07-16 10:45:00', 15.25, 
-  98, 'Call upon arrival.', NULL
+  NULL, 305, 10, NULL, 'accepted', 
+  '2026-07-16 10:15:00', 105, 'delivery', '2026-07-17 09:00:00', 
+  98, '2026-07-16 10:45:00', 98, 
+  'Deliver to building B.', NULL
 );
 
 -- Lab Product users --
+
 INSERT INTO lab_product_users (
   product_user_id, lab_id, name, active
 ) VALUES 

@@ -1,7 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// error_reporting(E_ALL);
+
+// // Tell PHP to display the errors on the screen
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
 
 require __DIR__ . '/../../src/helpers.php';
 bootstrap_session();
@@ -33,7 +35,6 @@ $uniqueNuclides = $stmtNuclide->fetchAll(PDO::FETCH_COLUMN);
 // ---------------------------------------------------------
 // 2. Build the SQL Database Query dynamically
 // ---------------------------------------------------------
-// Updated to use the new created_by column
 $whereSql = "WHERE o.created_by = :created_by";
 $params = [':created_by' => $userId];
 
@@ -54,8 +55,17 @@ if ($filterDateEnd !== '') {
     $params[':date_end'] = $filterDateEnd;
 }
 if ($filterSearch !== '') {
-    // Now searches Order ID, Product Name, OR the User's Name
-    $whereSql .= " AND (o.order_id LIKE :search OR p.product_name LIKE :search OR lpu.name LIKE :search)";
+    // Search Order ID, Product Name, OR the constructed User Name
+    $whereSql .= " AND (
+        o.order_id LIKE :search 
+        OR p.product_name LIKE :search 
+        OR (
+            CASE 
+                WHEN o.product_user_id IS NOT NULL THEN CONCAT_WS(' ', lpu.first_name, lpu.last_name)
+                ELSE CONCAT_WS(' ', u.first_name, u.last_name)
+            END
+        ) LIKE :search
+    )";
     $params[':search'] = "%{$filterSearch}%";
 }
 
@@ -68,6 +78,7 @@ $stmtCount = $pdo->prepare("
     FROM orders o 
     LEFT JOIN products p ON o.product_id = p.product_id 
     LEFT JOIN lab_product_users lpu ON o.product_user_id = lpu.product_user_id
+    LEFT JOIN users u ON o.created_by = u.user_id
     $whereSql
 ");
 $stmtCount->execute($params);
@@ -79,6 +90,7 @@ $page = min($page, $totalPages);
 $offset = ($page - 1) * $itemsPerPage;
 
 // Fetch the actual records 
+// Fetch the actual records 
 $query = "
     SELECT 
         o.order_id, 
@@ -86,10 +98,17 @@ $query = "
         o.delivery_time, 
         p.product_name,
         p.nuclide_name AS nuclide,
-        lpu.name AS product_user_name
+        
+        -- Explicitly route the logic based on the presence of the ID
+        CASE 
+            WHEN o.product_user_id IS NOT NULL THEN CONCAT_WS(' ', lpu.first_name, lpu.last_name)
+            ELSE CONCAT_WS(' ', u.first_name, u.last_name)
+        END AS display_user_name
+
     FROM orders o
     LEFT JOIN products p ON o.product_id = p.product_id
     LEFT JOIN lab_product_users lpu ON o.product_user_id = lpu.product_user_id
+    LEFT JOIN users u ON o.created_by = u.user_id
     $whereSql 
     ORDER BY o.created_at DESC 
     LIMIT :limit OFFSET :offset
@@ -225,7 +244,7 @@ function buildUrl($pageUpdate) {
                                         <td class="muted tabular"><?= htmlspecialchars($o['order_id']) ?></td>
                                         <td><?= htmlspecialchars($o['product_name'] ?? 'Unknown') ?></td>
                                         <td class="muted"><?= htmlspecialchars($o['nuclide'] ?? 'Unknown') ?></td>
-                                        <td><?= htmlspecialchars($o['product_user_name'] ?? '—') ?></td>
+                                        <td><?= htmlspecialchars($o['display_user_name'] ?? 'Unknown User') ?></td>
                                         <td class="muted tabular"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($o['delivery_time']))) ?></td>
                                         <td><span class="badge badge--<?= $cssStatusClass ?>"><?= $displayStatus ?></span></td>
                                         <td><a href="order_detail.php?id=<?= $o['order_id'] ?>" class="table-action">View →</a></td>
