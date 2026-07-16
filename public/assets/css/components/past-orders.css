@@ -128,8 +128,8 @@
     Make sure these add up to exactly 100%.
   */
   #orders-table th:nth-child(1) { width: 8%; }  /* # */
-  #orders-table th:nth-child(2) { width: 22%; } /* Product */
-  #orders-table th:nth-child(3) { width: 12%; } /* Nuclide */
+  #orders-table th:nth-child(2) { width: 17%; } /* Product */
+  #orders-table th:nth-child(3) { width: 17%; } /* Nuclide */
   #orders-table th:nth-child(4) { width: 20%; } /* User */
   #orders-table th:nth-child(5) { width: 16%; } /* Requested */
   #orders-table th:nth-child(6) { width: 12%; } /* Status */
