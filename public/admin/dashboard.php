@@ -42,7 +42,7 @@ $pendingPreview = $pdo->query(
 )->fetchAll();
 
 $recentCustomers = $pdo->query(
-    'SELECT c.user_id, c.first_name, c.last_name, u.created_at
+    'SELECT c.user_id, u.first_name, u.last_name, u.created_at
      FROM customers c
      JOIN users u ON u.user_id = c.user_id
      ORDER BY u.created_at DESC
