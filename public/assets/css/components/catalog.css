@@ -46,3 +46,69 @@
   justify-content: space-between;
   align-items: center;
 }
+
+
+/* -------- Add product -------- */
+
+/* Form Layout Styles - Adjust these to match your site's variables if needed */
+.form-card {
+    background-color: var(--color-bg-surface, #ffffff);
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-hr, #ccc);
+    max-width: 600px;
+    margin: 0 auto;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--color-text-primary, #333);
+}
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--color-border-hr, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+.form-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+.form-check label {
+    margin-bottom: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+.alert-error {
+    background-color: #f8d7da;
+    color: #842029;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c2c7;
+}
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border-hr, #ccc);
+}
