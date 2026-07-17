@@ -133,6 +133,8 @@
   --color-btn-secondary-bg:       var(--color-bg-surface);
   --color-btn-secondary-bg-hover: var(--color-bg-primary);
   --color-btn-secondary-text:     var(--color-text-secondary);
+  --color-btn-tertiary-bg:        var(--platinum);
+  --color-btn-tertiary-bg-hover:  var(--alabaster-grey);
 
   /* Links */
   --color-link:       var(--accent-600);

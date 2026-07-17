@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/../../src/helpers.php';
+require __DIR__ . '/../../../src/helpers.php';
 bootstrap_session();
-require __DIR__ . '/../../src/auth.php';
+require __DIR__ . '/../../../src/auth.php';
 require_role('admin');
 
 $pdo = get_db();
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         // Redirect back to catalog after successful creation
-        header("Location: catalog.php");
+        header("Location: /admin/catalog-main.php");
         exit;
     }
 }
@@ -58,13 +58,13 @@ $pageTitle = 'Add Product';
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php include __DIR__ . '/../../src/partials/head.php'; ?>
+    <?php include __DIR__ . '/../../../src/partials/head.php'; ?>
     <!-- Ensure your external CSS file is linked here -->
     <link rel="stylesheet" href="/assets/css/components/product_form.css">
 </head>
 <body>
     <div class="app-shell">
-        <?php include __DIR__ . '/../../src/partials/layout_admin.php'; ?>
+        <?php include __DIR__ . '/../../../src/partials/layout_admin.php'; ?>
         <main class="app-main">
             
             <div class="page-header">
@@ -120,7 +120,7 @@ $pageTitle = 'Add Product';
                     </div>
 
                     <div class="form-actions">
-                        <a href="catalog.php" class="btn btn--secondary">Cancel</a>
+                        <a href="../catalog-main.php" class="btn btn--secondary">Cancel</a>
                         <button type="submit" class="btn btn--primary">Save Product</button>
                     </div>
                 </form>

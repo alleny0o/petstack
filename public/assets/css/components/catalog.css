@@ -1,3 +1,54 @@
+/* =================================
+  1. Main Page and Tabs
+================================= */
+/* Folder-Style Tab Navigation CSS */
+.page-tabs {
+  display: flex;
+  gap: 4px; /* Tight gap between folder tabs */
+  margin-bottom: 0; /* Flush with the card below */
+  padding-left: 10px; /* Slight indent so it doesn't hug the left edge */
+}
+
+.page-tabs a.tab-link {
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  padding: 7px 21px;
+  background-color: var(--color-btn-tertiary-bg); /* Slightly darker background for inactive tabs */
+  border: 1px solid var(--color-border-hr);
+  border-bottom: none; /* Let the card provide the bottom line */
+  border-radius: 8px 8px 0 0; /* Rounded top, flat bottom */
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  position: relative;
+  top: 1px; /* Pull it down 1px to overlap the card's top border */
+  z-index: 1;
+}
+
+.page-tabs a.tab-link:hover {
+  background-color: var(--color-btn-tertiary-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.page-tabs a.tab-link.active {
+  color: var(--color-btn-primary-bg);
+  background-color: var(--color-bg-surface); /* Exact match to the card's background */
+  border-top: 3px solid var(--color-btn-primary-bg); /* Nice highlight bar on top */
+  z-index: 3; /* Brings the active tab above the card's border */
+}
+
+/* Adjust the card to connect cleanly with the tabs */
+.table-card {
+  position: relative;
+  z-index: 2;
+  border-top-left-radius: 0;
+  margin-top: 0;
+}
+
+/* =================================
+  2. Product Catalog
+================================= */
+
 .catalog-main {
   background-color: var(--color-bg-surface);
   padding: 30px;
@@ -52,10 +103,10 @@
 
 /* Form Layout Styles - Adjust these to match your site's variables if needed */
 .form-card {
-    background-color: var(--color-bg-surface, #ffffff);
+    background-color: var(--color-bg-surface);
     padding: 30px;
     border-radius: 8px;
-    border: 1px solid var(--color-border-hr, #ccc);
+    border: 1px solid var(--color-border-hr);
     max-width: 600px;
     margin: 0 auto;
 }
@@ -66,12 +117,12 @@
     display: block;
     font-weight: bold;
     margin-bottom: 8px;
-    color: var(--color-text-primary, #333);
+    color: var(--color-text-primary);
 }
 .form-control {
     width: 100%;
     padding: 10px;
-    border: 1px solid var(--color-border-hr, #ccc);
+    border: 1px solid var(--color-border-hr);
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
@@ -110,5 +161,5 @@ textarea.form-control {
     gap: 15px;
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid var(--color-border-hr, #ccc);
+    border-top: 1px solid var(--color-border-hr);
 }

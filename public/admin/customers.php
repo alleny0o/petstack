@@ -21,7 +21,7 @@ if ($q !== '') {
     // Escape LIKE wildcards in the search term itself so a customer
     // searching for a literal "%" or "_" doesn't get wildcard behavior.
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
-    $where[] = "(CONCAT(c.first_name, ' ', c.last_name) LIKE ? ESCAPE '\\\\' OR u.username LIKE ? ESCAPE '\\\\')";
+    $where[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? ESCAPE '\\\\' OR u.username LIKE ? ESCAPE '\\\\')";
     $params[] = '%' . $escaped . '%';
     $params[] = '%' . $escaped . '%';
 }
@@ -60,7 +60,7 @@ $offset = ($page - 1) * CUSTOMERS_PAGE_SIZE;
 // same convention as PASSWORD_HISTORY_LIMIT in src/auth.php.
 $listStmt = $pdo->prepare(
     "SELECT u.user_id, u.username, u.active,
-            c.first_name, c.last_name,
+            u.first_name, u.last_name,
             l.lab_name, i.name AS institute_name, p.pi_name
      FROM customers c
      JOIN users u ON u.user_id = c.user_id
@@ -68,7 +68,7 @@ $listStmt = $pdo->prepare(
      LEFT JOIN institutes i ON i.institute_id = l.institute_id
      LEFT JOIN pis p ON p.pi_id = c.supervising_pi_id
      $whereSql
-     ORDER BY c.last_name, c.first_name
+     ORDER BY u.last_name, u.first_name
      LIMIT $offset, " . CUSTOMERS_PAGE_SIZE
 );
 $listStmt->execute($params);

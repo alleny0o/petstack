@@ -22,7 +22,7 @@ if ($q !== '') {
     // as customers.php -- matches either the staff member's name or
     // their username (email).
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
-    $where[] = "(CONCAT(s.first_name, ' ', s.last_name) LIKE ? ESCAPE '\\\\' OR u.username LIKE ? ESCAPE '\\\\')";
+    $where[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? ESCAPE '\\\\' OR u.username LIKE ? ESCAPE '\\\\')";
     $params[] = '%' . $escaped . '%';
     $params[] = '%' . $escaped . '%';
 }
@@ -63,7 +63,7 @@ $offset = ($page - 1) * ACCOUNTS_PAGE_SIZE;
 // same convention as customers.php.
 $listStmt = $pdo->prepare(
     "SELECT u.user_id, u.username, u.active,
-            s.first_name, s.last_name,
+            u.first_name, u.last_name,
             cat.category_id, cat.category_name,
             (a.user_id IS NOT NULL) AS is_admin
      FROM staff s

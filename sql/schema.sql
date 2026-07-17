@@ -51,7 +51,7 @@ CREATE TABLE institutes (
   institute_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name           VARCHAR(255) NOT NULL,
   shorthand_name VARCHAR(10),
-  is_active         TINYINT(1) NOT NULL DEFAULT 1,
+  is_active      TINYINT(1) NOT NULL DEFAULT 1,
   UNIQUE KEY uq_institutes_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -60,7 +60,7 @@ CREATE TABLE labs (
   institute_id  INT UNSIGNED NOT NULL,
   lab_name      VARCHAR(100) NOT NULL,
   is_active     TINYINT(1) NOT NULL DEFAULT 1,
-  CONSTRAINT fk_labs_institute FOREIGN KEY (institute_id) REFERENCES institutes (institute_id),
+  CONSTRAINT fk_labs_institute FOREIGN KEY (institute_id) REFERENCES institutes (institute_id) ON UPDATE CASCADE ON DELETE SET NULL,
   KEY idx_labs_institute_id (institute_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -69,7 +69,7 @@ CREATE TABLE pis (
   pi_name  VARCHAR(100) NOT NULL,
   email    VARCHAR(254),
   phone    VARCHAR(20),
-  active   TINYINT(1) NOT NULL DEFAULT 1
+  is_active   TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Join table: a lab can have multiple PIs, a PI can oversee multiple labs.
@@ -93,7 +93,7 @@ CREATE TABLE users (
   must_change_password  TINYINT(1) NOT NULL DEFAULT 1,
   failed_login_count    TINYINT UNSIGNED NOT NULL DEFAULT 0,
   locked_until          DATETIME NULL,
-  active                TINYINT(1) NOT NULL DEFAULT 1,
+  is_active                TINYINT(1) NOT NULL DEFAULT 1,
   created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -198,7 +198,7 @@ CREATE TABLE lab_delivery_locations (
   lab_id         INT UNSIGNED NOT NULL,
   location_name  VARCHAR(100) NOT NULL,
   room           VARCHAR(20),
-  active         TINYINT(1) NOT NULL DEFAULT 1,
+  is_active         TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_lab_delivery_locations_lab FOREIGN KEY (lab_id) REFERENCES labs (lab_id),
   KEY idx_lab_delivery_locations_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -213,7 +213,7 @@ CREATE TABLE lab_product_users (
   product_user_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   lab_id           INT UNSIGNED NOT NULL,
   name             VARCHAR(150) NOT NULL,
-  active           TINYINT(1) NOT NULL DEFAULT 1,
+  is_active           TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_lab_product_users_lab FOREIGN KEY (lab_id) REFERENCES labs (lab_id),
   KEY idx_lab_product_users_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -230,7 +230,8 @@ CREATE TABLE products (
   nuclide_name              VARCHAR(30) NOT NULL,
   product_name              VARCHAR(255) NOT NULL,
   default_delivery_option   ENUM('direct delivery', 'pickup', 'pharmacy'),
-  is_active                 TINYINT(1) NOT NULL DEFAULT 1
+  is_active                 TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_products_nuclide FOREIGN KEY (nuclide_name) REFERENCES nuclides(nuclide_name) ON DELETE CASCADE ON UPDATE CASCADE 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- One unified form for every order type -- no Type A/B split, no
