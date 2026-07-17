@@ -14,7 +14,7 @@
   color: var(--color-text-secondary);
   padding: 7px 21px;
   background-color: var(--color-btn-tertiary-bg); /* Slightly darker background for inactive tabs */
-  border: 1px solid var(--color-border-hr, #e5e7eb);
+  border: 1px solid var(--color-border-hr);
   border-bottom: none; /* Let the card provide the bottom line */
   border-radius: 8px 8px 0 0; /* Rounded top, flat bottom */
   font-weight: 500;
