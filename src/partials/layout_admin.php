@@ -78,6 +78,17 @@ $directorySectionActive = in_array($currentPage, $directoryChildPages, true);
           </a>
         </li>
 
+        <li class="menu-item">
+          <a href="/admin/reports.php" class="menu-link <?= $currentPage === 'reports' ? 'active' : '' ?>">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="menu-label"><span class="menu-label__text">Reports</span></span>
+          </a>
+        </li>
+
         <li class="menu-item menu-item--has-submenu <?= $accountsSectionActive ? 'is-expanded' : '' ?>">
           <button type="button" class="menu-link <?= $accountsSectionActive ? 'menu-link--section-active' : '' ?>" aria-expanded="<?= $accountsSectionActive ? 'true' : 'false' ?>" aria-controls="accounts-submenu">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

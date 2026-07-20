@@ -642,6 +642,17 @@ function initFormLoadingStates() {
     const form = e.target;
     if (!(form instanceof HTMLFormElement)) return;
 
+    // Opt-out for forms whose response is a file download rather than a
+    // page navigation (e.g. admin/reports.php's CSV export) -- a native
+    // full-page submit normally resets the button for free when the
+    // response replaces the document, but a Content-Disposition:
+    // attachment response never unloads the current page, so
+    // setButtonLoading() below would never get a matching
+    // clearButtonLoading() and the button would spin forever. Re-triggering
+    // a GET export is harmless (unlike a mutating POST), so skipping the
+    // double-submit guard here costs nothing.
+    if (form.dataset.noLoadingGuard !== undefined) return;
+
     if (form.dataset.submitting === 'true') {
       e.preventDefault(); // double-submit guard
       return;
@@ -775,6 +786,40 @@ function initCopyButtons() {
 }
 
 
+// ===== Reports form (admin/reports.php) ===========================
+// Report Criteria form: pre-fills a last-30-days date range on load, and
+// Reset Filters restores that same range plus clears every select back to
+// "All" (value ""). No-op on every other page — guarded on #report-form's
+// absence, same as the rest of this file's init functions.
+
+function initReportsForm() {
+  const form = document.getElementById('report-form');
+  if (!form) return;
+
+  const startDateInput = document.getElementById('start_date');
+  const endDateInput = document.getElementById('end_date');
+  const resetBtn = document.getElementById('reset-dates');
+  if (!startDateInput || !endDateInput || !resetBtn) return;
+
+  function setDefaultDateRange() {
+    const today = new Date();
+    const lastMonth = new Date();
+    lastMonth.setDate(today.getDate() - 30);
+    endDateInput.valueAsDate = today;
+    startDateInput.valueAsDate = lastMonth;
+  }
+
+  setDefaultDateRange();
+
+  resetBtn.addEventListener('click', () => {
+    setDefaultDateRange();
+    form.querySelectorAll('select').forEach((select) => {
+      select.value = '';
+    });
+  });
+}
+
+
 // ===== Init (single entry point — order matters: sidebar first so its
 // pre-paint collapsed/submenu state is wired up before anything else
 // touches the DOM, then the page-wide confirm/form/copy/dashboard
@@ -790,4 +835,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initConfirmForms();
   initFormLoadingStates();
   initCopyButtons();
+  initReportsForm();
 });
