@@ -15,9 +15,6 @@
   background: rgba(33, 37, 41, 0.45);
   animation: modal-fade-in 0.15s ease;
 }
-.modal-overlay[hidden] {
-  display: none;
-}
 @keyframes modal-fade-in {
   from { opacity: 0; }
 }
@@ -37,6 +34,42 @@
     opacity: 0;
     transform: scale(0.97);
   }
+}
+
+/* Pinned title row (new-order modal). Most modals keep their title
+   inside .modal__body; this exists for tall internally-scrolling modals
+   whose title must stay visible. */
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--color-border-hr);
+}
+.modal__header .modal__title {
+  margin-bottom: 0;
+}
+/* Icon-only close (X) button in the header. Closing is wired by
+   script.js via the data-modal-close attribute, same as footer Cancel. */
+.modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.modal__close:hover {
+  background: var(--color-hover-primary);
+  color: var(--color-text-primary);
 }
 
 .modal__body {
@@ -65,6 +98,66 @@
   background: var(--color-bg-primary);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
+/* Split footer (new-order modal): first button (Cancel) sits on the
+   left, everything after it stays grouped on the right. */
+.modal__footer--split > :first-child {
+  margin-right: auto;
+}
+
+/* Wider variant of the default .modal (440px) for a form with more
+   fields than a typical Add/Edit modal but not so much content it needs
+   the near-fullscreen, pinned-header/footer .modal--order treatment --
+   e.g. accounts.php's New Account modal (email, first/last name, and a
+   role radio-card-group benefit from the extra horizontal room). Still
+   a normal auto-height modal, no internal-scroll wiring needed. */
+.modal--wide {
+  max-width: 640px;
+}
+
+/* New-order modal: flex column so only .modal__body scrolls, keeping
+   the header (title + X) and footer (Cancel/Place order) pinned at the
+   modal's true edges. Capped near-fullscreen size, centered by the
+   overlay's existing flex (align/justify center); the overlay keeps a
+   small padding as the minimum gap on viewports the caps don't clear.
+   Header, footer, and form content all span the same width -- shared
+   --sp-5 horizontal padding, no narrower inner content cap
+   (order-page.css strips the card's max-width in the modal). */
+.modal-overlay--order {
+  padding: var(--sp-5);
+}
+.modal--order {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 94vw;
+  max-width: 1140px;
+  height: min(92vh, 960px);
+  max-height: 92vh;
+}
+.modal--order .modal__body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  /* Same breakpoint as the mobile off-canvas sidebar (layout/sidebar.css). */
+  .modal-overlay--order {
+    padding: 0;
+  }
+  .modal--order {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+}
+
+/* Stacked confirm dialog (petcomConfirm in script.js): sits ABOVE a
+   standard open modal (z 60) so "Discard this order?" / "Place this
+   order?" can layer on the new-order modal without closing it. */
+.modal-overlay--stacked {
+  z-index: 70;
+}
 
 /* Scroll lock while any modal is open (independent of the mobile
    sidebar's own lock, which uses data-sidebar-mobile).
@@ -82,4 +175,39 @@
    html-only fixes both. */
 [data-modal-open] {
   overflow-y: hidden;
+}
+
+/* My Info modal (layout_customer.php): a compact identity-card header --
+   avatar + name + username -- above the grouped .form-section/
+   .detail-list content. Sized up from the sidebar's own 32px avatar
+   (layout/sidebar.css .account-avatar) since this is the focal point of
+   the modal rather than a small nav-corner glance. */
+.my-info-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+.my-info-identity__avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--accent-100);
+  color: var(--accent-700);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.my-info-identity__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.my-info-identity__username {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
 }

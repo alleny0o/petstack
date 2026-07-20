@@ -71,6 +71,16 @@ textarea {
   margin-top: var(--sp-1);
 }
 
+/* Live NN/500 character counter under a textarea: same quiet type as
+   .field-hint, but explicitly its own block line so it always sits at
+   the textarea's bottom-left and can never ride inline after other
+   hints or drift with text flow. */
+.char-count {
+  display: block;
+  text-align: left;
+  margin-top: var(--sp-1);
+}
+
 /* Inline validation message under a field */
 .field-error {
   display: block;
@@ -110,6 +120,12 @@ textarea {
 /* Asterisk marking a required field's label */
 .required-mark {
   color: var(--color-error);
+}
+
+/* Quiet "— optional" aside inside a field label */
+.label-optional {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 
 /* Grouped form sections with a small uppercase title */

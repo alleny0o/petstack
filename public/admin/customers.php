@@ -6,13 +6,38 @@ require_role('admin');
 
 $pdo = get_db();
 
-const CUSTOMERS_PAGE_SIZE = 20;
+const CUSTOMERS_DEFAULT_PAGE_SIZE = 20;
+const CUSTOMERS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 $q = trim($_GET['q'] ?? '');
 $instituteId = $_GET['institute_id'] ?? '';
 $labId = $_GET['lab_id'] ?? '';
-$status = $_GET['status'] ?? '';
+$status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), CUSTOMERS_PAGE_SIZE_OPTIONS, true)
+    ? (int) $_GET['page_size'] : CUSTOMERS_DEFAULT_PAGE_SIZE;
+
+// Canonicalize so every link built via customers_query() below (tabs,
+// pagination) carries the real applied values forward -- same convention
+// as staff/orders.php's status/page_size canonicalization.
+$_GET['status'] = $status;
+$_GET['page_size'] = (string) $pageSize;
+
+/**
+ * Builds a query string from the current GET params with the given
+ * overrides applied, dropping empty values -- used for the status tabs
+ * and pagination links so Prev/Next/Go carry the active filters forward.
+ */
+function customers_query(array $overrides = []): string
+{
+    $params = array_merge($_GET, $overrides);
+    foreach ($params as $key => $value) {
+        if ($value === '' || $value === null) {
+            unset($params[$key]);
+        }
+    }
+    return http_build_query($params);
+}
 
 $where = [];
 $params = [];
@@ -33,31 +58,52 @@ if ($labId !== '' && ctype_digit((string) $labId)) {
     $where[] = 'c.lab_id = ?';
     $params[] = (int) $labId;
 }
-if ($status === 'active') {
-    $where[] = 'u.active = 1';
-} elseif ($status === 'inactive') {
-    $where[] = 'u.active = 0';
-}
 
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-$countStmt = $pdo->prepare(
-    "SELECT COUNT(*)
+// Built without the status condition -- reused for the tab counts (each
+// tab's count reflects the current search/institute/lab scope, not
+// global counts) and then extended with a status condition below for the
+// actual list -- same pattern as staff/orders.php's $queueStatusCounts.
+$countsStmt = $pdo->prepare(
+    "SELECT u.active, COUNT(*) AS c
      FROM customers c
      JOIN users u ON u.user_id = c.user_id
      LEFT JOIN labs l ON l.lab_id = c.lab_id
-     $whereSql"
+     $whereSql
+     GROUP BY u.active"
 );
-$countStmt->execute($params);
-$totalCount = (int) $countStmt->fetchColumn();
-$totalPages = max(1, (int) ceil($totalCount / CUSTOMERS_PAGE_SIZE));
+$countsStmt->execute($params);
+$statusCounts = ['active' => 0, 'inactive' => 0];
+foreach ($countsStmt->fetchAll() as $row) {
+    $statusCounts[$row['active'] ? 'active' : 'inactive'] = (int) $row['c'];
+}
+$allCount = $statusCounts['active'] + $statusCounts['inactive'];
+$totalCount = $status !== '' ? $statusCounts[$status] : $allCount;
+
+$statusTabs = [
+    ['value' => '',         'label' => 'All',      'count' => $allCount],
+    ['value' => 'active',   'label' => 'Active',   'count' => $statusCounts['active']],
+    ['value' => 'inactive', 'label' => 'Inactive', 'count' => $statusCounts['inactive']],
+];
+
+$listWhere = $where;
+$listParams = $params;
+if ($status === 'active') {
+    $listWhere[] = 'u.active = 1';
+} elseif ($status === 'inactive') {
+    $listWhere[] = 'u.active = 0';
+}
+$listWhereSql = $listWhere ? ('WHERE ' . implode(' AND ', $listWhere)) : '';
+
+$totalPages = max(1, (int) ceil($totalCount / $pageSize));
 $page = min($page, $totalPages);
-$offset = ($page - 1) * CUSTOMERS_PAGE_SIZE;
+$offset = ($page - 1) * $pageSize;
 
 // LIMIT/OFFSET are interpolated directly rather than bound: both are
-// fully server-computed ints at this point (page size is a constant,
-// offset is derived from a clamped, ctype_digit-checked page number),
-// same convention as PASSWORD_HISTORY_LIMIT in src/auth.php.
+// fully server-computed ints at this point (page size is clamped against
+// a fixed option set, offset is derived from a clamped, ctype_digit-checked
+// page number), same convention as PASSWORD_HISTORY_LIMIT in src/auth.php.
 $listStmt = $pdo->prepare(
     "SELECT u.user_id, u.username, u.active,
             u.first_name, u.last_name,
@@ -67,11 +113,11 @@ $listStmt = $pdo->prepare(
      LEFT JOIN labs l ON l.lab_id = c.lab_id
      LEFT JOIN institutes i ON i.institute_id = l.institute_id
      LEFT JOIN pis p ON p.pi_id = c.supervising_pi_id
-     $whereSql
+     $listWhereSql
      ORDER BY u.last_name, u.first_name
-     LIMIT $offset, " . CUSTOMERS_PAGE_SIZE
+     LIMIT $offset, $pageSize"
 );
-$listStmt->execute($params);
+$listStmt->execute($listParams);
 $customers = $listStmt->fetchAll();
 
 // Filter dropdowns intentionally include inactive institutes/labs too --
@@ -80,24 +126,9 @@ $customers = $listStmt->fetchAll();
 $institutes = $pdo->query('SELECT institute_id, name FROM institutes ORDER BY name')->fetchAll();
 $labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs ORDER BY lab_name')->fetchAll();
 
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values -- used for pagination links
- * so Prev/Next carry the active filters forward.
- */
-function customers_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
-}
-
 $rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + CUSTOMERS_PAGE_SIZE, $totalCount);
+$rangeEnd = min($offset + $pageSize, $totalCount);
+$hasFilters = $q !== '' || $instituteId !== '' || $labId !== '' || $status !== '';
 
 $pageTitle = 'Customers';
 ?>
@@ -114,10 +145,23 @@ $pageTitle = 'Customers';
                 <h1>Customers</h1>
             </div>
 
+            <nav class="status-tabs" aria-label="Filter by status">
+                <?php foreach ($statusTabs as $tab): ?>
+                    <a href="?<?= e(customers_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                        <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+
             <div class="table-card">
                 <div class="table-card-header">
                     <span class="table-card-title">All Customers</span>
+                    <?php // Status is no longer a field here -- the tabs above
+                          // are the status filter now, same as staff/orders.php. ?>
                     <form method="get" class="table-card-controls">
+                        <input type="hidden" name="status" value="<?= e($status) ?>">
+                        <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+
                         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search name or email&hellip;">
 
                         <select name="institute_id" id="filter_institute_id">
@@ -134,18 +178,11 @@ $pageTitle = 'Customers';
                             <?php endforeach; ?>
                         </select>
 
-                        <select name="status">
-                            <option value="">Active &amp; inactive</option>
-                            <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active only</option>
-                            <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>Inactive only</option>
-                        </select>
-
                         <button type="submit" class="btn btn--secondary btn--sm">Filter</button>
                     </form>
                 </div>
 
                 <?php if (!$customers): ?>
-                    <?php $hasFilters = $q !== '' || $instituteId !== '' || $labId !== '' || $status !== ''; ?>
                     <div class="empty-state">
                         <div class="empty-state__icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -194,14 +231,39 @@ $pageTitle = 'Customers';
                     </div>
 
                     <div class="table-pagination">
-                        <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
+                        <div class="table-pagination__status-group">
+                            <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
+                            <form method="get" class="table-card-controls">
+                                <input type="hidden" name="q" value="<?= e($q) ?>">
+                                <input type="hidden" name="institute_id" value="<?= e((string) $instituteId) ?>">
+                                <input type="hidden" name="lab_id" value="<?= e((string) $labId) ?>">
+                                <input type="hidden" name="status" value="<?= e($status) ?>">
+                                <input type="hidden" name="page" value="1">
+                                <label for="customers-page-size" class="sr-only">Customers per page</label>
+                                <select name="page_size" id="customers-page-size" onchange="this.form.submit()">
+                                    <?php foreach (CUSTOMERS_PAGE_SIZE_OPTIONS as $option): ?>
+                                        <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </form>
+                        </div>
                         <div class="table-pagination__controls">
-                            <span class="table-pagination__status">Page <?= $page ?> of <?= $totalPages ?></span>
                             <?php if ($page <= 1): ?>
                                 <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
                             <?php else: ?>
                                 <a href="?<?= e(customers_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
                             <?php endif; ?>
+                            <form method="get" class="table-card-controls table-pagination__jump">
+                                <input type="hidden" name="q" value="<?= e($q) ?>">
+                                <input type="hidden" name="institute_id" value="<?= e((string) $instituteId) ?>">
+                                <input type="hidden" name="lab_id" value="<?= e((string) $labId) ?>">
+                                <input type="hidden" name="status" value="<?= e($status) ?>">
+                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                                <label for="customers-page-jump" class="sr-only">Go to page</label>
+                                <input type="number" name="page" id="customers-page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
+                                <span class="table-pagination__status">of <?= $totalPages ?></span>
+                                <button type="submit" class="btn btn--secondary btn--sm">Go</button>
+                            </form>
                             <?php if ($page >= $totalPages): ?>
                                 <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
                             <?php else: ?>
@@ -214,7 +276,7 @@ $pageTitle = 'Customers';
         </main>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <script>
 (function () {
   var instituteSelect = document.getElementById('filter_institute_id');

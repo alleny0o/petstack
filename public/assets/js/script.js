@@ -109,10 +109,13 @@ function initSidebarMobileSafety() {
 }
 
 
-// ===== Sidebar submenu expand/collapse ("Accounts" group) ========
+// ===== Sidebar submenu expand/collapse (Accounts/Catalog/Directory) ==
 // Click toggles .is-expanded on the parent <li>, which drives the
-// chevron rotation and max-height reveal in CSS. No persistence —
-// initial state is rendered server-side (see layout_admin.php).
+// chevron rotation and the submenu's open/close animation entirely
+// through CSS (.submenu-wrapper's grid-template-rows 0fr -> 1fr, see
+// sidebar.css) — no JS measurement of the submenu's height is needed.
+// No persistence — initial state is rendered server-side (see
+// layout_admin.php).
 //
 // Exception: when the sidebar is icon-rail collapsed (desktop/tablet
 // only — mobile off-canvas always uses the inline behavior above), the
@@ -120,12 +123,25 @@ function initSidebarMobileSafety() {
 // floating flyout instead. Same toggle button, different target
 // depending on collapsed state.
 
+// Single place that mutates a submenu's open/closed state, used by the
+// toggle click, the accordion close-others sweep, and the bfcache
+// re-sync handler below, so all three stay in sync (class + aria).
+function setSubmenuExpanded(item, expand) {
+  const toggleBtn = item.querySelector(':scope > .menu-link');
+  item.classList.toggle('is-expanded', expand);
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', expand ? 'true' : 'false');
+}
+
 function initSidebarSubmenus() {
   // The PHP template renders aria-expanded assuming the inline submenu
   // is what would open (correct when the sidebar starts expanded), but
   // the collapsed state is restored from localStorage pre-paint — if
-  // that's the state on load, nothing is actually open yet.
-  if (document.documentElement.dataset.sidebar === 'collapsed') {
+  // that's the state on load, nothing is actually open yet. (The
+  // .is-expanded class itself is left alone: the CSS grid animation
+  // handles an SSR-expanded submenu correctly with no JS involvement, and
+  // the collapsed-rail media query hides .submenu-wrapper outright
+  // regardless of that class.)
+  if (document.documentElement.dataset.sidebar === 'collapsed' && !isMobileViewport()) {
     document.querySelectorAll('.menu-item--has-submenu > .menu-link').forEach((toggleBtn) => {
       toggleBtn.setAttribute('aria-expanded', 'false');
     });
@@ -140,8 +156,31 @@ function initSidebarSubmenus() {
         return;
       }
       const item = toggleBtn.closest('.menu-item--has-submenu');
-      const expanded = item.classList.toggle('is-expanded');
-      toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const expand = !item.classList.contains('is-expanded');
+      setSubmenuExpanded(item, expand);
+      // Accordion: expanding one submenu collapses any other open one
+      // (the collapsed-rail flyout path already enforces this separately
+      // via closeSidebarFlyout()).
+      if (expand) {
+        document.querySelectorAll('.menu-item--has-submenu.is-expanded').forEach((other) => {
+          if (other !== item) setSubmenuExpanded(other, false);
+        });
+      }
+    });
+  });
+
+  // A clicked submenu-link's destination is always one of its own
+  // submenu's children, so a full page navigation always lands back on
+  // that same submenu, server-rendered expanded again — there's nothing
+  // to fix up here. The one real stale-state case is a bfcache "Back"
+  // restore, which skips that fresh server render entirely; handled
+  // below by re-syncing every submenu against its own .active link
+  // instead, the same rule PHP used to decide is-expanded in the first
+  // place.
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    document.querySelectorAll('.menu-item--has-submenu').forEach((item) => {
+      setSubmenuExpanded(item, !!item.querySelector('.submenu-link.active'));
     });
   });
 }
@@ -332,8 +371,22 @@ const MODAL_FOCUSABLE =
 
 let activeModal = null; // { overlay, opener, keydownHandler, temporary }
 
-function petcomCloseModal() {
+function petcomCloseModal(force = false) {
   if (!activeModal) return;
+  // Opt-in veto hook: an overlay may carry a petcomBeforeClose callback
+  // (set by its own page script — only the new-order modal does today);
+  // returning false aborts the close. Every close path (Esc, backdrop,
+  // X, footer Cancel) funnels through here, so one hook covers them
+  // all. Callers that pass force=true (e.g. after a confirmed discard)
+  // skip the hook. Modals that never set the callback behave exactly
+  // as before.
+  if (
+    !force &&
+    typeof activeModal.overlay.petcomBeforeClose === 'function' &&
+    activeModal.overlay.petcomBeforeClose() === false
+  ) {
+    return;
+  }
   const { overlay, opener, keydownHandler, temporary } = activeModal;
   activeModal = null;
 
@@ -351,7 +404,12 @@ function petcomCloseModal() {
 }
 
 function petcomOpenModal(overlay, options = {}) {
-  if (activeModal) petcomCloseModal();
+  if (activeModal) {
+    petcomCloseModal();
+    // A petcomBeforeClose hook may have vetoed that close — never open
+    // a second modal on top of one that refused to leave.
+    if (activeModal) return;
+  }
 
   overlay.hidden = false;
   document.documentElement.dataset.modalOpen = 'true';
@@ -452,6 +510,69 @@ function buildConfirmModal({ title, message, verb, danger }) {
   return { overlay, confirmBtn };
 }
 
+// Promise-based confirm dialog that can STACK on top of an open modal.
+// Deliberately does NOT go through petcomOpenModal — the modal system is
+// strictly single-modal (opening force-closes activeModal), which would
+// kill the host modal underneath. Instead this reuses buildConfirmModal's
+// DOM and runs its own tiny lifecycle: appended to <body> above the
+// standard overlay (.modal-overlay--stacked, modals.css), window-level
+// CAPTURE keydown so it wins over the host modal's document-level capture
+// handler (window capture fires first), stopPropagation so Esc/Tab never
+// reach the host modal's close/focus-trap logic. Esc, backdrop, and
+// Cancel resolve false; the confirm button resolves true. Also works with
+// no host modal open — it is fully self-contained.
+function petcomConfirm({ title, message, verb, danger }) {
+  return new Promise((resolve) => {
+    const { overlay, confirmBtn } = buildConfirmModal({ title, message, verb, danger });
+    overlay.classList.add('modal-overlay--stacked');
+    const cancelBtn = overlay.querySelector('[data-modal-close]');
+    const previouslyFocused = document.activeElement;
+
+    const settle = (result) => {
+      window.removeEventListener('keydown', keydownHandler, true);
+      overlay.remove();
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
+      resolve(result);
+    };
+
+    const keydownHandler = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        settle(false);
+        return;
+      }
+      if (e.key === 'Tab') {
+        // Mini focus trap over the dialog's two buttons. Trapping Tab
+        // here (not just Esc) matters: the host modal's own trap is
+        // still listening and would otherwise yank focus back into the
+        // modal underneath. Two focusables means forward and backward
+        // Tab both just swap between them.
+        e.preventDefault();
+        e.stopPropagation();
+        (document.activeElement === confirmBtn ? cancelBtn : confirmBtn).focus();
+      }
+    };
+    window.addEventListener('keydown', keydownHandler, true);
+
+    // Same backdrop semantics as petcomOpenModal: the mousedown must
+    // START on the backdrop, so a drag-select ending outside the card
+    // doesn't dismiss it.
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) settle(false);
+    });
+    cancelBtn.addEventListener('click', () => settle(false));
+    confirmBtn.addEventListener('click', () => settle(true));
+
+    document.body.appendChild(overlay);
+    confirmBtn.focus();
+  });
+}
+
+window.petcomConfirm = petcomConfirm;
+
 function initConfirmForms() {
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (e) => {
@@ -498,6 +619,23 @@ function setButtonLoading(btn) {
   btn.insertAdjacentHTML('afterbegin', '<span class="spinner" aria-hidden="true"></span>');
 }
 
+// Inverse of setButtonLoading, for AJAX submits that stay on the page
+// after a failure (a native full-page POST never needs this — the
+// response replaces the document). Both are exposed on window because
+// the AJAX order form's inline script (new_order_form.php) manages its
+// own loading state: initFormLoadingStates() below skips any submit
+// that was preventDefault-ed.
+function clearButtonLoading(btn) {
+  if (!btn || !btn.classList.contains('is-loading')) return;
+  btn.classList.remove('is-loading');
+  btn.removeAttribute('aria-busy');
+  const spinner = btn.querySelector('.spinner');
+  if (spinner) spinner.remove();
+}
+
+window.petcomSetButtonLoading = setButtonLoading;
+window.petcomClearButtonLoading = clearButtonLoading;
+
 function initFormLoadingStates() {
   document.addEventListener('submit', (e) => {
     if (e.defaultPrevented) return;
@@ -519,6 +657,82 @@ function initFormLoadingStates() {
     }
   });
 }
+
+
+// ===== Order form cascade (nuclide → product → location) ==========
+// Shared behavior behind both renders of the customer order fields:
+// the new-order modal (src/partials/new_order_form.php) and the
+// pending-order edit form (customer/order_detail.php). Filters the
+// product select to the chosen nuclide, toggles the delivery-location
+// section per the selected product's fixed delivery method, and keeps
+// the fulfillment hint in sync. Attaches its own change listeners on
+// the two selects (target phase — they always run before any
+// form-level delegated listeners) and runs once immediately so the
+// initial paint settles: empty in the modal, pre-populated with the
+// order's current values in edit mode (the selected product survives
+// the first filter because its data-nuclide-id matches the preselected
+// nuclide). Returns { refresh } so a caller can re-derive the cascade
+// after form.reset().
+
+function petcomInitOrderCascade({ nuclideSelect, productSelect, locationField, locationSelect, deliveryHint }) {
+  const productOptions = Array.from(productSelect.querySelectorAll('option[data-nuclide-id]'));
+
+  function updateLocationRequirement() {
+    const selected = productSelect.selectedOptions[0];
+    const requiresLocation = !!selected && selected.dataset.requiresLocation === '1';
+    // Hidden entirely — not shown-as-optional — when the selected
+    // product's fixed delivery method doesn't call for a location.
+    // Disabled as well as hidden so a stale pick is excluded from
+    // both checkValidity() and the POST, while surviving a toggle
+    // away and back.
+    locationField.hidden = !requiresLocation;
+    locationSelect.disabled = !requiresLocation;
+    locationSelect.required = requiresLocation;
+  }
+
+  function updateDeliveryHint() {
+    const selected = productSelect.selectedOptions[0];
+    // data-delivery-label is rendered server-side from the one PHP
+    // enum->display mapping, so it never gets re-implemented here.
+    if (!selected || !selected.dataset.deliveryLabel) {
+      deliveryHint.hidden = true;
+      deliveryHint.textContent = '';
+      return;
+    }
+    deliveryHint.textContent = 'Fulfillment: ' + selected.dataset.deliveryLabel;
+    deliveryHint.hidden = false;
+  }
+
+  function filterProducts() {
+    const nuclideId = nuclideSelect.value;
+    productOptions.forEach((opt) => {
+      // Exact match: each flat product row has exactly one nuclide.
+      const matches = opt.dataset.nuclideId === nuclideId;
+      opt.hidden = !matches;
+      opt.disabled = !matches;
+    });
+    if (productSelect.selectedOptions[0] && productSelect.selectedOptions[0].hidden) {
+      productSelect.value = '';
+    }
+    productSelect.disabled = !nuclideId;
+    updateLocationRequirement();
+    updateDeliveryHint();
+  }
+
+  function onProductChange() {
+    updateLocationRequirement();
+    updateDeliveryHint();
+  }
+
+  nuclideSelect.addEventListener('change', filterProducts);
+  productSelect.addEventListener('change', onProductChange);
+
+  filterProducts();
+
+  return { refresh: filterProducts };
+}
+
+window.petcomInitOrderCascade = petcomInitOrderCascade;
 
 
 // ===== Copy to clipboard ==========================================
@@ -561,83 +775,6 @@ function initCopyButtons() {
 }
 
 
-// ===== Dashboard masonry (admin/dashboard.php panel area) =========
-// #dash-masonry holds 4 panels (Pending Registrations, Recently Rejected
-// Registrations, Recently Added Customers, Lockouts) followed by two
-// empty [data-masonry-col] wrapper divs (components.css: .dash-masonry__col).
-// This used to be CSS column-count: 2, but each browser's internal
-// column-balancing engine doesn't guarantee identical placement for the
-// same content — confirmed Chrome and Safari packing these 4 panels
-// differently. Replaced with the same shortest-column-first algorithm
-// standard JS masonry libraries use, just run by our own code instead of
-// the browser, so the result is deterministic across engines.
-// Desktop/tablet only — mobile keeps the panels in their original
-// single-column source order and never runs the split (see
-// isMobileViewport()). Re-run on resize (not just once on load) so
-// rotating a device or dragging the window across the breakpoint
-// actually re-evaluates instead of staying locked to the split (or
-// lack of one) computed at initial load.
-
-let dashMasonryPanels = null; // original source order, captured once
-
-function initDashboardMasonry() {
-  const container = document.getElementById('dash-masonry');
-  if (!container) return;
-
-  const columns = container.querySelectorAll('[data-masonry-col]');
-  if (columns.length !== 2) return;
-  const [colA, colB] = columns;
-
-  if (!dashMasonryPanels) {
-    dashMasonryPanels = Array.from(container.children).filter(
-      (el) => el !== colA && el !== colB
-    );
-  }
-  if (!dashMasonryPanels.length) return;
-
-  // Always reset to single-column source order first — cheap, and makes
-  // this function idempotent whether it's called fresh or re-called on
-  // resize after a previous split.
-  dashMasonryPanels.forEach((panel) => container.insertBefore(panel, colA));
-  container.classList.remove('dash-masonry--split');
-  colA.innerHTML = '';
-  colB.innerHTML = '';
-
-  if (isMobileViewport()) return;
-
-  // Read every height first, before moving anything — .card/.table-card
-  // are back at full container width and in source order at this point,
-  // so this is one batch of layout reads with no interleaved writes.
-  const heights = dashMasonryPanels.map((panel) => panel.offsetHeight);
-
-  let heightA = 0;
-  let heightB = 0;
-  dashMasonryPanels.forEach((panel, i) => {
-    // First panel always lands in column A: both totals start at 0, and
-    // the <= tie-break favors A. Every panel after that goes wherever is
-    // currently shorter.
-    if (heightA <= heightB) {
-      colA.appendChild(panel);
-      heightA += heights[i];
-    } else {
-      colB.appendChild(panel);
-      heightB += heights[i];
-    }
-  });
-
-  container.classList.add('dash-masonry--split');
-}
-
-function initDashboardMasonryResize() {
-  if (!document.getElementById('dash-masonry')) return;
-  let resizeTimer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(initDashboardMasonry, 150);
-  });
-}
-
-
 // ===== Init (single entry point — order matters: sidebar first so its
 // pre-paint collapsed/submenu state is wired up before anything else
 // touches the DOM, then the page-wide confirm/form/copy/dashboard
@@ -653,6 +790,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initConfirmForms();
   initFormLoadingStates();
   initCopyButtons();
-  initDashboardMasonry();
-  initDashboardMasonryResize();
 });

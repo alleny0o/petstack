@@ -1,6 +1,6 @@
 /* ============================================================
    PETCOM — components/dashboard.css
-   Stat tiles, panel grid, quick actions, masonry.
+   Stat tiles, panel grid, quick actions.
    ============================================================ */
 
 /* Explicit column counts (not auto-fit/minmax) so 4 tiles always land as
@@ -78,15 +78,29 @@ a.stat-tile:hover {
 .dot--error   { background: var(--status-error); }
 .dot--info    { background: var(--status-info); }
 
-/* Two-column panel area below the tiles; stacks on tablets down */
+/* Two-column panel area below the tiles; stacks on tablets down.
+   minmax(0, …) so a wide child (a table-card's table-scroll) can
+   actually shrink with its column instead of forcing the track wider
+   than its fraction — plain 2fr/1fr would let content min-width win. */
 .dash-grid {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--sp-4);
   align-items: start;
 }
 .dash-grid--even {
   grid-template-columns: 1fr 1fr;
+}
+/* Side column (staff dashboard) taller than a single card's natural
+   height: stretch the grid item to the table's height so the two column
+   bottoms align. Pairs with the .dash-stack rule below, which routes the
+   leftover room into the gap *between* the stacked cards instead of dead
+   space trailing the last one. */
+.dash-grid--fill {
+  align-items: stretch;
+}
+.dash-grid--fill .dash-stack > :last-child {
+  margin-top: auto;
 }
 .dash-grid > .card,
 .dash-grid > .table-card {
@@ -99,49 +113,15 @@ a.stat-tile:hover {
   flex-direction: column;
   gap: var(--sp-4);
 }
+.dash-stack > .card,
+.dash-stack > .table-card {
+  margin: 0;
+}
 @media (max-width: 900px) {
   .dash-grid,
   .dash-grid--even {
     grid-template-columns: 1fr;
   }
-}
-
-/* Masonry-style panel area: panels pack by actual rendered height.
-   Previously CSS multi-column (column-count: 2) — dropped because each
-   browser's internal column-balancing engine doesn't guarantee the same
-   distribution for the same content (confirmed Chrome and Safari packing
-   the 4 dashboard panels differently), which isn't acceptable here.
-   Now a JS pass (script.js: initDashboardMasonry) measures the panels
-   and places each into the shorter column itself, so the result is
-   ours to control and identical across browsers.
-
-   Base layout is a single column — the same one used at mobile widths
-   below — so it's a correct, JS-independent fallback: nothing renders
-   wrong before the script runs, and mobile needs no JS at all. JS adds
-   .dash-masonry--split once it has moved the panels into the two
-   [data-masonry-col] wrappers (empty and display:none until then, so
-   they don't contribute a spurious extra gap while unused). */
-.dash-masonry {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-.dash-masonry .card,
-.dash-masonry .table-card {
-  margin: 0;
-}
-.dash-masonry__col {
-  display: none;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-.dash-masonry--split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
-}
-.dash-masonry--split .dash-masonry__col {
-  display: flex;
 }
 
 /* Compact list inside a dashboard panel (recent items) */

@@ -21,8 +21,17 @@ if (($_GET['profile_updated'] ?? null) === '1') {
 // The three account-workflow pages now live under one expandable
 // "Accounts" parent — expand it server-side when we're already on one
 // of them, so the correct state renders on first paint with no JS.
-$accountsChildPages = ['registrations', 'customers', 'customer_detail', 'accounts', 'account_detail', 'account_create'];
+$accountsChildPages = ['registrations', 'customers', 'customer_detail', 'accounts', 'account_detail'];
 $accountsSectionActive = in_array($currentPage, $accountsChildPages, true);
+
+// Catalog pages live under their own expandable parent, same mechanism
+// as Accounts above.
+$catalogChildPages = ['nuclides', 'products'];
+$catalogSectionActive = in_array($currentPage, $catalogChildPages, true);
+
+// Directory pages (Institutes / Labs / PIs), same mechanism again.
+$directoryChildPages = ['labs', 'institutes', 'pis'];
+$directorySectionActive = in_array($currentPage, $directoryChildPages, true);
 ?>
 <!-- App topbar: always present (see layout/sidebar.css). The
      hamburger button inside it is the only mobile-specific part. -->
@@ -82,28 +91,69 @@ $accountsSectionActive = in_array($currentPage, $accountsChildPages, true);
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
-          <ul class="submenu" id="accounts-submenu">
-            <li>
-              <a href="/admin/registrations.php" class="submenu-link <?= $currentPage === 'registrations' ? 'active' : '' ?>">Pending Registrations</a>
-            </li>
-            <li>
-              <a href="/admin/customers.php" class="submenu-link <?= in_array($currentPage, ['customers', 'customer_detail'], true) ? 'active' : '' ?>">Customers</a>
-            </li>
-            <li>
-              <a href="/admin/accounts.php" class="submenu-link <?= in_array($currentPage, ['accounts', 'account_detail', 'account_create'], true) ? 'active' : '' ?>">Staff &amp; Admins</a>
-            </li>
-          </ul>
+          <div class="submenu-wrapper">
+            <ul class="submenu" id="accounts-submenu">
+              <li>
+                <a href="/admin/registrations.php" class="submenu-link <?= $currentPage === 'registrations' ? 'active' : '' ?>">Pending Registrations</a>
+              </li>
+              <li>
+                <a href="/admin/customers.php" class="submenu-link <?= in_array($currentPage, ['customers', 'customer_detail'], true) ? 'active' : '' ?>">Customers</a>
+              </li>
+              <li>
+                <a href="/admin/accounts.php" class="submenu-link <?= in_array($currentPage, ['accounts', 'account_detail'], true) ? 'active' : '' ?>">Staff &amp; Admins</a>
+              </li>
+            </ul>
+          </div>
         </li>
 
-        <li class="menu-item">
-          <a href="/admin/catalog.php" class="menu-link <?= $currentPage === 'catalog' ? 'active' : '' ?>">
+        <li class="menu-item menu-item--has-submenu <?= $catalogSectionActive ? 'is-expanded' : '' ?>">
+          <button type="button" class="menu-link <?= $catalogSectionActive ? 'menu-link--section-active' : '' ?>" aria-expanded="<?= $catalogSectionActive ? 'true' : 'false' ?>" aria-controls="catalog-submenu">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Catalog Config</span></span>
-          </a>
+            <span class="menu-label"><span class="menu-label__text">Catalog</span></span>
+            <svg class="menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="submenu-wrapper">
+            <ul class="submenu" id="catalog-submenu">
+              <li>
+                <a href="/admin/nuclides.php" class="submenu-link <?= $currentPage === 'nuclides' ? 'active' : '' ?>">Nuclides</a>
+              </li>
+              <li>
+                <a href="/admin/products.php" class="submenu-link <?= $currentPage === 'products' ? 'active' : '' ?>">Products</a>
+              </li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="menu-item menu-item--has-submenu <?= $directorySectionActive ? 'is-expanded' : '' ?>">
+          <button type="button" class="menu-link <?= $directorySectionActive ? 'menu-link--section-active' : '' ?>" aria-expanded="<?= $directorySectionActive ? 'true' : 'false' ?>" aria-controls="directory-submenu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="menu-label"><span class="menu-label__text">Directory</span></span>
+            <svg class="menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <?php // Institutes first: parent entity, then its labs, then PIs. ?>
+          <div class="submenu-wrapper">
+            <ul class="submenu" id="directory-submenu">
+              <li>
+                <a href="/admin/institutes.php" class="submenu-link <?= $currentPage === 'institutes' ? 'active' : '' ?>">Institutes</a>
+              </li>
+              <li>
+                <a href="/admin/labs.php" class="submenu-link <?= $currentPage === 'labs' ? 'active' : '' ?>">Labs</a>
+              </li>
+              <li>
+                <a href="/admin/pis.php" class="submenu-link <?= $currentPage === 'pis' ? 'active' : '' ?>">PIs</a>
+              </li>
+            </ul>
+          </div>
         </li>
 
       </ul>

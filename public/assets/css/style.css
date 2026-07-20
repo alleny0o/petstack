@@ -165,6 +165,14 @@
   box-sizing: border-box;
 }
 
+/* The UA's built-in [hidden] { display: none } is user-agent origin, so
+   ANY author display rule (e.g. .btn { display: inline-block }) silently
+   defeats the hidden attribute. Re-assert it at author level so hidden
+   always means hidden. */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;

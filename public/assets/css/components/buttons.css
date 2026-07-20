@@ -115,6 +115,10 @@
   /* freeze hover styles per-variant by re-asserting the base */
   text-decoration: none;
 }
+.btn--primary:disabled:hover {
+  /* CSS :hover still matches disabled buttons -- keep the base bg */
+  background: var(--color-btn-primary-bg);
+}
 
 /* Submitting state — spinner element is inserted by script.js;
    pointer-events (not `disabled`) so submitted values are kept. */

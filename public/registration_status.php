@@ -98,5 +98,5 @@ $pageTitle = 'Registration Status';
       </div>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 </html>

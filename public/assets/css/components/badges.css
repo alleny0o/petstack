@@ -62,6 +62,16 @@
   color: var(--status-info-text);
   background: var(--status-info-tint);
 }
+/* Admin product list only: the product's own active flag is still on,
+   but its nuclide is deactivated, so the computed-availability rule
+   (product.active AND nuclide.active) hides it from customers. Warning
+   tones, not gray -- it must read differently from "Inactive", which
+   always means an admin turned the product itself off. */
+.badge--unavailable {
+  --badge-dot: var(--status-warning);
+  color: var(--status-warning-text);
+  background: var(--status-warning-tint);
+}
 
 /* Role chips — square, no dot: a fact, not a state */
 .badge--role-admin,
@@ -79,4 +89,20 @@
 .badge--role-staff {
   color: var(--status-neutral-text);
   background: var(--status-neutral-tint);
+}
+
+/* orders.chargeable is the same kind of thing as a role chip: a fact
+   about the order, not a lifecycle state, so it gets the square/no-dot
+   shape rather than a status pill. The default is now true, so the chip
+   only ever marks the exception -- "Not chargeable" -- in warning tones;
+   the chargeable case renders as quiet plain/muted text, never a badge. */
+.badge--not-chargeable {
+  border-radius: var(--radius-sm);
+}
+.badge--not-chargeable::before {
+  display: none;
+}
+.badge--not-chargeable {
+  color: var(--status-warning-text);
+  background: var(--status-warning-tint);
 }

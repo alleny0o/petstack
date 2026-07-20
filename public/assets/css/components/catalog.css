@@ -75,95 +75,7 @@
 }
 
 /* =========================================
- 3. Accordion Layout (Isotopes)
-========================================= */
-.accordion-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px; 
-  margin-bottom: 30px;
-}
-
-.isotope-row {
-  background-color: var(--color-bg-surface);
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden; 
-}
-
-.isotope-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: var(--color-bg-surface);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-size: 1.15em;
-  font-weight: bold;
-  list-style: none;
-  transition: background-color 0.2s ease;
-}
-
-.isotope-summary::-webkit-details-marker {
-  display: none;
-}
-
-.isotope-summary:hover {
-  background-color: var(--color-bg-secondary); 
-}
-
-.compound-count {
-  font-size: 0.8em;
-  font-weight: normal;
-  /* background: rgba(255, 255, 255, 0.2); */
-  padding: 4px 12px;
-  border-radius: 12px;
-}
-
-/* =========================================
- 4. Compound Lists (Inside Accordion)
-========================================= */
-.compound-list {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background-color: var(--color-bg-primary); 
-}
-
-.compound-item {
-  background-color: var(--color-bg-surface);
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.compound-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.compound-item .sku {
-  font-size: 0.85em;
-  color: #6c757d;
-  background: #e9ecef;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: monospace; 
-}
-
-.compound-item .desc {
-  margin: 0;
-  font-size: 0.9em;
-  color: #495057;
-  line-height: 1.4;
-}
-
-/* =========================================
- 5. Status Indicators
+ 3. Status Indicators
 ========================================= */
 
 .status-indicator {
@@ -196,7 +108,7 @@
 }
 
 /* =========================================
- 6. Pagination Controls
+ 4. Pagination Controls
 ========================================= */
 .catalog-pagination {
   display: flex;

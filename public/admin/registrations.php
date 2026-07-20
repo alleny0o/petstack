@@ -50,17 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->prepare(
                     'INSERT INTO customers
-                        (user_id, lab_id, supervising_pi_id, registration_status,
-                         nrc_contact_name, nrc_contact_phone, nrc_contact_email)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)'
+                        (user_id, lab_id, supervising_pi_id, registration_status)
+                     VALUES (?, ?, ?, ?)'
                 )->execute([
                     $newUserId,
                     $request['lab_id'],
                     $request['pi_id'],
                     'approved',
-                    $request['nrc_contact_name'],
-                    $request['nrc_contact_phone'],
-                    $request['nrc_contact_email'],
                 ]);
 
                 // No password_history seeding: the temp can't be reused as
@@ -110,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Institute is derived via lab_id -> labs.institute_id, per the
-// isotope/compound-style "always derive, never duplicate" rule.
+// nuclide/product-style "always derive, never duplicate" rule.
 $requests = $pdo->query(
     "SELECT r.request_id, r.first_name, r.last_name, r.email, r.phone, r.submitted_at,
             l.lab_name, i.name AS institute_name, p.pi_name
@@ -252,7 +248,7 @@ $pageTitle = 'Registrations';
         </main>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var modal = document.getElementById('reject-modal');

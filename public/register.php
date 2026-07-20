@@ -18,9 +18,6 @@ $old = [
     'email'             => '',
     'phone'             => '',
     'pi_id'             => '',
-    'nrc_contact_name'  => '',
-    'nrc_contact_phone' => '',
-    'nrc_contact_email' => '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,9 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['email']             = trim($_POST['email'] ?? '');
     $old['phone']             = trim($_POST['phone'] ?? '');
     $old['pi_id']             = $_POST['pi_id'] ?? '';
-    $old['nrc_contact_name']  = trim($_POST['nrc_contact_name'] ?? '');
-    $old['nrc_contact_phone'] = trim($_POST['nrc_contact_phone'] ?? '');
-    $old['nrc_contact_email'] = trim($_POST['nrc_contact_email'] ?? '');
 
     if ($old['institute_id'] === '') {
         $fieldErrors['institute_id'] = 'Institute is required.';
@@ -61,12 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($old['pi_id'] === '') {
         $fieldErrors['pi_id'] = 'Supervising PI is required.';
-    }
-    // NRC contact fields are only relevant for shipping orders (per the
-    // original requirements interview), so they're optional at
-    // registration time — collected now for convenience, not required.
-    if ($old['nrc_contact_email'] !== '' && !filter_var($old['nrc_contact_email'], FILTER_VALIDATE_EMAIL)) {
-        $fieldErrors['nrc_contact_email'] = 'NRC contact email must be a valid email address.';
     }
 
     $pdo = get_db();
@@ -121,9 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$fieldErrors) {
         $pdo->prepare(
             "INSERT INTO customer_registration_requests
-                (lab_id, pi_id, first_name, last_name, email, phone,
-                 nrc_contact_name, nrc_contact_phone, nrc_contact_email, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+                (lab_id, pi_id, first_name, last_name, email, phone, status)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending')"
         )->execute([
             $old['lab_id'],
             $old['pi_id'],
@@ -131,9 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['last_name'],
             $old['email'],
             $old['phone'],
-            $old['nrc_contact_name'] !== '' ? $old['nrc_contact_name'] : null,
-            $old['nrc_contact_phone'] !== '' ? $old['nrc_contact_phone'] : null,
-            $old['nrc_contact_email'] !== '' ? $old['nrc_contact_email'] : null,
         ]);
 
         $submitted = true;
@@ -142,7 +126,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pdo = get_db();
 $institutes = $pdo->query('SELECT institute_id, name FROM institutes WHERE active = 1 ORDER BY name')->fetchAll();
-$labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs WHERE active = 1 ORDER BY lab_name')->fetchAll();
+// Effective availability, computed at read time like the catalog's
+// nuclide/product gate: a lab is offered iff its own flag AND its
+// institute's flag are on. The cascading UI and the validation above
+// already made labs under inactive institutes unreachable; this filters
+// them out of the shipped option data too.
+$labs = $pdo->query(
+    'SELECT l.lab_id, l.institute_id, l.lab_name
+     FROM labs l
+     JOIN institutes i ON i.institute_id = l.institute_id AND i.active = 1
+     WHERE l.active = 1
+     ORDER BY l.lab_name'
+)->fetchAll();
 $pis = $pdo->query('SELECT pi_id, pi_name FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
 $labPiMap = $pdo->query(
     'SELECT lab_pis.lab_id, lab_pis.pi_id
@@ -273,27 +268,6 @@ $pageTitle = 'Register';
                 </div>
               </div>
 
-              <div class="form-section">
-                <span class="form-section__title">NRC License Contact <span class="form-section__suffix">— shipping orders only, optional</span></span>
-
-                <div class="field">
-                  <label for="nrc_contact_name">Contact name</label>
-                  <input type="text" id="nrc_contact_name" name="nrc_contact_name" value="<?= e($old['nrc_contact_name']) ?>">
-                </div>
-
-                <div class="field-row mb-0">
-                  <div class="field mb-0">
-                    <label for="nrc_contact_phone">Contact phone</label>
-                    <input type="text" id="nrc_contact_phone" name="nrc_contact_phone" value="<?= e($old['nrc_contact_phone']) ?>">
-                  </div>
-                  <div class="<?= field_class($fieldErrors, 'nrc_contact_email', 'field mb-0') ?>">
-                    <label for="nrc_contact_email">Contact email</label>
-                    <input type="email" id="nrc_contact_email" name="nrc_contact_email" value="<?= e($old['nrc_contact_email']) ?>">
-                    <?= field_error($fieldErrors, 'nrc_contact_email') ?>
-                  </div>
-                </div>
-              </div>
-
               <button type="submit" class="btn btn--primary btn--lg btn--block">Submit Registration</button>
             </form>
 
@@ -306,7 +280,7 @@ $pageTitle = 'Register';
       </div>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <script>
 (function () {
   var instituteSelect = document.getElementById('institute_id');

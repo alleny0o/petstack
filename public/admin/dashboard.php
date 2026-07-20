@@ -77,13 +77,17 @@ $recentRejections = $pdo->query(
         <main class="app-main">
             <div class="page-header">
                 <div>
-                    <span class="page-header__eyebrow">Overview</span>
+                    <span class="page-header__eyebrow">Admin</span>
                     <h1>Dashboard</h1>
                     <span class="page-header__meta">Signed in as <?= e($_SESSION['username']) ?></span>
                 </div>
                 <div class="page-header__actions">
-                    <a href="/admin/registrations.php" class="btn btn--secondary">Review Registrations</a>
-                    <a href="/admin/account_create.php" class="btn btn--primary">New Account</a>
+                    <?php // New Account's trigger lives on the Accounts page
+                          // now (it opens a modal there), not here -- same
+                          // convention as customer/dashboard.php's "Go to
+                          // Orders" link -- so Review Registrations is the
+                          // one primary action left on this page. ?>
+                    <a href="/admin/registrations.php" class="btn btn--primary">Review Registrations</a>
                 </div>
             </div>
 
@@ -113,112 +117,119 @@ $recentRejections = $pdo->query(
                 </a>
             </div>
 
-            <div class="dash-masonry" id="dash-masonry">
-                <div class="table-card">
-                    <div class="table-card-header">
-                        <span class="table-card-title">Pending Registrations</span>
-                        <div class="table-card-controls">
-                            <a href="/admin/registrations.php" class="table-action">View all</a>
-                        </div>
-                    </div>
-                    <?php if (!$pendingPreview): ?>
-                        <div class="empty-state empty-state--compact">
-                            <div class="empty-state__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
+            <?php // Plain CSS Grid (no JS masonry), same dash-grid pattern as
+                  // customer/dashboard.php. Both columns are .dash-stack --
+                  // that class is just "a vertical run of cards inside one
+                  // dash-grid column" (dashboard.css), not side-only, so
+                  // reusing it for the main column's table-card + card pair
+                  // needs no new CSS. Main column: Pending Registrations +
+                  // Recently Rejected Registrations directly below it (both
+                  // registration-flow panels). Side column: the other two,
+                  // unrelated to registrations. Heights are independent, no
+                  // measuring, no post-paint reflow. ?>
+            <div class="dash-grid">
+                <div class="dash-stack">
+                    <div class="table-card">
+                        <div class="table-card-header">
+                            <span class="table-card-title">Pending Registrations</span>
+                            <div class="table-card-controls">
+                                <a href="/admin/registrations.php" class="table-action">View all</a>
                             </div>
-                            <div class="empty-state__title">You're all caught up</div>
-                            <p class="empty-state__hint">New registration requests will appear here.</p>
                         </div>
-                    <?php else: ?>
-                        <div class="table-scroll">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Lab</th>
-                                        <th>Submitted</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($pendingPreview as $r): ?>
+                        <?php if (!$pendingPreview): ?>
+                            <div class="empty-state empty-state--compact">
+                                <div class="empty-state__icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="empty-state__title">You're all caught up</div>
+                                <p class="empty-state__hint">New registration requests will appear here.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="table-scroll">
+                                <table class="table">
+                                    <thead>
                                         <tr>
-                                            <td><?= e($r['first_name'] . ' ' . $r['last_name']) ?></td>
-                                            <td><?= e($r['lab_name']) ?></td>
-                                            <td class="text-sm muted"><?= e(date('M j, g:i A', strtotime($r['submitted_at']))) ?></td>
-                                            <td><a href="/admin/registrations.php" class="table-action">Review</a></td>
+                                            <th>Name</th>
+                                            <th>Lab</th>
+                                            <th>Submitted</th>
+                                            <th></th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($pendingPreview as $r): ?>
+                                            <tr>
+                                                <td><?= e($r['first_name'] . ' ' . $r['last_name']) ?></td>
+                                                <td><?= e($r['lab_name']) ?></td>
+                                                <td class="text-sm muted"><?= e(date('M j, g:i A', strtotime($r['submitted_at']))) ?></td>
+                                                <td><a href="/admin/registrations.php" class="table-action">Review</a></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card">
+                        <span class="card__title">Recently Rejected Registrations</span>
+                        <?php if (!$recentRejections): ?>
+                            <p class="muted text-sm mb-0">No recent rejections.</p>
+                        <?php else: ?>
+                            <ul class="mini-list">
+                                <?php foreach ($recentRejections as $r):
+                                    $reason = trim((string) $r['rejection_reason']);
+                                    if ($reason !== '' && mb_strlen($reason) > 60) {
+                                        $reason = mb_substr($reason, 0, 60) . '…';
+                                    }
+                                ?>
+                                    <li>
+                                        <span class="mini-list__main"><?= e($r['first_name'] . ' ' . $r['last_name']) ?><?= $reason !== '' ? ' &mdash; ' . e($reason) : '' ?></span>
+                                        <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($r['reviewed_at']))) ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <span class="card__title">Recently Rejected Registrations</span>
-                    <?php if (!$recentRejections): ?>
-                        <p class="muted text-sm mb-0">No recent rejections.</p>
-                    <?php else: ?>
-                        <ul class="mini-list">
-                            <?php foreach ($recentRejections as $r):
-                                $reason = trim((string) $r['rejection_reason']);
-                                if ($reason !== '' && mb_strlen($reason) > 60) {
-                                    $reason = mb_substr($reason, 0, 60) . '…';
-                                }
-                            ?>
-                                <li>
-                                    <span class="mini-list__main"><?= e($r['first_name'] . ' ' . $r['last_name']) ?><?= $reason !== '' ? ' &mdash; ' . e($reason) : '' ?></span>
-                                    <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($r['reviewed_at']))) ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
+                <div class="dash-stack">
+                    <div class="card">
+                        <span class="card__title">Recently Added Customers</span>
+                        <?php if (!$recentCustomers): ?>
+                            <p class="muted text-sm mb-0">No customers yet &mdash; approve a registration to create one.</p>
+                        <?php else: ?>
+                            <ul class="mini-list">
+                                <?php foreach ($recentCustomers as $c): ?>
+                                    <li>
+                                        <a class="mini-list__main" href="/admin/customer_detail.php?id=<?= (int) $c['user_id'] ?>"><?= e($c['first_name'] . ' ' . $c['last_name']) ?></a>
+                                        <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($c['created_at']))) ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
 
-                <div class="card">
-                    <span class="card__title">Recently Added Customers</span>
-                    <?php if (!$recentCustomers): ?>
-                        <p class="muted text-sm mb-0">No customers yet &mdash; approve a registration to create one.</p>
-                    <?php else: ?>
-                        <ul class="mini-list">
-                            <?php foreach ($recentCustomers as $c): ?>
-                                <li>
-                                    <a class="mini-list__main" href="/admin/customer_detail.php?id=<?= (int) $c['user_id'] ?>"><?= e($c['first_name'] . ' ' . $c['last_name']) ?></a>
-                                    <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($c['created_at']))) ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
+                    <div class="card">
+                        <span class="card__title">Lockouts &mdash; Past 7 Days</span>
+                        <?php if (!$recentLockouts): ?>
+                            <p class="muted text-sm mb-0">No accounts have been locked out recently.</p>
+                        <?php else: ?>
+                            <ul class="mini-list">
+                                <?php foreach ($recentLockouts as $l): ?>
+                                    <li>
+                                        <span class="mini-list__main"><?= e($l['username']) ?></span>
+                                        <span class="mini-list__meta"><?= e(date('M j, g:i A', strtotime($l['locked_at']))) ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
                 </div>
-
-                <div class="card">
-                    <span class="card__title">Lockouts &mdash; Past 7 Days</span>
-                    <?php if (!$recentLockouts): ?>
-                        <p class="muted text-sm mb-0">No accounts have been locked out recently.</p>
-                    <?php else: ?>
-                        <ul class="mini-list">
-                            <?php foreach ($recentLockouts as $l): ?>
-                                <li>
-                                    <span class="mini-list__main"><?= e($l['username']) ?></span>
-                                    <span class="mini-list__meta"><?= e(date('M j, g:i A', strtotime($l['locked_at']))) ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Empty until script.js (initDashboardMasonry) distributes
-                     the 4 panels above into these by measured height —
-                     desktop/tablet only. On mobile they stay unused and
-                     the panels above simply stack in source order. -->
-                <div class="dash-masonry__col" data-masonry-col></div>
-                <div class="dash-masonry__col" data-masonry-col></div>
             </div>
         </main>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 </html>

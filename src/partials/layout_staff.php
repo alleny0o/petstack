@@ -59,17 +59,17 @@ if (($_GET['profile_updated'] ?? null) === '1') {
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Order Queue</span></span>
+            <span class="menu-label"><span class="menu-label__text">Dashboard</span></span>
           </a>
         </li>
 
         <li class="menu-item">
-          <a href="/staff/past_orders.php" class="menu-link <?= $currentPage === 'past_orders' ? 'active' : '' ?>">
+          <a href="/staff/orders.php" class="menu-link <?= in_array($currentPage, ['orders', 'order_detail'], true) ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 11l3 3L22 4"></path>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
             </svg>
-            <span class="menu-label"><span class="menu-label__text">Past Orders</span></span>
+            <span class="menu-label"><span class="menu-label__text">Order Queue</span></span>
           </a>
         </li>
 

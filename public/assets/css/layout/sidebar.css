@@ -169,11 +169,16 @@
   background: var(--accent-100);
 }
 
-/* --- Sidebar: expandable "Accounts" submenu ---
+/* --- Sidebar: expandable "Accounts"/"Catalog"/"Directory" submenus ---
    Parent is a <button> (toggles state, doesn't navigate) styled
    identically to the <a> menu-links above via the shared .menu-link
-   class. Chevron rotates on expand; submenu height-animates open
-   via max-height (no JS measuring needed for a short, fixed list). */
+   class. Chevron rotates on expand; submenu height-animates open via the
+   grid-template-rows 0fr -> 1fr technique (.submenu-wrapper below), not
+   max-height — this animates to the content's true natural height with
+   no JS measurement of any kind (no scrollHeight, no inline styles, no
+   timing races), so script.js only ever toggles the .is-expanded class
+   and aria-expanded; the CSS handles the rest unconditionally, correctly,
+   for every case (SSR-expanded on load, manual toggle, bfcache restore). */
 
 .menu-chevron {
   margin-left: auto;
@@ -184,22 +189,39 @@
   transform: rotate(180deg);
 }
 
+.submenu-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.menu-item--has-submenu.is-expanded .submenu-wrapper {
+  grid-template-rows: 1fr;
+}
+
 .submenu {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-  /* padding-y only applies while expanded (below) — padding isn't part
-     of the content-box that max-height constrains, so a base padding
-     here would leave a visible sliver even at max-height: 0. */
-  padding: 0;
+  min-height: 0;
   overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.25s ease;
+  /* Space above the first link only — every submenu-link carries its own
+     symmetric vertical padding (below), and the space below the last one
+     comes from .menu-list's own `gap` to the next top-level item, same as
+     between any two ungrouped items. Gated behind .is-expanded (below):
+     a grid item stretched to a 0px track still paints its own padding at
+     full size — overflow: hidden clips content that overflows the box,
+     not the box's own padding — so an unconditional padding-top here
+     would still render as a fixed sliver at grid-template-rows: 0fr, the
+     same box-model law that broke the old max-height: 0 approach. No
+     transition needed on it: it switches value at the same instant
+     .is-expanded toggles, and grid-template-rows (which IS transitioned)
+     always animates toward a target height computed from whichever
+     padding-top value is already current, so there's no separate pop. */
+  padding-top: 0;
 }
 .menu-item--has-submenu.is-expanded .submenu {
-  max-height: 200px; /* generous cap for a 3-item list */
-  padding: var(--sp-2) 0;
+  padding-top: var(--sp-2);
 }
 
 .submenu-link {
@@ -229,7 +251,7 @@
    a chevron next to a hidden label — hide both, same as .menu-label. */
 @media (min-width: 769px) {
   [data-sidebar="collapsed"] .menu-chevron,
-  [data-sidebar="collapsed"] .submenu {
+  [data-sidebar="collapsed"] .submenu-wrapper {
     display: none;
   }
 }

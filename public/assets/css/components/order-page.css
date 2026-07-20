@@ -1,12 +1,239 @@
 /* ============================================================
    PETCOM — components/order-page.css
-   Baseline for Phase E. Used today only by the customer order
-   prototypes; defined here so those pages inherit the system
-   when the orders phase lands.
+   Customer order pages: the new-order form (rendered inside the
+   new-order modal) and the order detail page, including its
+   print / save-as-PDF styles.
    ============================================================ */
 
 .customer-order-form-card {
-  max-width: 760px;
+  max-width: 800px;
+}
+
+/* Inside the new-order modal the modal owns the chrome (background,
+   border, radius, shadow, body padding) -- strip the card's own framing
+   there so the form doesn't render as a card inside a card, and drop
+   the base max-width so the form spans the exact same width as the
+   header and footer (shared --sp-5 horizontal padding, no narrower
+   centered island). The base 800px cap above is inert today -- the
+   form renders only inside the modal, where this override lifts it. */
+.modal--order .customer-order-form-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+/* modals.css adds margin-top to any .modal__body .field (for confirm
+   dialogs whose field follows a message) -- neutralized here so field
+   rhythm matches the full-page render. */
+.modal--order .customer-order-form-card .field {
+  margin-top: 0;
+}
+
+/* Section headings in the order form: sentence-case title with a small
+   accent-tinted icon badge -- not the app-wide uppercase
+   .form-section__title eyebrow (forms.css); scoped here so register.php
+   and the admin detail pages keep theirs. */
+.customer-order-form-card .form-section__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.customer-order-form-card .form-section__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-100);
+  color: var(--accent-600);
+}
+.customer-order-form-card .form-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  margin-bottom: 0; /* .form-section__heading owns the spacing */
+}
+
+/* Type hierarchy inside the order form: modal title 16/600/primary >
+   section heading 13/600/primary > label 12/500/secondary > hint
+   12/400/tertiary > placeholder text. Labels step down from the
+   app-wide 600 (forms.css) so seven bold labels don't compete with the
+   section headings; only font-weight is set, so .field--invalid's red
+   label color still applies. */
+.customer-order-form-card label {
+  font-weight: 500;
+}
+
+/* An empty required select ("Select nuclide...") reads as placeholder
+   text, not as a chosen value. :required:invalid matches exactly while
+   the placeholder option is selected; disabled selects are barred from
+   constraint validation so the forms.css :disabled rule (same
+   placeholder color) governs those. Product user is not required --
+   its "I'm the recipient..." default is a real value and stays dark. */
+.customer-order-form-card select:required:invalid {
+  color: var(--color-text-placeholder);
+}
+.customer-order-form-card select option {
+  color: var(--color-text-primary);
+}
+
+/* Fields in the order form: subtle tinted fill, no border at rest.
+   Border width stays 1px (transparent) so focus/invalid states don't
+   shift layout. These out-specificity forms.css's :hover/:focus/
+   :disabled/.field--invalid rules, so each state is re-asserted. */
+.customer-order-form-card input[type="text"],
+.customer-order-form-card input[type="number"],
+.customer-order-form-card input[type="date"],
+.customer-order-form-card select,
+.customer-order-form-card textarea {
+  background: var(--status-neutral-tint);
+  border-color: transparent;
+}
+
+/* Selects: without the border, the browser's fallback arrow is the only
+   dropdown affordance left -- and it's painted with the text color, so
+   the placeholder rule above greys it out too. Appearance is reset and
+   the chevron drawn as a background image instead: independent of text
+   color, iron-grey (= --color-text-secondary; data URIs can't reference
+   tokens). Must follow the tint block above -- its `background:`
+   shorthand would wipe background-image. The :disabled shorthand below
+   wipes it back off on purpose: no chevron marks a select you can't
+   open, which is what separates the live nuclide select from its
+   still-disabled product neighbor at first paint. */
+.customer-order-form-card select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23495057' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 14px 14px;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+
+/* Hover keeps the border off but deepens the fill one step on the grey
+   ramp -- the tint alone gave no hover feedback at all. :not(:disabled)
+   because browsers disagree on matching :hover on disabled controls. */
+.customer-order-form-card input:hover,
+.customer-order-form-card select:hover,
+.customer-order-form-card textarea:hover {
+  border-color: transparent;
+}
+.customer-order-form-card input:hover:not(:disabled),
+.customer-order-form-card select:hover:not(:disabled),
+.customer-order-form-card textarea:hover:not(:disabled) {
+  background-color: var(--color-hover-primary);
+}
+.customer-order-form-card input:focus,
+.customer-order-form-card select:focus,
+.customer-order-form-card textarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.customer-order-form-card input:disabled,
+.customer-order-form-card select:disabled,
+.customer-order-form-card textarea:disabled {
+  background: var(--color-bg-primary);
+  border-color: transparent;
+}
+.customer-order-form-card .field--invalid input,
+.customer-order-form-card .field--invalid select,
+.customer-order-form-card .field--invalid textarea {
+  border-color: var(--color-error);
+}
+.customer-order-form-card .field--invalid input:focus,
+.customer-order-form-card .field--invalid select:focus,
+.customer-order-form-card .field--invalid textarea:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+/* Sections aren't boxed -- they sit directly in the modal/page body,
+   separated by hairline dividers (thinner than forms.css's 1px). */
+.customer-order-form-card .form-section + .form-section {
+  border-top-width: 0.5px;
+}
+
+/* Order details puts its three fields in one row on desktop (the
+   app-wide .field-row is two columns, forms.css); stacks ≤768px like
+   the rest of the form. */
+@media (max-width: 768px) {
+  .customer-order-form-card .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop: two-column grid. Row 1: Nuclide and product / Delivery.
+   Row 2: Order details, full width. Row 3: Notes /
+   Recipient. The full-width row carries both hairlines (top + bottom)
+   so the dividers span continuously instead of breaking across the
+   column gap. Same 768px breakpoint as the modal/sidebar. */
+@media (min-width: 769px) {
+  .customer-order-form-card form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* The ~2rem gutter is built from the paired sections' 1rem paddings
+       below (not column-gap) so the vertical divider that separates the
+       columns can sit exactly centered inside it. */
+    column-gap: 0;
+  }
+  .customer-order-form-card .form-section + .form-section {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  /* Left column of a paired row: section 1 (the form's first div child --
+     csrf_field() emits a bare hidden input, helpers.php) and the section
+     right after the full-width Order details row. */
+  .customer-order-form-card form > .form-section:first-of-type,
+  .customer-order-form-card .form-section--full + .form-section {
+    padding-right: var(--sp-4);
+  }
+  /* Right column of a paired row: a non-full section directly following
+     another non-full section (Delivery, Recipient). The border runs the
+     full row height (grid default align stretch) and never crosses the
+     full-width row. */
+  .customer-order-form-card .form-section:not(.form-section--full) + .form-section:not(.form-section--full) {
+    border-left: 1px solid var(--color-border-hr);
+    padding-left: var(--sp-4);
+  }
+  /* .form-section repeated for specificity: must out-rank the
+     `.form-section + .form-section` divider reset just above. */
+  .customer-order-form-card .form-section.form-section--full {
+    grid-column: 1 / -1;
+    border-top: 0.5px solid var(--color-border-hr);
+    border-bottom: 0.5px solid var(--color-border-hr);
+    padding: var(--sp-5) 0;
+    margin: var(--sp-5) 0;
+  }
+  .customer-order-form-card .field-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .customer-order-form-card .order-form-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Full-page action row (in the modal the submit lives in the pinned
+   .modal__footer instead). */
+.order-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 0.5px solid var(--color-border-hr);
+}
+.order-form-actions .btn {
+  min-width: 96px;
 }
 
 /* Horizontal step strip: pending → accepted → completed */
@@ -71,4 +298,206 @@
 .comment-item__body {
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   Order detail page (customer/order_detail.php)
+   ============================================================ */
+
+/* Notes render with authored line breaks intact (read-only lab-mate view). */
+.order-notes-text {
+  white-space: pre-wrap;
+}
+
+/* Pending-order edit form (order_detail.php): .order-edit-card carries
+   no rules of its own -- deliberately NOT .customer-order-form-card.
+   That class's tinted borderless fields, icon-badge section headings,
+   and two-column grid exist to make the form read as part of the
+   new-order modal's chrome -- appropriate there, but this card sits in
+   normal single-column page flow next to plain read-only .detail-list
+   cards, so it uses the page's own plain-card form idiom instead (the
+   same one account_detail.php's Profile card uses): forms.css's
+   default bordered inputs/native selects in bare .field/.field-row
+   rows, with no .form-section eyebrows and no .is-editing accent
+   border -- the detail cards swapping for the form (and the in-card
+   Edit Order button disappearing) is the mode signal. The one layout
+   addition it does need is .field-row--3 below. */
+
+/* Activity / requested date / requested time read better as one row of
+   three on desktop than forms.css's default two-up .field-row. Reuses
+   the same 640px stack breakpoint as the base rule. */
+.field-row--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 640px) {
+  .field-row--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Print / save-as-PDF ---------------------------------------
+   A dedicated print-only document (.order-print, a sibling of
+   .app-shell in order_detail.php) rather than a patched version of
+   the on-screen cards: the screen UI is hidden wholesale and this
+   block is the only printed output. Triggered by the page's Print
+   button (window.print()); the browser dialog's "Save as PDF"
+   destination covers PDF export with no external libraries. Literal
+   colors and no backgrounds throughout -- printers may skip
+   backgrounds, and printed backgrounds waste ink even when they
+   don't. The only border is the single rule under the letterhead. */
+.order-print {
+  display: none; /* screen: the print document does not exist */
+}
+
+@media print {
+  /* 1cm (not the previous 1.5cm) -- still a comfortable margin for a
+     hole-punch/binder, just not so wide it pushes a single order onto a
+     2nd page on its own. */
+  @page {
+    margin: 1cm;
+  }
+
+  /* The entire screen UI disappears -- no per-element patching. */
+  .order-detail-page .app-shell,
+  .order-detail-page .toast-region,
+  .order-detail-page .modal-overlay {
+    display: none !important;
+  }
+
+  /* 10.5pt/1.25 -- still comfortably legible in print, but every line box
+     and every stacked margin below shrinks with it. */
+  .order-print {
+    display: block;
+    margin: 0;
+    padding: 0;
+    color: #000;
+    font-size: 10.5pt;
+    line-height: 1.25;
+  }
+
+  /* Letterhead: brand left, order identity (number + status pill) right,
+     one line each, with a rule underneath standing in for the card edges
+     we're not printing elsewhere. */
+  .order-print__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 0.75pt solid #000;
+    padding-bottom: 6pt;
+    margin-bottom: 8pt;
+  }
+  .order-print__brand {
+    font-size: 12pt;
+    font-weight: bold;
+  }
+  .order-print__identity {
+    display: flex;
+    align-items: center;
+    gap: 6pt;
+  }
+  .order-print__title {
+    font-size: 12pt;
+    font-weight: bold;
+  }
+  /* Outlined, not filled -- same ink-conscious rule as the rest of this
+     stylesheet (no printed backgrounds), so one pill style covers every
+     status rather than replicating badges.css's per-status tint. */
+  .order-print__status-pill {
+    display: inline-block;
+    border: 0.75pt solid #000;
+    border-radius: 2pt;
+    padding: 1pt 5pt;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* Section heading mirrors .card__title -- the on-screen cue that a new
+     grouping (Order Details / Recipient & Lab / Notes / ...) has
+     started -- with a hairline standing in for the card edge we're not
+     printing. Every section title carries the same top margin (including
+     the first, stacking with .order-print__header's bottom margin above)
+     so sections read as evenly-spaced groupings. */
+  .order-print__section-title {
+    font-size: 11pt;
+    font-weight: bold;
+    margin: 8pt 0 3pt;
+    padding-bottom: 2pt;
+    border-bottom: 0.75pt solid #000;
+    /* A heading should never strand alone at the bottom of a page,
+       separated from its own section -- belt-and-suspenders spelling
+       for older print-engine support. */
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* 2-column grid of compact label/value pairs -- label stacked above
+     value, not side by side -- so a section's fields pack two to a row
+     instead of one, roughly halving the vertical space a field list
+     takes vs. the old single-column .order-print__row layout. An odd
+     field count just leaves one empty cell; no special-casing needed. */
+  .order-print__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 14pt;
+    margin: 0 0 4pt;
+  }
+  .order-print__field {
+    padding: 3pt 0;
+    border-bottom: 0.5pt solid #ccc;
+  }
+  .order-print__field dt {
+    display: block;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #555;
+    margin-bottom: 1pt;
+  }
+  .order-print__field dd {
+    display: block;
+    font-size: 10pt;
+    margin: 0; /* browsers indent dd by default */
+  }
+
+  /* Bordered box, not a grid -- Notes is free text, not label/value
+     pairs. */
+  .order-print__notes {
+    border: 0.5pt solid #ccc;
+    padding: 4pt 6pt;
+    white-space: pre-wrap; /* authored line breaks; may flow across pages */
+  }
+
+  /* Compact print-only Activity feed (staff/order_detail.php) -- full
+     order_audit_log history, but one 2-column row per entry rather than
+     .comment-list's screen-sized spacing, so a long trail doesn't eat
+     pages. minmax(0, ...) tracks (not a fixed label column) since actor
+     names/timestamps vary in length on each side. page-break-inside:
+     avoid per row so a single entry never splits across a page break. */
+  .order-print__activity {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .order-print__activity li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8pt;
+    padding: 1.5pt 0;
+    font-size: 9pt;
+    border-bottom: 0.5pt solid #ccc;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .order-print__activity li:last-child {
+    border-bottom: none;
+  }
+
+  .order-print__footer {
+    margin-top: 10pt;
+    text-align: right;
+    font-size: 8pt;
+    color: #555;
+  }
 }

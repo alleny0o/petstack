@@ -23,7 +23,7 @@ function fetch_customer(PDO $pdo, int $userId): ?array
     $stmt = $pdo->prepare(
         'SELECT u.user_id, u.username, u.active, u.created_at,
                 u.first_name, u.last_name, u.phone, c.lab_id, c.supervising_pi_id,
-                c.registration_status, c.nrc_contact_name, c.nrc_contact_phone, c.nrc_contact_email,
+                c.registration_status,
                 l.institute_id, l.lab_name, i.name AS institute_name, p.pi_name
          FROM customers c
          JOIN users u ON u.user_id = c.user_id
@@ -51,9 +51,6 @@ $editOld = [
     'institute_id'       => '',
     'lab_id'             => '',
     'supervising_pi_id'  => '',
-    'nrc_contact_name'   => '',
-    'nrc_contact_phone'  => '',
-    'nrc_contact_email'  => '',
 ];
 
 function reset_edit_old(array $customer): array
@@ -65,9 +62,6 @@ function reset_edit_old(array $customer): array
         'institute_id'       => $customer['institute_id'] !== null ? (string) $customer['institute_id'] : '',
         'lab_id'             => $customer['lab_id'] !== null ? (string) $customer['lab_id'] : '',
         'supervising_pi_id'  => $customer['supervising_pi_id'] !== null ? (string) $customer['supervising_pi_id'] : '',
-        'nrc_contact_name'   => $customer['nrc_contact_name'] ?? '',
-        'nrc_contact_phone'  => $customer['nrc_contact_phone'] ?? '',
-        'nrc_contact_email'  => $customer['nrc_contact_email'] ?? '',
     ];
 }
 
@@ -102,29 +96,40 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($editOld['supervising_pi_id'] === '' || !ctype_digit($editOld['supervising_pi_id'])) {
             $fieldErrors['supervising_pi_id'] = 'Select a supervising PI.';
         }
-        if ($editOld['nrc_contact_email'] !== '' && !filter_var($editOld['nrc_contact_email'], FILTER_VALIDATE_EMAIL)) {
-            $fieldErrors['nrc_contact_email'] = 'NRC contact email must be a valid email address.';
-        }
 
+        // Settled rule (formerly deferred to the Directory pass): KEEPING
+        // the customer's current lab+PI pair always saves -- an unrelated
+        // name/phone edit must never be blocked by a since-deactivated
+        // lab/PI or a since-removed lab_pis pairing. CHANGING either side
+        // re-validates: a changed lab/PI must exist and be active, and the
+        // resulting pair must exist in lab_pis. The dropdowns below
+        // already offer only active options plus the current value.
         if (!$fieldErrors) {
-            $stmt = $pdo->prepare('SELECT 1 FROM labs WHERE lab_id = ?');
-            $stmt->execute([$editOld['lab_id']]);
-            if (!$stmt->fetchColumn()) {
-                $fieldErrors['lab_id'] = 'Select a valid lab.';
+            $currentLabId = $customer['lab_id'] !== null ? (int) $customer['lab_id'] : 0;
+            $currentPiId = $customer['supervising_pi_id'] !== null ? (int) $customer['supervising_pi_id'] : 0;
+            $newLabId = (int) $editOld['lab_id'];
+            $newPiId = (int) $editOld['supervising_pi_id'];
+
+            if ($newLabId !== $currentLabId) {
+                $stmt = $pdo->prepare('SELECT 1 FROM labs WHERE lab_id = ? AND active = 1');
+                $stmt->execute([$newLabId]);
+                if (!$stmt->fetchColumn()) {
+                    $fieldErrors['lab_id'] = 'Select an active lab.';
+                }
             }
-        }
-        if (!$fieldErrors) {
-            // Pairing check only -- not gated on active, since the admin
-            // is intentionally allowed to keep/assign an inactive lab/PI
-            // here (D.3 owns what "inactive" means for labs/PIs).
-            $stmt = $pdo->prepare(
-                'SELECT 1 FROM pis
-                 JOIN lab_pis ON lab_pis.pi_id = pis.pi_id
-                 WHERE pis.pi_id = ? AND lab_pis.lab_id = ?'
-            );
-            $stmt->execute([$editOld['supervising_pi_id'], $editOld['lab_id']]);
-            if (!$stmt->fetchColumn()) {
-                $fieldErrors['supervising_pi_id'] = 'Select a valid supervising PI for the chosen lab.';
+            if (!$fieldErrors && $newPiId !== $currentPiId) {
+                $stmt = $pdo->prepare('SELECT 1 FROM pis WHERE pi_id = ? AND active = 1');
+                $stmt->execute([$newPiId]);
+                if (!$stmt->fetchColumn()) {
+                    $fieldErrors['supervising_pi_id'] = 'Select an active supervising PI.';
+                }
+            }
+            if (!$fieldErrors && ($newLabId !== $currentLabId || $newPiId !== $currentPiId)) {
+                $stmt = $pdo->prepare('SELECT 1 FROM lab_pis WHERE pi_id = ? AND lab_id = ?');
+                $stmt->execute([$newPiId, $newLabId]);
+                if (!$stmt->fetchColumn()) {
+                    $fieldErrors['supervising_pi_id'] = 'Select a valid supervising PI for the chosen lab.';
+                }
             }
         }
 
@@ -134,15 +139,11 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 ->execute([$editOld['first_name'], $editOld['last_name'], $editOld['phone'], $userId]);
             $pdo->prepare(
                 'UPDATE customers
-                 SET lab_id = ?, supervising_pi_id = ?,
-                     nrc_contact_name = ?, nrc_contact_phone = ?, nrc_contact_email = ?
+                 SET lab_id = ?, supervising_pi_id = ?
                  WHERE user_id = ?'
             )->execute([
                 (int) $editOld['lab_id'],
                 (int) $editOld['supervising_pi_id'],
-                $editOld['nrc_contact_name'] !== '' ? $editOld['nrc_contact_name'] : null,
-                $editOld['nrc_contact_phone'] !== '' ? $editOld['nrc_contact_phone'] : null,
-                $editOld['nrc_contact_email'] !== '' ? $editOld['nrc_contact_email'] : null,
                 $userId,
             ]);
             $pdo->commit();
@@ -347,27 +348,6 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                         </div>
 
                         <div class="form-section">
-                            <span class="form-section__title">NRC License Contact</span>
-
-                            <div class="field">
-                                <label for="nrc_contact_name">Contact name</label>
-                                <input type="text" id="nrc_contact_name" name="nrc_contact_name" value="<?= e($editOld['nrc_contact_name']) ?>">
-                            </div>
-
-                            <div class="field-row mb-0">
-                                <div class="field mb-0">
-                                    <label for="nrc_contact_phone">Contact phone</label>
-                                    <input type="text" id="nrc_contact_phone" name="nrc_contact_phone" value="<?= e($editOld['nrc_contact_phone']) ?>">
-                                </div>
-                                <div class="<?= field_class($fieldErrors, 'nrc_contact_email', 'field mb-0') ?>">
-                                    <label for="nrc_contact_email">Contact email</label>
-                                    <input type="email" id="nrc_contact_email" name="nrc_contact_email" value="<?= e($editOld['nrc_contact_email']) ?>">
-                                    <?= field_error($fieldErrors, 'nrc_contact_email') ?>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-section">
                             <button type="submit" class="btn btn--primary">Save Changes</button>
                         </div>
                     </form>
@@ -412,7 +392,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
         </main>
     </div>
 </body>
-<script src="/assets/js/script.js" defer></script>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <?php if ($customer !== null): ?>
 <script>
 (function () {

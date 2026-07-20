@@ -26,6 +26,9 @@
 .mb-4 {
   margin-bottom: var(--sp-4);
 }
+.nowrap {
+  white-space: nowrap;
+}
 
 .flex {
   display: flex;

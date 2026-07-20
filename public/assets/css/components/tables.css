@@ -32,6 +32,14 @@
   color: var(--color-text-primary);
   font-weight: 500;
 }
+/* Fixed-width slot at the start of a row's first cell for a change-
+   marker .dot — rendered in every row (empty when there's nothing to
+   flag) so flagged and unflagged rows keep their first-column values
+   aligned. */
+.table-flag {
+  display: inline-block;
+  width: 16px;
+}
 /* Last column holds row actions — tuck them against the right edge. */
 .table th:last-child,
 .table td:last-child {
@@ -95,7 +103,8 @@
 /* Compact overrides — undo the global width:100% and shrink padding */
 .table-card-controls select,
 .table-card-controls input[type="text"],
-.table-card-controls input[type="date"] {
+.table-card-controls input[type="date"],
+.table-card-controls input[type="number"] {
   width: auto;
   font-size: 13px;
   padding: 0.3rem 0.6rem;
@@ -106,6 +115,12 @@
   flex: 1 1 130px;
   min-width: 0;
   max-width: 240px;
+}
+
+/* Jump-to-page number input: just wide enough for a few digits, not the
+   browser's wider free-form default. */
+.table-card-controls input[type="number"] {
+  width: 4rem;
 }
 
 /* Card provides the outer border; remove the table's own */
@@ -120,8 +135,20 @@
   overflow-x: auto;
 }
 
-/* Action link in table rows */
+/* Action link in table rows — also used on <button>, so strip the
+   native button chrome to keep both elements rendering identically.
+   Safari paints native button chrome (rounded, bordered) over any
+   border/background override unless appearance is reset first --
+   Chrome/Firefox don't need this, but Safari does. Also used on <a>,
+   where these are no-ops. */
 .table-action {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -134,11 +161,15 @@
   text-decoration: none;
 }
 
-/* Prev/Next + "Showing a–b of n" strip below a paginated table */
+/* Prev/Next + "Showing a–b of n" strip below a paginated table. Wraps
+   (same idiom as .table-card-header above) rather than a hard breakpoint
+   switch -- on narrow viewports the status/page-size group drops below
+   the prev/next/jump controls instead of overflowing the card. */
 .table-pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-top: 1px solid var(--color-border-hr);
@@ -148,10 +179,29 @@
   color: var(--color-text-tertiary);
   white-space: nowrap;
 }
+/* Groups the "Showing a-b of n" status with an adjacent per-page
+   selector (or any other small inline control) on the pagination
+   strip's left side. */
+.table-pagination__status-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
 .table-pagination__controls {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+/* Jump-to-page mini form (customer/orders.php, staff/orders.php,
+   lab_delivery_locations.php, lab_product_users.php) -- otherwise
+   inherits .table-card-controls' flex: 1 1 auto, which lets it stretch
+   to fill the row and drag its own right-aligned contents around once
+   .table-pagination__controls wraps. Pinned to its natural width so it
+   sits compactly beside prev/next instead. */
+.table-pagination__jump {
+  flex: 0 1 auto;
 }
 .table-pagination .btn {
   min-width: 30px;

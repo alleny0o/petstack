@@ -12,7 +12,7 @@
 
 .page-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
   padding-bottom: var(--sp-4);
@@ -112,6 +112,19 @@
   margin: 0 0 var(--sp-4);
   display: block;
 }
+/* Card header row: title on the left, an action pinned to the card's
+   top-right corner (e.g. the order detail page's Edit Order button).
+   The row owns the bottom spacing the bare title normally carries. */
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.card__header .card__title {
+  margin-bottom: 0;
+}
 
 /* ============================================================
    DETAIL LIST (label/value rows inside a card)
@@ -149,4 +162,50 @@
     grid-template-columns: 1fr;
     gap: 2px;
   }
+}
+
+/* ============================================================
+   STATUS TABS (primary status filter above a table-card, e.g.
+   staff/orders.php's Order Queue)
+   ============================================================ */
+
+.status-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border-hr);
+  margin-bottom: var(--sp-4);
+}
+.status-tabs__link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* sits over the strip's own hairline */
+}
+.status-tabs__link:hover {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.status-tabs__link.is-active {
+  color: var(--accent-600);
+  border-bottom-color: var(--accent-600);
+}
+.status-tabs__count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-tertiary);
+}
+.status-tabs__link.is-active .status-tabs__count {
+  background: var(--accent-100);
+  color: var(--accent-600);
 }

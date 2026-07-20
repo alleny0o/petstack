@@ -2,7 +2,11 @@
 require __DIR__ . '/../src/helpers.php';
 bootstrap_session();
 require __DIR__ . '/../src/auth.php';
-require_role(['staff', 'admin', 'customer']);
+// Customer self-service profile editing was removed (profile changes are
+// admin-only now, via admin/customer_detail.php) -- staff/admin keep
+// self-editing through their own sidebar modal, so 'customer' is
+// deliberately absent here, not just missing a UI trigger.
+require_role(['staff', 'admin']);
 
 /**
  * Same-origin path only: exactly one leading '/', never '//...'
