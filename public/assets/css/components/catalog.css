@@ -45,6 +45,10 @@
   margin-top: 0;
 }
 
+.catalog-header {
+  margin-bottom: var(--sp-3);
+}
+
 /* =================================
   2. Product Catalog
 ================================= */
@@ -64,6 +68,7 @@
   border-radius: 4px;
   background: var(--color-bg-surface);
   cursor: pointer;
+  max-width: 140px
 }
 
 /* ---- Status Indications ---- */

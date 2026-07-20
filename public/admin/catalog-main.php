@@ -26,7 +26,7 @@ $pageTitle = 'Manage Databases';
         <?php include __DIR__ . '/../../src/partials/layout_admin.php'; ?>
         <main class="app-main">
             
-            <div class="page-header page-header-flex">
+            <div class="page-header page-header-flex catalog-header">
                 <h1>Manage Databases</h1>
                 <!-- Dynamically changes the button based on the active tab! -->
                 <a href="/admin/catalog/add_<?= e($current_tab) ?>.php" class="btn btn--primary">

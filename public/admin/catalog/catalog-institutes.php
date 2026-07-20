@@ -133,12 +133,12 @@ if (!function_exists('catalog_query')) {
                                 <?php if (!empty($inst['shorthand_name'])): ?>
                                     <span class="badge badge--neutral"><?= e($inst['shorthand_name']) ?></span>
                                 <?php else: ?>
-                                    <span style="color: #9ca3af; font-style: italic;">None</span>
+                                    <span class="badge badge--neutral">None</span>
                                 <?php endif; ?>
                             </td>
                             
                             <td>
-                                <select class="catalog-actions" style="max-width: 140px" onchange="if(this.value) window.location.href=this.value;">
+                                <select class="catalog-actions" onchange="if(this.value) window.location.href=this.value;">
                                     <option value="">Actions</option>
                                     <option value="/admin/catalog/edit_institute.php?id=<?= (int) $inst['institute_id'] ?>">Edit</option>
                                     <option value="/admin/catalog/catalog_toggle.php?type=institute&id=<?= (int) $inst['institute_id'] ?>&status=<?= $inst['is_active'] ? '0' : '1' ?>&<?= e(catalog_query([])) ?>">
