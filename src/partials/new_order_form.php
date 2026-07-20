@@ -133,7 +133,7 @@
                     </div>
                     <div class="<?= field_class($fieldErrors, 'requested_date', 'field mb-0') ?>">
                         <label for="requested_date">Requested date <span class="required-mark">*</span></label>
-                        <input type="date" id="requested_date" name="requested_date" min="<?= e($todayDate) ?>" value="<?= e($old['requested_date']) ?>" required>
+                        <input type="date" id="requested_date" name="requested_date" value="<?= e($old['requested_date']) ?>" required>
                         <?= field_error($fieldErrors, 'requested_date') ?>
                     </div>
                     <div class="<?= field_class($fieldErrors, 'requested_time', 'field mb-0') ?>">

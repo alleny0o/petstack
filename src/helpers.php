@@ -264,14 +264,7 @@ function validate_order_input(PDO $pdo, array $input, int $labId): array
     }
     if (!isset($fieldErrors['requested_date']) && !isset($fieldErrors['requested_time'])) {
         $requestedDt = DateTime::createFromFormat('Y-m-d H:i', $input['requested_date'] . ' ' . $input['requested_time']);
-        // Sourced from MySQL's NOW() rather than PHP's time(), since the
-        // app server and DB server can run in different timezones.
-        $dbNow = new DateTime((string) $pdo->query('SELECT NOW()')->fetchColumn());
-        if ($requestedDt < $dbNow) {
-            $fieldErrors['requested_date'] = 'Requested date/time cannot be in the past.';
-        } else {
-            $requestedDatetimeSql = $requestedDt->format('Y-m-d H:i:00');
-        }
+        $requestedDatetimeSql = $requestedDt->format('Y-m-d H:i:00');
     }
 
     // ---- Notes (optional) -- cyclotron-run specifics (beam current,
