@@ -40,4 +40,3 @@
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/dashboard.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/radio-cards.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/order-page.css') ?>">
-<link rel="stylesheet" href="<?= asset_url('/assets/css/components/catalog.css') ?>">

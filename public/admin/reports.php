@@ -6,18 +6,15 @@ require_role('admin');
 
 $pdo = get_db();
 
-// 1. Fetch data to populate the filter dropdowns
-// Institutes
-$stmtInst =$pdo->query("SELECT institute_id, name FROM institutes WHERE is_active = 1 ORDER BY name");
-$institutes =$stmtInst->fetchAll(PDO::FETCH_ASSOC);
+// Lookups for the filter selects. Institutes/nuclides list every row
+// (inactive suffixed below), matching Product's existing unfiltered
+// behavior -- this report covers historical orders, which can reference
+// an institute/nuclide that's since been deactivated.
+$institutes = $pdo->query('SELECT institute_id, name, active FROM institutes ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
+$nuclides = $pdo->query('SELECT nuclide_id, name, active FROM nuclides ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
+$products = $pdo->query('SELECT product_id, name FROM products ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 
-// Nuclides (assuming 'nuclides' table as per your earlier code)
-$stmtNuc =$pdo->query("SELECT nuclide_name FROM nuclides WHERE is_active = 1 ORDER BY nuclide_name");
-$nuclides =$stmtNuc->fetchAll(PDO::FETCH_COLUMN);
-
-// Products
-$stmtProd =$pdo->query("SELECT product_id, product_name FROM products ORDER BY product_name");
-$products =$stmtProd->fetchAll(PDO::FETCH_ASSOC);
+$pageTitle = 'Reports';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,115 +37,86 @@ $products =$stmtProd->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
 
-            <div class="table-card">
-                <div class="table-card-header" style="flex-direction: column; align-items: stretch; gap: var(--sp-1);">
-                    <span class="table-card-title mb-0">Report Criteria</span>
-                    
-                    <form method="GET" action="export_csv.php" id="report-form">
-                        
-                        <div class="advanced-filters is-open" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;">
-                            
-                            <div class="filter-group">
-                                <label for="start_date">From Date <span style="color: #d9534f;">*</span></label>
-                                <input type="date" name="start_date" id="start_date" required>
-                            </div>
-                            <div class="filter-group">
-                                <label for="end_date">To Date <span style="color: #d9534f;">*</span></label>
-                                <input type="date" name="end_date" id="end_date" required>
-                            </div>
+            <div class="card">
+                <form method="GET" action="export_csv.php" id="report-form" data-no-loading-guard>
 
-                            <div class="filter-group">
-                                <label for="filter-institute">Institute</label>
-                                <select name="institute" id="filter-institute">
-                                    <option value="all">All Institutes</option>
-                                    <?php foreach ($institutes as$inst): ?>
-                                        <option value="<?= htmlspecialchars($inst['institute_id']) ?>">
-                                            <?= htmlspecialchars($inst['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="filter-group">
-                                <label for="filter-nuclide">Nuclide</label>
-                                <select name="nuclide" id="filter-nuclide">
-                                    <option value="all">All Nuclides</option>
-                                    <?php foreach ($nuclides as$nuc): ?>
-                                        <option value="<?= htmlspecialchars($nuc) ?>">
-                                            <?= htmlspecialchars($nuc) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="filter-group">
-                                <label for="filter-product">Product</label>
-                                <select name="product" id="filter-product">
-                                    <option value="all">All Products</option>
-                                    <?php foreach ($products as$prod): ?>
-                                        <option value="<?= htmlspecialchars($prod['product_id']) ?>">
-                                            <?= htmlspecialchars($prod['product_name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="filter-group">
-                                <label for="filter-status">Status</label>
-                                <select name="status" id="filter-status">
-                                    <option value="all">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="accepted">Accepted</option>
-                                    <option value="ready for pickup">Ready for Pickup</option>
-                                    <option value="returned">Returned</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="canceled">Canceled</option>
-                                </select>
-                            </div>
-
-                            <div class="filter-group">
-                                <label for="filter-chargable">Chargable</label>
-                                <select name="chargable" id="filter-chargable">
-                                    <option value="all">All</option>
-                                    <option value="1">Yes</option>
-                                    <option value="0">No</option>
-                                </select>
-                            </div>
-
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="start_date">From Date <span class="required-mark">*</span></label>
+                            <input type="date" name="start_date" id="start_date" required>
                         </div>
-
-                        <div class="search-bar-top" style="border-top: 1px solid var(--border-color, #eee); padding-top: 15px;">
-                            <button type="submit" class="btn btn--primary">Download CSV Report</button>
-                            <button type="button" class="btn btn--secondary" id="reset-dates">Reset Filters</button>
+                        <div class="field">
+                            <label for="end_date">To Date <span class="required-mark">*</span></label>
+                            <input type="date" name="end_date" id="end_date" required>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="filter-institute">Institute</label>
+                            <select name="institute" id="filter-institute">
+                                <option value="">All Institutes</option>
+                                <?php foreach ($institutes as $inst): ?>
+                                    <option value="<?= (int) $inst['institute_id'] ?>">
+                                        <?= e($inst['name']) ?><?= $inst['active'] ? '' : ' (inactive)' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="filter-nuclide">Nuclide</label>
+                            <select name="nuclide" id="filter-nuclide">
+                                <option value="">All Nuclides</option>
+                                <?php foreach ($nuclides as $nuc): ?>
+                                    <option value="<?= (int) $nuc['nuclide_id'] ?>">
+                                        <?= e($nuc['name']) ?><?= $nuc['active'] ? '' : ' (inactive)' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="filter-product">Product</label>
+                            <select name="product" id="filter-product">
+                                <option value="">All Products</option>
+                                <?php foreach ($products as $prod): ?>
+                                    <option value="<?= (int) $prod['product_id'] ?>">
+                                        <?= e($prod['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="filter-status">Status</label>
+                            <select name="status" id="filter-status">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="accepted">Accepted</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="filter-chargeable">Chargeable</label>
+                        <select name="chargeable" id="filter-chargeable">
+                            <option value="">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn--primary">Download CSV Report</button>
+                        <button type="button" class="btn btn--secondary" id="reset-dates">Reset Filters</button>
+                    </div>
+                </form>
             </div>
         </main>
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const startDateInput = document.getElementById('start_date');
-            const endDateInput = document.getElementById('end_date');
-            const resetBtn = document.getElementById('reset-dates');
-
-            function setDefaultDates() {
-                let today = new Date();
-                let lastMonth = new Date();
-                lastMonth.setDate(today.getDate() - 30);
-                endDateInput.valueAsDate = today;
-                startDateInput.valueAsDate = lastMonth;
-            }
-
-            setDefaultDates();
-
-            resetBtn.addEventListener('click', function() {
-                setDefaultDates();
-                // Reset all dropdowns back to 'all'
-                document.querySelectorAll('select').forEach(select => select.value = 'all');
-            });
-        });
-    </script>
 </body>
+<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 </html>
