@@ -394,7 +394,6 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                             break;
                         }
                     }
-                    $todayDate = date('Y-m-d');
                     ?>
                     <div class="card order-edit-card">
                         <span class="card__title">Edit Order Details</span>
@@ -483,7 +482,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                 </div>
                                 <div class="<?= field_class($editErrors, 'requested_date') ?>">
                                     <label for="edit_requested_date">Requested date <span class="required-mark">*</span></label>
-                                    <input type="date" id="edit_requested_date" name="requested_date" min="<?= e($todayDate) ?>" value="<?= e($editOld['requested_date']) ?>" required>
+                                    <input type="date" id="edit_requested_date" name="requested_date" value="<?= e($editOld['requested_date']) ?>" required>
                                     <?= field_error($editErrors, 'requested_date') ?>
                                 </div>
                                 <div class="<?= field_class($editErrors, 'requested_time') ?>">
