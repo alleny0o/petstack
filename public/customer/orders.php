@@ -8,7 +8,6 @@ $pdo = get_db();
 $myUserId = (int) $_SESSION['user_id'];
 
 const ORDERS_DEFAULT_PAGE_SIZE = 10;
-const ORDERS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 // Pre-setting $labId here means layout_customer.php's guarded lookup
 // never re-queries -- same convention as order_detail.php.
@@ -41,24 +40,18 @@ $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (in
 // Clamped against the fixed option set -- an out-of-set or non-numeric
 // value (hand-edited URL) falls back to the default rather than driving
 // LIMIT with an arbitrary number.
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), ORDERS_PAGE_SIZE_OPTIONS, true)
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : ORDERS_DEFAULT_PAGE_SIZE;
 
 // Canonicalize $_GET to the validated/clamped values so every link built
-// via orders_query() below (pagination, filter changes) carries the real
+// via build_query() below (pagination, filter changes) carries the real
 // applied values forward, never raw/invalid ones.
-$_GET['status'] = $status;
-$_GET['page_size'] = (string) $pageSize;
-if ($requestedFrom !== '') {
-    $_GET['requested_from'] = $requestedFrom;
-} else {
-    unset($_GET['requested_from']);
-}
-if ($requestedTo !== '') {
-    $_GET['requested_to'] = $requestedTo;
-} else {
-    unset($_GET['requested_to']);
-}
+canonicalize_get([
+    'status' => $status,
+    'page_size' => $pageSize,
+    'requested_from' => $requestedFrom,
+    'requested_to' => $requestedTo,
+]);
 
 $orders = [];
 $totalCount = 0;
@@ -148,9 +141,11 @@ if ($labId > 0) {
     }
     $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-    $totalPages = max(1, (int) ceil($totalCount / $pageSize));
-    $page = min($page, $totalPages);
-    $offset = ($page - 1) * $pageSize;
+    $pagination = paginate($totalCount, $page, $pageSize);
+    $page = $pagination['page'];
+    $totalPages = $pagination['totalPages'];
+    $offset = $pagination['offset'];
+    canonicalize_get(['page' => $page]);
 
     // LIMIT/OFFSET are interpolated directly rather than bound: both are
     // fully server-computed ints at this point (page size is clamped
@@ -169,23 +164,6 @@ if ($labId > 0) {
     );
     $listStmt->execute($params);
     $orders = $listStmt->fetchAll();
-}
-
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values -- used for pagination links
- * so paging carries the active search/filters forward (accounts.php
- * convention).
- */
-function orders_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
 }
 
 $rangeStart = $totalCount > 0 ? $offset + 1 : 0;
@@ -226,7 +204,7 @@ $pageTitle = 'Orders';
             <?php else: ?>
                 <nav class="status-tabs" aria-label="Filter by status">
                     <?php foreach ($tabs as $tab): ?>
-                        <a href="?<?= e(orders_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                        <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                             <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                         </a>
                     <?php endforeach; ?>
@@ -311,9 +289,9 @@ $pageTitle = 'Orders';
                                 <?php if ($otherFiltersActive): ?>
                                     <?php // Preserves the active status tab -- only the
                                           // search/fulfillment/date filters clear. ?>
-                                    <a href="?<?= e(orders_query(['q' => null, 'fulfillment' => null, 'requested_from' => null, 'requested_to' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">Clear filters</a>
+                                    <a href="?<?= e(build_query(['q' => null, 'fulfillment' => null, 'requested_from' => null, 'requested_to' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">Clear filters</a>
                                 <?php elseif ($status !== ''): ?>
-                                    <a href="?<?= e(orders_query(['status' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">View all orders</a>
+                                    <a href="?<?= e(build_query(['status' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">View all orders</a>
                                 <?php else: ?>
                                     <button type="button" class="btn btn--primary btn--sm" data-new-order-trigger>+ New Order</button>
                                 <?php endif; ?>
@@ -373,72 +351,26 @@ $pageTitle = 'Orders';
                             </table>
                         </div>
 
-                        <div class="table-pagination">
-                            <div class="table-pagination__status-group">
-                                <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                                <?php // Standalone form (not the header filter
-                                      // form) so changing page size never
-                                      // also submits unconfirmed search/
-                                      // filter text sitting in that other
-                                      // form -- it mirrors only the
-                                      // currently-APPLIED filter values via
-                                      // hidden fields, auto-submits on
-                                      // change, and always resets to page 1
-                                      // (a stale page number from the old
-                                      // page size could point past the new
-                                      // end). ?>
-                                <form method="get" class="table-card-controls">
-                                    <input type="hidden" name="q" value="<?= e($q) ?>">
-                                    <input type="hidden" name="status" value="<?= e($status) ?>">
-                                    <input type="hidden" name="fulfillment" value="<?= e($fulfillment) ?>">
-                                    <input type="hidden" name="requested_from" value="<?= e($requestedFrom) ?>">
-                                    <input type="hidden" name="requested_to" value="<?= e($requestedTo) ?>">
-                                    <input type="hidden" name="page" value="1">
-                                    <label for="page-size" class="sr-only">Orders per page</label>
-                                    <select name="page_size" id="page-size" onchange="this.form.submit()">
-                                        <?php foreach (ORDERS_PAGE_SIZE_OPTIONS as $option): ?>
-                                            <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </form>
-                            </div>
-                            <div class="table-pagination__controls">
-                                <?php if ($page <= 1): ?>
-                                    <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
-                                <?php else: ?>
-                                    <a href="?<?= e(orders_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
-                                <?php endif; ?>
-                                <?php // Jump-to-page input instead of a numbered
-                                      // strip -- with page sizes as small as
-                                      // 10, order counts make a long number
-                                      // list impractical. Submits via the
-                                      // same GET pattern as the rest of the
-                                      // controls (native Enter-key implicit
-                                      // submission, or the Go button); the
-                                      // page value it posts runs through the
-                                      // exact same ctype_digit + min($page,
-                                      // $totalPages) clamp already applied
-                                      // to every other page source above --
-                                      // no separate validation needed here. ?>
-                                <form method="get" class="table-card-controls table-pagination__jump">
-                                    <input type="hidden" name="q" value="<?= e($q) ?>">
-                                    <input type="hidden" name="status" value="<?= e($status) ?>">
-                                    <input type="hidden" name="fulfillment" value="<?= e($fulfillment) ?>">
-                                    <input type="hidden" name="requested_from" value="<?= e($requestedFrom) ?>">
-                                    <input type="hidden" name="requested_to" value="<?= e($requestedTo) ?>">
-                                    <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
-                                    <label for="page-jump" class="sr-only">Go to page</label>
-                                    <input type="number" name="page" id="page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
-                                    <span class="table-pagination__status">of <?= $totalPages ?></span>
-                                    <button type="submit" class="btn btn--secondary btn--sm">Go</button>
-                                </form>
-                                <?php if ($page >= $totalPages): ?>
-                                    <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
-                                <?php else: ?>
-                                    <a href="?<?= e(orders_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        <?php
+                        $tablePagination = [
+                            'idPrefix' => '',
+                            'itemLabel' => 'Orders',
+                            'hiddenFields' => [
+                                'q' => $q,
+                                'status' => $status,
+                                'fulfillment' => $fulfillment,
+                                'requested_from' => $requestedFrom,
+                                'requested_to' => $requestedTo,
+                            ],
+                            'page' => $page,
+                            'totalPages' => $totalPages,
+                            'pageSize' => $pageSize,
+                            'rangeStart' => $rangeStart,
+                            'rangeEnd' => $rangeEnd,
+                            'totalCount' => $totalCount,
+                        ];
+                        include __DIR__ . '/../../src/partials/table_pagination.php';
+                        ?>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

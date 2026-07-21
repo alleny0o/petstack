@@ -8,7 +8,6 @@ $pdo = get_db();
 $myUserId = (int) $_SESSION['user_id'];
 
 const LOCATIONS_DEFAULT_PAGE_SIZE = 10;
-const LOCATIONS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 // Pre-setting $labId here means layout_customer.php's guarded lookup
 // never re-queries -- same convention as orders.php / order_detail.php.
@@ -18,7 +17,7 @@ $labId = (int) ($stmt->fetchColumn() ?: 0);
 
 // One-shot arrival-toast flags set by the PRG redirects below. Captured
 // into locals then immediately stripped from $_GET so this render's own
-// pagination/search links (built via locations_query()) never carry a
+// pagination/search links (built via build_query()) never carry a
 // stale flag forward. That alone doesn't stop a manual reload of the
 // arrived-at URL from re-sending the flag to the server, though -- the
 // client-side history.replaceState() call near the bottom of the page
@@ -31,34 +30,18 @@ unset($_GET['created'], $_GET['updated'], $_GET['activated'], $_GET['deactivated
 
 $q = trim($_GET['q'] ?? '');
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), LOCATIONS_PAGE_SIZE_OPTIONS, true)
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : LOCATIONS_DEFAULT_PAGE_SIZE;
 
-// Canonicalize so every link built via locations_query() below (pagination,
+// Canonicalize so every link built via build_query() below (pagination,
 // and every POST form's action, which embeds the current view so a
 // create/edit/toggle redirects back to where the person was) carries the
 // real applied values, never raw/invalid ones -- same convention as
 // orders.php.
-$_GET['page'] = (string) $page;
-$_GET['page_size'] = (string) $pageSize;
-
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values. Two jobs: pagination links,
- * and embedding the current search/page state into every POST form's
- * action so create/edit/toggle_active redirect back to the same view
- * instead of resetting to page 1. Mirrors orders.php's orders_query().
- */
-function locations_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
-}
+canonicalize_get([
+    'page' => $page,
+    'page_size' => $pageSize,
+]);
 
 $addErrors = [];
 $addOld = ['name' => '', 'room' => ''];
@@ -100,9 +83,9 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // the browser's resubmit-form prompt (confirming it would
             // silently re-create the location) -- same pattern as
             // order_detail.php's save_notes/save_details/cancel_order.
-            // locations_query() carries the current search/page state
+            // build_query() carries the current search/page state
             // forward so the person lands back where they were.
-            redirect('/customer/lab_delivery_locations.php?' . locations_query(['created' => '1']));
+            redirect('/customer/lab_delivery_locations.php?' . build_query(['created' => '1']));
         }
     } elseif ($action === 'update') {
         $editOld['location_id'] = trim($_POST['location_id'] ?? '');
@@ -126,7 +109,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE lab_delivery_locations SET name = ?, room = ? WHERE location_id = ? AND lab_id = ?')
                 ->execute([$editOld['name'], $editOld['room'] !== '' ? $editOld['room'] : null, $locationId, $labId]);
-            redirect('/customer/lab_delivery_locations.php?' . locations_query(['updated' => '1']));
+            redirect('/customer/lab_delivery_locations.php?' . build_query(['updated' => '1']));
         }
     } elseif ($action === 'toggle_active') {
         $locationId = ctype_digit((string) ($_POST['location_id'] ?? '')) ? (int) $_POST['location_id'] : 0;
@@ -139,7 +122,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE lab_delivery_locations SET active = ? WHERE location_id = ? AND lab_id = ?')
                     ->execute([$newActive, $locationId, $labId]);
-                redirect('/customer/lab_delivery_locations.php?' . locations_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/customer/lab_delivery_locations.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -174,13 +157,14 @@ if ($labId > 0) {
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM lab_delivery_locations $whereSql");
     $countStmt->execute($params);
     $totalCount = (int) $countStmt->fetchColumn();
-    $totalPages = max(1, (int) ceil($totalCount / $pageSize));
-    $page = min($page, $totalPages);
-    $offset = ($page - 1) * $pageSize;
-    // Keep $_GET in sync with the DB-verified page so locations_query()
-    // (and $formAction below, which embeds it into every POST form) never
+    $pagination = paginate($totalCount, $page, $pageSize);
+    $page = $pagination['page'];
+    $totalPages = $pagination['totalPages'];
+    $offset = $pagination['offset'];
+    // Keep $_GET in sync with the DB-verified page so build_query() (and
+    // $formAction below, which embeds it into every POST form) never
     // echoes back an out-of-range page number.
-    $_GET['page'] = (string) $page;
+    canonicalize_get(['page' => $page]);
 
     // LIMIT/OFFSET are interpolated directly rather than bound: both are
     // fully server-computed ints at this point (page size is clamped
@@ -201,7 +185,7 @@ if ($labId > 0) {
 // so create/edit/toggle_active all redirect back to the exact view the
 // person was on, not page 1.
 $formAction = '/customer/lab_delivery_locations.php';
-$currentQueryString = locations_query();
+$currentQueryString = build_query();
 if ($currentQueryString !== '') {
     $formAction .= '?' . $currentQueryString;
 }
@@ -346,55 +330,20 @@ $pageTitle = 'Delivery Locations';
                             </table>
                         </div>
 
-                        <div class="table-pagination">
-                            <div class="table-pagination__status-group">
-                                <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                                <?php // Standalone form (not the header search
-                                      // form) so changing page size never
-                                      // also submits unconfirmed search text
-                                      // sitting in that other form -- it
-                                      // mirrors only the currently-APPLIED
-                                      // search via a hidden field,
-                                      // auto-submits on change, and always
-                                      // resets to page 1, same as
-                                      // orders.php. ?>
-                                <form method="get" class="table-card-controls">
-                                    <input type="hidden" name="q" value="<?= e($q) ?>">
-                                    <input type="hidden" name="page" value="1">
-                                    <label for="location-page-size" class="sr-only">Locations per page</label>
-                                    <select name="page_size" id="location-page-size" onchange="this.form.submit()">
-                                        <?php foreach (LOCATIONS_PAGE_SIZE_OPTIONS as $option): ?>
-                                            <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </form>
-                            </div>
-                            <div class="table-pagination__controls">
-                                <?php if ($page <= 1): ?>
-                                    <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
-                                <?php else: ?>
-                                    <a href="?<?= e(locations_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
-                                <?php endif; ?>
-                                <?php // Jump-to-page input instead of a
-                                      // numbered strip, same reasoning as
-                                      // orders.php: with page sizes as small
-                                      // as 10, a long number list gets
-                                      // impractical fast. ?>
-                                <form method="get" class="table-card-controls table-pagination__jump">
-                                    <input type="hidden" name="q" value="<?= e($q) ?>">
-                                    <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
-                                    <label for="location-page-jump" class="sr-only">Go to page</label>
-                                    <input type="number" name="page" id="location-page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
-                                    <span class="table-pagination__status">of <?= $totalPages ?></span>
-                                    <button type="submit" class="btn btn--secondary btn--sm">Go</button>
-                                </form>
-                                <?php if ($page >= $totalPages): ?>
-                                    <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
-                                <?php else: ?>
-                                    <a href="?<?= e(locations_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        <?php
+                        $tablePagination = [
+                            'idPrefix' => 'location-',
+                            'itemLabel' => 'Locations',
+                            'hiddenFields' => ['q' => $q],
+                            'page' => $page,
+                            'totalPages' => $totalPages,
+                            'pageSize' => $pageSize,
+                            'rangeStart' => $rangeStart,
+                            'rangeEnd' => $rangeEnd,
+                            'totalCount' => $totalCount,
+                        ];
+                        include __DIR__ . '/../../src/partials/table_pagination.php';
+                        ?>
                     <?php endif; ?>
                 </div>
 

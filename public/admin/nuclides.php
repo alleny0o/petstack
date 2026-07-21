@@ -7,11 +7,10 @@ require_role('admin'); // catalog management is admin-only; staff only process o
 $pdo = get_db();
 
 const NUCLIDES_DEFAULT_PAGE_SIZE = 20;
-const NUCLIDES_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 // One-shot arrival-toast flags set by the PRG redirects below. Captured
 // into locals then immediately stripped from $_GET so this render's own
-// pagination/tab links (built via nuclides_query()) never carry a stale
+// pagination/tab links (built via build_query()) never carry a stale
 // flag forward; the client-side history.replaceState() near the bottom
 // handles the reload half -- same convention as lab_product_users.php.
 $justCreated = ($_GET['created'] ?? null) === '1';
@@ -23,33 +22,18 @@ unset($_GET['created'], $_GET['updated'], $_GET['activated'], $_GET['deactivated
 $q = trim($_GET['q'] ?? '');
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), NUCLIDES_PAGE_SIZE_OPTIONS, true)
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : NUCLIDES_DEFAULT_PAGE_SIZE;
 
-// Canonicalize so every link built via nuclides_query() below (tabs,
+// Canonicalize so every link built via build_query() below (tabs,
 // pagination, and every POST form's action, which embeds the current
 // view so create/edit/toggle land back where the admin was) carries the
 // real applied values -- same convention as accounts.php.
-$_GET['status'] = $status;
-$_GET['page'] = (string) $page;
-$_GET['page_size'] = (string) $pageSize;
-
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values -- used for the status tabs,
- * pagination links, and every POST form's action. Mirrors
- * accounts_query() / product_users_query().
- */
-function nuclides_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
-}
+canonicalize_get([
+    'status' => $status,
+    'page' => $page,
+    'page_size' => $pageSize,
+]);
 
 /**
  * Shared by create and edit. App-level pre-check for the DB's own
@@ -98,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO nuclides (name, active) VALUES (?, ?)')
                 ->execute([$addOld['name'], (int) $addOld['active']]);
-            redirect('/admin/nuclides.php?' . nuclides_query(['created' => '1']));
+            redirect('/admin/nuclides.php?' . build_query(['created' => '1']));
         }
     } elseif ($action === 'update') {
         // Free rename, deliberately allowed even once orders exist: a
@@ -125,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE nuclides SET name = ? WHERE nuclide_id = ?')
                 ->execute([$editOld['name'], $nuclideId]);
-            redirect('/admin/nuclides.php?' . nuclides_query(['updated' => '1']));
+            redirect('/admin/nuclides.php?' . build_query(['updated' => '1']));
         }
     } elseif ($action === 'toggle_active') {
         $nuclideId = ctype_digit((string) ($_POST['nuclide_id'] ?? '')) ? (int) $_POST['nuclide_id'] : 0;
@@ -143,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE nuclides SET active = ? WHERE nuclide_id = ?')
                     ->execute([$newActive, $nuclideId]);
-                redirect('/admin/nuclides.php?' . nuclides_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/admin/nuclides.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -195,12 +179,13 @@ if ($status === 'active') {
 }
 $listWhereSql = $listWhere ? ('WHERE ' . implode(' AND ', $listWhere)) : '';
 
-$totalPages = max(1, (int) ceil($totalCount / $pageSize));
-$page = min($page, $totalPages);
-$offset = ($page - 1) * $pageSize;
-// Keep $_GET in sync with the clamped page so nuclides_query() (and
+$pagination = paginate($totalCount, $page, $pageSize);
+$page = $pagination['page'];
+$totalPages = $pagination['totalPages'];
+$offset = $pagination['offset'];
+// Keep $_GET in sync with the clamped page so build_query() (and
 // $formAction below) never echoes back an out-of-range page number.
-$_GET['page'] = (string) $page;
+canonicalize_get(['page' => $page]);
 
 // LIMIT/OFFSET are interpolated directly rather than bound: both are
 // fully server-computed ints at this point (page size is clamped against
@@ -223,7 +208,7 @@ $nuclidesList = $listStmt->fetchAll();
 // action, computed after the page clamp above -- so create/edit/toggle
 // all redirect back to the exact view the admin was on, not page 1.
 $formAction = '/admin/nuclides.php';
-$currentQueryString = nuclides_query();
+$currentQueryString = build_query();
 if ($currentQueryString !== '') {
     $formAction .= '?' . $currentQueryString;
 }
@@ -262,7 +247,7 @@ $pageTitle = 'Nuclides';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(nuclides_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
@@ -379,43 +364,20 @@ $pageTitle = 'Nuclides';
                         </table>
                     </div>
 
-                    <div class="table-pagination">
-                        <div class="table-pagination__status-group">
-                            <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                            <form method="get" class="table-card-controls">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="page" value="1">
-                                <label for="nuclides-page-size" class="sr-only">Nuclides per page</label>
-                                <select name="page_size" id="nuclides-page-size" onchange="this.form.submit()">
-                                    <?php foreach (NUCLIDES_PAGE_SIZE_OPTIONS as $option): ?>
-                                        <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </form>
-                        </div>
-                        <div class="table-pagination__controls">
-                            <?php if ($page <= 1): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(nuclides_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
-                            <?php endif; ?>
-                            <form method="get" class="table-card-controls table-pagination__jump">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
-                                <label for="nuclides-page-jump" class="sr-only">Go to page</label>
-                                <input type="number" name="page" id="nuclides-page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
-                                <span class="table-pagination__status">of <?= $totalPages ?></span>
-                                <button type="submit" class="btn btn--secondary btn--sm">Go</button>
-                            </form>
-                            <?php if ($page >= $totalPages): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(nuclides_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php
+                    $tablePagination = [
+                        'idPrefix' => 'nuclides-',
+                        'itemLabel' => 'Nuclides',
+                        'hiddenFields' => ['q' => $q, 'status' => $status],
+                        'page' => $page,
+                        'totalPages' => $totalPages,
+                        'pageSize' => $pageSize,
+                        'rangeStart' => $rangeStart,
+                        'rangeEnd' => $rangeEnd,
+                        'totalCount' => $totalCount,
+                    ];
+                    include __DIR__ . '/../../src/partials/table_pagination.php';
+                    ?>
                 <?php endif; ?>
             </div>
 

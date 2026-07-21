@@ -7,37 +7,22 @@ require_role('admin');
 $pdo = get_db();
 
 const CUSTOMERS_DEFAULT_PAGE_SIZE = 20;
-const CUSTOMERS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 $q = trim($_GET['q'] ?? '');
 $instituteId = $_GET['institute_id'] ?? '';
 $labId = $_GET['lab_id'] ?? '';
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), CUSTOMERS_PAGE_SIZE_OPTIONS, true)
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : CUSTOMERS_DEFAULT_PAGE_SIZE;
 
-// Canonicalize so every link built via customers_query() below (tabs,
+// Canonicalize so every link built via build_query() below (tabs,
 // pagination) carries the real applied values forward -- same convention
 // as staff/orders.php's status/page_size canonicalization.
-$_GET['status'] = $status;
-$_GET['page_size'] = (string) $pageSize;
-
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values -- used for the status tabs
- * and pagination links so Prev/Next/Go carry the active filters forward.
- */
-function customers_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
-}
+canonicalize_get([
+    'status' => $status,
+    'page_size' => $pageSize,
+]);
 
 $where = [];
 $params = [];
@@ -96,9 +81,13 @@ if ($status === 'active') {
 }
 $listWhereSql = $listWhere ? ('WHERE ' . implode(' AND ', $listWhere)) : '';
 
-$totalPages = max(1, (int) ceil($totalCount / $pageSize));
-$page = min($page, $totalPages);
-$offset = ($page - 1) * $pageSize;
+$pagination = paginate($totalCount, $page, $pageSize);
+$page = $pagination['page'];
+$totalPages = $pagination['totalPages'];
+$offset = $pagination['offset'];
+// Keep $_GET in sync with the clamped page so build_query() never echoes
+// back an out-of-range page number.
+canonicalize_get(['page' => $page]);
 
 // LIMIT/OFFSET are interpolated directly rather than bound: both are
 // fully server-computed ints at this point (page size is clamped against
@@ -147,7 +136,7 @@ $pageTitle = 'Customers';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(customers_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
@@ -230,47 +219,25 @@ $pageTitle = 'Customers';
                         </table>
                     </div>
 
-                    <div class="table-pagination">
-                        <div class="table-pagination__status-group">
-                            <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                            <form method="get" class="table-card-controls">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="institute_id" value="<?= e((string) $instituteId) ?>">
-                                <input type="hidden" name="lab_id" value="<?= e((string) $labId) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="page" value="1">
-                                <label for="customers-page-size" class="sr-only">Customers per page</label>
-                                <select name="page_size" id="customers-page-size" onchange="this.form.submit()">
-                                    <?php foreach (CUSTOMERS_PAGE_SIZE_OPTIONS as $option): ?>
-                                        <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </form>
-                        </div>
-                        <div class="table-pagination__controls">
-                            <?php if ($page <= 1): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(customers_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
-                            <?php endif; ?>
-                            <form method="get" class="table-card-controls table-pagination__jump">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="institute_id" value="<?= e((string) $instituteId) ?>">
-                                <input type="hidden" name="lab_id" value="<?= e((string) $labId) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
-                                <label for="customers-page-jump" class="sr-only">Go to page</label>
-                                <input type="number" name="page" id="customers-page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
-                                <span class="table-pagination__status">of <?= $totalPages ?></span>
-                                <button type="submit" class="btn btn--secondary btn--sm">Go</button>
-                            </form>
-                            <?php if ($page >= $totalPages): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(customers_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php
+                    $tablePagination = [
+                        'idPrefix' => 'customers-',
+                        'itemLabel' => 'Customers',
+                        'hiddenFields' => [
+                            'q' => $q,
+                            'institute_id' => (string) $instituteId,
+                            'lab_id' => (string) $labId,
+                            'status' => $status,
+                        ],
+                        'page' => $page,
+                        'totalPages' => $totalPages,
+                        'pageSize' => $pageSize,
+                        'rangeStart' => $rangeStart,
+                        'rangeEnd' => $rangeEnd,
+                        'totalCount' => $totalCount,
+                    ];
+                    include __DIR__ . '/../../src/partials/table_pagination.php';
+                    ?>
                 <?php endif; ?>
             </div>
         </main>

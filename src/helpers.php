@@ -619,3 +619,62 @@ function mark_orders_seen(): ?int
 
     return $previous;
 }
+
+// Allowed page-size choices for every list page's page-size selector --
+// identical everywhere; each page keeps its own *_DEFAULT_PAGE_SIZE
+// constant since the default deliberately differs (10 customer/staff, 20
+// admin).
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+/**
+ * Builds a query string from the current $_GET with the given overrides
+ * applied, dropping empty/null values. Shared by every list page's status
+ * tabs, pagination links, and POST-form actions, so paging/filtering never
+ * drops the rest of the active view.
+ */
+function build_query(array $overrides = []): string
+{
+    $params = array_merge($_GET, $overrides);
+    foreach ($params as $key => $value) {
+        if ($value === '' || $value === null) {
+            unset($params[$key]);
+        }
+    }
+    return http_build_query($params);
+}
+
+/**
+ * Writes each already-whitelisted/clamped filter value back into $_GET, so
+ * build_query() (which reads $_GET) reflects the real applied values
+ * rather than raw/invalid query-string input -- e.g. an out-of-enum
+ * ?status=garbage gets overwritten with the validated '' before any link
+ * on this render is built. build_query() already drops empty values when
+ * assembling a query string, so values are written as-is here -- no
+ * unset-if-empty branching needed.
+ */
+function canonicalize_get(array $values): void
+{
+    foreach ($values as $key => $value) {
+        $_GET[$key] = (string) $value;
+    }
+}
+
+/**
+ * Clamped pagination math shared by every list page: total pages (at
+ * least 1), the current page clamped into range, the LIMIT offset, and the
+ * human "Showing X-Y of Z" range endpoints.
+ */
+function paginate(int $totalCount, int $page, int $pageSize): array
+{
+    $totalPages = max(1, (int) ceil($totalCount / $pageSize));
+    $page = min($page, $totalPages);
+    $offset = ($page - 1) * $pageSize;
+
+    return [
+        'page' => $page,
+        'totalPages' => $totalPages,
+        'offset' => $offset,
+        'rangeStart' => $totalCount > 0 ? $offset + 1 : 0,
+        'rangeEnd' => min($offset + $pageSize, $totalCount),
+    ];
+}

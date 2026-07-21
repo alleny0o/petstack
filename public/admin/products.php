@@ -7,7 +7,6 @@ require_role('admin'); // catalog management is admin-only; staff only process o
 $pdo = get_db();
 
 const PRODUCTS_DEFAULT_PAGE_SIZE = 20;
-const PRODUCTS_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 // The three fixed delivery methods (products.delivery_method enum) --
 // display labels always come from delivery_method_label() (helpers.php).
@@ -30,33 +29,18 @@ $status = in_array($_GET['status'] ?? '', ['active', 'unavailable', 'inactive'],
 $nuclideFilter = ctype_digit((string) ($_GET['nuclide'] ?? '')) ? (int) $_GET['nuclide'] : 0;
 $fulfillmentFilter = in_array($_GET['fulfillment'] ?? '', $deliveryMethods, true) ? $_GET['fulfillment'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PRODUCTS_PAGE_SIZE_OPTIONS, true)
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : PRODUCTS_DEFAULT_PAGE_SIZE;
 
-// Canonicalize so every link built via products_query() below carries the
+// Canonicalize so every link built via build_query() below carries the
 // real applied values -- same convention as accounts.php / nuclides.php.
-$_GET['status'] = $status;
-$_GET['nuclide'] = $nuclideFilter > 0 ? (string) $nuclideFilter : '';
-$_GET['fulfillment'] = $fulfillmentFilter;
-$_GET['page'] = (string) $page;
-$_GET['page_size'] = (string) $pageSize;
-
-/**
- * Builds a query string from the current GET params with the given
- * overrides applied, dropping empty values -- used for the status tabs,
- * pagination links, and every POST form's action. Mirrors
- * accounts_query() / nuclides_query().
- */
-function products_query(array $overrides = []): string
-{
-    $params = array_merge($_GET, $overrides);
-    foreach ($params as $key => $value) {
-        if ($value === '' || $value === null) {
-            unset($params[$key]);
-        }
-    }
-    return http_build_query($params);
-}
+canonicalize_get([
+    'status' => $status,
+    'nuclide' => $nuclideFilter > 0 ? $nuclideFilter : '',
+    'fulfillment' => $fulfillmentFilter,
+    'page' => $page,
+    'page_size' => $pageSize,
+]);
 
 $addErrors = [];
 $addOld = ['name' => '', 'nuclide_id' => '', 'delivery_method' => '', 'active' => '1'];
@@ -115,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO products (nuclide_id, name, delivery_method, active) VALUES (?, ?, ?, ?)')
                 ->execute([$nuclideId, $addOld['name'], $addOld['delivery_method'], (int) $addOld['active']]);
-            redirect('/admin/products.php?' . products_query(['created' => '1']));
+            redirect('/admin/products.php?' . build_query(['created' => '1']));
         }
     } elseif ($action === 'update') {
         $editOld['product_id'] = trim($_POST['product_id'] ?? '');
@@ -189,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE products SET name = ?, nuclide_id = ?, delivery_method = ? WHERE product_id = ?')
                 ->execute([$editOld['name'], $nuclideId, $editOld['delivery_method'], $productId]);
-            redirect('/admin/products.php?' . products_query(['updated' => '1']));
+            redirect('/admin/products.php?' . build_query(['updated' => '1']));
         }
     } elseif ($action === 'toggle_active') {
         $productId = ctype_digit((string) ($_POST['product_id'] ?? '')) ? (int) $_POST['product_id'] : 0;
@@ -202,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE products SET active = ? WHERE product_id = ?')
                     ->execute([$newActive, $productId]);
-                redirect('/admin/products.php?' . products_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/admin/products.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -273,12 +257,13 @@ if ($status === 'active') {
 }
 $listWhereSql = $listWhere ? ('WHERE ' . implode(' AND ', $listWhere)) : '';
 
-$totalPages = max(1, (int) ceil($totalCount / $pageSize));
-$page = min($page, $totalPages);
-$offset = ($page - 1) * $pageSize;
-// Keep $_GET in sync with the clamped page so products_query() (and
+$pagination = paginate($totalCount, $page, $pageSize);
+$page = $pagination['page'];
+$totalPages = $pagination['totalPages'];
+$offset = $pagination['offset'];
+// Keep $_GET in sync with the clamped page so build_query() (and
 // $formAction below) never echoes back an out-of-range page number.
-$_GET['page'] = (string) $page;
+canonicalize_get(['page' => $page]);
 
 // Full management list: joins nuclides unfiltered on purpose (unlike the
 // customer order form's active-only view) and pulls n.active for the
@@ -311,7 +296,7 @@ $activeNuclides = array_values(array_filter($allNuclides, fn($n) => $n['active']
 // form's action, computed after the page clamp above -- so
 // create/edit/toggle all redirect back to the exact view the admin was on.
 $formAction = '/admin/products.php';
-$currentQueryString = products_query();
+$currentQueryString = build_query();
 if ($currentQueryString !== '') {
     $formAction .= '?' . $currentQueryString;
 }
@@ -350,7 +335,7 @@ $pageTitle = 'Products';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(products_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
@@ -483,47 +468,25 @@ $pageTitle = 'Products';
                         </table>
                     </div>
 
-                    <div class="table-pagination">
-                        <div class="table-pagination__status-group">
-                            <span class="table-pagination__status">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $totalCount ?></span>
-                            <form method="get" class="table-card-controls">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="nuclide" value="<?= $nuclideFilter > 0 ? $nuclideFilter : '' ?>">
-                                <input type="hidden" name="fulfillment" value="<?= e($fulfillmentFilter) ?>">
-                                <input type="hidden" name="page" value="1">
-                                <label for="products-page-size" class="sr-only">Products per page</label>
-                                <select name="page_size" id="products-page-size" onchange="this.form.submit()">
-                                    <?php foreach (PRODUCTS_PAGE_SIZE_OPTIONS as $option): ?>
-                                        <option value="<?= $option ?>" <?= $pageSize === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </form>
-                        </div>
-                        <div class="table-pagination__controls">
-                            <?php if ($page <= 1): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(products_query(['page' => $page - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
-                            <?php endif; ?>
-                            <form method="get" class="table-card-controls table-pagination__jump">
-                                <input type="hidden" name="q" value="<?= e($q) ?>">
-                                <input type="hidden" name="status" value="<?= e($status) ?>">
-                                <input type="hidden" name="nuclide" value="<?= $nuclideFilter > 0 ? $nuclideFilter : '' ?>">
-                                <input type="hidden" name="fulfillment" value="<?= e($fulfillmentFilter) ?>">
-                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
-                                <label for="products-page-jump" class="sr-only">Go to page</label>
-                                <input type="number" name="page" id="products-page-jump" min="1" max="<?= $totalPages ?>" value="<?= $page ?>">
-                                <span class="table-pagination__status">of <?= $totalPages ?></span>
-                                <button type="submit" class="btn btn--secondary btn--sm">Go</button>
-                            </form>
-                            <?php if ($page >= $totalPages): ?>
-                                <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
-                            <?php else: ?>
-                                <a href="?<?= e(products_query(['page' => $page + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php
+                    $tablePagination = [
+                        'idPrefix' => 'products-',
+                        'itemLabel' => 'Products',
+                        'hiddenFields' => [
+                            'q' => $q,
+                            'status' => $status,
+                            'nuclide' => $nuclideFilter > 0 ? $nuclideFilter : '',
+                            'fulfillment' => $fulfillmentFilter,
+                        ],
+                        'page' => $page,
+                        'totalPages' => $totalPages,
+                        'pageSize' => $pageSize,
+                        'rangeStart' => $rangeStart,
+                        'rangeEnd' => $rangeEnd,
+                        'totalCount' => $totalCount,
+                    ];
+                    include __DIR__ . '/../../src/partials/table_pagination.php';
+                    ?>
                 <?php endif; ?>
             </div>
 
