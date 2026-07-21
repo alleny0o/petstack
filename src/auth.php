@@ -74,9 +74,9 @@ function attempt_login(string $username, string $password): array
  * Whether a session role satisfies a page's role requirement.
  *
  * admin ⊆ staff is a hard DB-level invariant (admins.user_id -> staff.user_id
- * FK, Phase A.2) — every admin also has a staff row, so an admin session
- * must satisfy staff-only pages. This is one-directional: staff does NOT
- * satisfy admin-only pages.
+ * FK) — every admin also has a staff row, so an admin session must satisfy
+ * staff-only pages. This is one-directional: staff does NOT satisfy
+ * admin-only pages.
  */
 function role_satisfies(string $sessionRole, string $requiredRole): bool
 {

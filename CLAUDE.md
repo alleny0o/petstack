@@ -116,6 +116,21 @@ petcom/
                              create + edit modals (name + optional
                              email/phone); toggle active; lab pairings are
                              managed from labs.php, not here)
+      reports.php            (filterable order-history report — date range/
+                             status/institute/nuclide/product/chargeable
+                             filters; feeds export_csv.php)
+      export_csv.php         (CSV download of the report above; date params
+                             validated, cell values sanitized via
+                             csv_safe() against formula injection)
+    account_profile.php  (staff/admin self-service profile edit/password
+                          reset/deactivate, reached from the sidebar
+                          profile modal — require_role(['staff', 'admin']),
+                          deliberately excludes customer; customer
+                          self-editing was removed in favor of admin-only
+                          customer_detail.php)
+    registration_status.php  (public, unauthenticated lookup of a
+                          submitted registration request's pending/
+                          approved/rejected status by email)
     assets/
       css/
         style.css        (tokens + base/reset + typography + accessibility)
@@ -164,18 +179,40 @@ petcom/
     schema.sql          (see Database section below)
     seed.sql            (test data)
 
+  docs/
+    SECURITY_AUDIT.md          (security review findings; all fix batches committed)
+    OPTIMIZATION_AUDIT.md      (read-only codebase quality audit; findings
+                               applied incrementally in small batches)
+
   tools/
     set_temp_passwords.php (one-time setup for seeded accounts)
 ```
 
-No `docs/` folder yet — `DEPLOY.md` is expected to show up eventually as part
-of deployment polish; nothing currently reads a `SCHEMA.md`, and it isn't
-committed anywhere yet either.
+`DEPLOY.md` is expected to show up eventually as part of deployment polish;
+nothing currently reads a `SCHEMA.md`, and it isn't committed anywhere yet
+either.
 
-**Note:** the whole repo is intentionally uncommitted to git for now (standing
-project decision to hold off until further along) — this is a general
-repo-status fact, not a signal that any particular feature described below is
-unfinished or unvalidated.
+### Layout partials — reserved variables
+
+`layout_customer.php`, `layout_staff.php`, and `layout_admin.php` are plain
+`include`s executed mid-page, so every variable they assign lands in the
+including page's own scope — not a sandboxed template context. A page
+including one of these must treat the following names as taken:
+
+| Layout | Reserved names | Notes |
+|---|---|---|
+| `layout_customer.php` | `$accountStmt`, `$accountRow`, `$accountName`, `$accountInitials`, `$currentPage`, `$labId`, `$labLookupStmt`, `$newOrderFormData`, `$nuclides`, `$products`, `$locations`, `$productUsers` | `$labId` is an optional caller input (looked up only if unset); `$nuclides` is the only guard key — a page that pre-sets `$products`/`$locations`/`$productUsers` but not `$nuclides` gets silently overwritten |
+| `layout_staff.php` | `$accountStmt`, `$accountRow`, `$accountName`, `$accountInitials`, `$currentPage` | Also reads `$_GET['profile_updated']`/`['profile_error']` and echoes toasts — side effects beyond markup |
+| `layout_admin.php` | staff's five, plus `$accountsChildPages`, `$accountsSectionActive`, `$catalogChildPages`, `$catalogSectionActive`, `$directoryChildPages`, `$directorySectionActive` | Same `$_GET` toast block duplicated verbatim |
+| `head.php` | expects `$pageTitle` from caller | Used unguarded — a page that forgets it gets a PHP notice + broken title |
+
+`new_order_modal.php` is the one collision-safe partial — its `$old`/
+`$fieldErrors` are closure-wrapped rather than assigned into the including
+scope. Two pages currently depend on the leakage on purpose:
+`customer/dashboard.php` reads `$accountRow` after the layout include, and
+`customer/order_detail.php` consumes `$nuclides`/`$products`/`$locations`/
+`$productUsers` from the layout for its edit form — treat these as an
+undocumented API surface, not incidental reuse, if you touch either layout.
 
 ## Database
 
@@ -365,7 +402,7 @@ the Cancellation Reason card).
 These came from the requirements interview. Don't simplify them.
 
 - **No phone-in orders.** Customers place their own orders only. No `is_phone_in` field, no attestation.
-- **Self-registration lands in `customer_registration_requests`, not `customers`.** A public registration submission creates a row in that separate table (`status`: pending/approved/rejected) — no `users` or `customers` row exists until an admin approves the request, at which point the account and temp password get created. `customers.registration_status`/`approved_by`/`approved_at` predate this design and are unused by the current registration flow.
+- **Self-registration lands in `customer_registration_requests`, not `customers`.** A public registration submission creates a row in that separate table (`status`: pending/approved/rejected) — no `users` or `customers` row exists until an admin approves the request, at which point the account and temp password get created. `customers.registration_status` predates this design and isn't used for gating by the current registration flow — a `customers` row only ever exists post-approval, so its value is always `'approved'` in practice.
 - **There is one order form for all order types.** Cyclotron target requests use the same form as any other order; their run-specific details (beam current, bombardment time, EOB activity, destination) go in the Notes text field rather than dedicated structured columns or a separate detail table. Do not build or maintain a second order-detail table.
 - **Order lifecycle is designed.** `pending -> accepted` (accept), `accepted -> pending` (return), `accepted -> completed` (complete, terminal), `pending|accepted -> cancelled` (cancel), and `cancelled -> pending` (reopen, staff-only) — see Database section. `completed` is the only terminal status. All transitions go through `transition_order_status()`; no call site should bypass it or invent additional transitions.
 - **Cancelling an order always requires a reason.** `orders.cancellation_reason` is required (non-empty, ≤500 chars) on every cancel, whether customer- or staff-initiated. Enforced inside `transition_order_status()`, not left to individual call sites.
@@ -403,13 +440,14 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 **No role-specific CSS files.** All three roles share the same component library.
 
 **UI feedback conventions:**
-- Transient success → toast via `toast_flash($type, $message)` (helpers.php); pages re-render on POST (no PRG), so the helper emits a DOMContentLoaded `showToast()` call
+- Transient success → toast via `toast_flash($type, $message)` (helpers.php), which emits a DOMContentLoaded `showToast()` call. PRG (post-redirect-GET) with arrival-flag query params is the established convention for this — 7 admin CRUD pages (`nuclides.php`, `pis.php`, `institutes.php`, `products.php`, `labs.php`, `lab_product_users.php`, `lab_delivery_locations.php`) and both order-detail pages (`customer/order_detail.php`, `staff/order_detail.php`) redirect after a successful POST and toast off the arrival flag. The one exception is a one-time secret that can't safely round-trip through a redirect (a temp password): `accounts.php`'s New Account modal and `registrations.php`'s approve action re-render the same POST response inline instead — see the Admin CRUD Page Conventions section
 - Errors/warnings → inline `.alert--error/--warning` banners; per-field validation → `field_class()` on the `.field` wrapper + `field_error()` below the input
 - Destructive/irreversible actions → `data-confirm` / `data-confirm-title` / `data-confirm-verb` / `data-confirm-danger` attributes on the form; script.js intercepts submit and shows a custom modal (never `window.confirm`)
 - Temp-password reveals → `.temp-password-banner` with a `data-copy-target` Copy button; never a toast
 - Status language: pill badges with a leading dot (`.badge--active/pending/approved/rejected/…`); square, no-dot chips are for facts rather than states (`.badge--role-admin/staff`, `.badge--not-chargeable`)
 - Submit buttons get a spinner + double-submit guard automatically from script.js — no per-form wiring needed
 - Military time (24-hour HH:MM) for any order date/time field is enforced as a pattern-validated text input, never a native time picker — this guarantees no AM/PM UI ever appears, including on mobile. This is a real department requirement, not a style choice.
+- Displayed timestamps follow the same split: order-facing surfaces use 24-hour `M j, Y H:i` (matching the military-time rule above); admin identity/registration timestamps use 12-hour `g:i A` instead (`admin/dashboard.php`, `account_detail.php`, `customer_detail.php`, `registrations.php`). Consistent in current practice — pick the one matching the surface you're on for new timestamp displays.
 
 **Dark mode:** Not implemented right now. Tokens may exist in CSS for future use but no toggle is wired up.
 
@@ -431,7 +469,7 @@ New admin (and any other role's) list/create/edit pages should default to the pa
   collapsed-rail flyout already enforced one-at-a-time separately. New admin
   pages should join an existing submenu or follow this pattern, not add flat
   top-level links.
-- **DRY:** check for an existing helper/pattern before writing new logic. Known reusable pieces: `generate_temp_password()` (deliberately duplicated per-file, not shared into `helpers.php` — copy its shape, don't reinvent it), `fetch_order_audit_trail()`, `transition_order_status()`, `customer_display_name()`, `field_class()`/`field_error()`, `toast_flash()`, `csrf_field()`/`verify_csrf()`. If a page needs something that looks like one of these, it probably already exists — grep before writing.
+- **DRY:** check for an existing helper/pattern before writing new logic. Known reusable pieces: `generate_temp_password()` (deliberately duplicated per-file, not shared into `helpers.php` — copy its shape, don't reinvent it), `fetch_order_audit_trail()`, `transition_order_status()`, `customer_display_name()`, `field_class()`/`field_error()`, `toast_flash()`, `csrf_field()`/`verify_csrf()`. If a page needs something that looks like one of these, it probably already exists — grep before writing. `wireModalDirtyTracking()`'s companion `snapshotForm()` is copied into all 8 pages that use the modal-dirty-tracking convention; 6 copies are byte-identical, but `labs.php` (snapshots checkbox state for the PI roster) and `products.php` (skips disabled elements for the nuclide/fulfillment lock-mirror hidden inputs) carry deliberate, documented forks — check both before re-syncing a base-copy fix across all 8, don't blindly copy-paste over them.
 
 ## Git Workflow
 

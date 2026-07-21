@@ -1,6 +1,6 @@
 <?php
 /**
- * Session bootstrap, CSRF tokens, HTML escaping, redirects.
+ * Shared helper functions used across all three roles.
  */
 
 // Every page includes this file, so this is the one place that needs to run
@@ -115,9 +115,12 @@ function asset_url(string $path): string
 
 /**
  * Emits a script tag that pops a toast once the page has loaded.
- * Used for transient success feedback on pages that re-render after
- * a POST (this app doesn't redirect-after-POST); persistent messages
- * (errors, temp passwords) stay as inline .alert markup instead.
+ * Used for transient success feedback -- both on the PRG (redirect-after-
+ * POST with an arrival-flag query param) convention most pages use, and on
+ * the handful of pages that re-render the same POST response inline
+ * instead (a one-time secret like a temp password can't safely round-trip
+ * through a redirect); persistent messages (errors, temp passwords) stay
+ * as inline .alert markup instead.
  * json_encode with the HEX flags makes the values safe to embed in
  * an inline <script> (no </script> or quote breakouts).
  */
@@ -162,8 +165,7 @@ function field_class(array $fieldErrors, string $key, string $base = 'field'): s
 /**
  * Builds a display name like "Alice Carter" from a customer's
  * first/last name. Falls back to the username when the customer has no
- * name on file (not-yet-approved rows) or the joined row belongs to a
- * non-customer (staff/admin authors on a shared comment thread).
+ * name on file (not-yet-approved rows).
  */
 function customer_display_name(?string $firstName, ?string $lastName, string $usernameFallback): string
 {
@@ -410,9 +412,7 @@ function format_activity_mci(string $activity): string
  * Whether $role may edit an order's Notes field. Staff/admin always can,
  * on any order; a customer only on their own order. This is the
  * confirmed permission model for orders.notes (the single shared,
- * overwritable communication channel) -- defined ahead of its consumers:
- * only order creation exists today, so nothing calls this yet, but the
- * order-detail rebuild and staff dashboard will.
+ * overwritable communication channel).
  */
 function can_edit_order_notes(string $role, bool $isOwnOrder): bool
 {

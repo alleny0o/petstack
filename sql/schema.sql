@@ -145,7 +145,10 @@ CREATE TABLE admins (
 -- lab_id -> labs.institute_id, since a lab belongs to exactly one
 -- institute and storing it twice risks the two facts disagreeing.
 -- Lab/supervising PI are locked at approval time.
--- registration_status lives directly here — no separate requests table.
+-- registration_status predates customer_registration_requests below and
+-- isn't used for gating by the current registration flow -- a customers
+-- row only ever exists post-approval, so this is always 'approved' in
+-- practice. Kept for now; not read by application logic that decides access.
 -- first_name/last_name/phone live on users now, not duplicated here --
 -- every customer row is also a users row (fk_customers_user below), so
 -- name/phone are always reachable through that FK.
