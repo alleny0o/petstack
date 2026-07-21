@@ -47,6 +47,7 @@ $pageSize = in_array((int) ($_GET['page_size'] ?? 0), ORDERS_PAGE_SIZE_OPTIONS, 
 // Canonicalize $_GET to the validated/clamped values so every link built
 // via orders_query() below (pagination, filter changes) carries the real
 // applied values forward, never raw/invalid ones.
+$_GET['status'] = $status;
 $_GET['page_size'] = (string) $pageSize;
 if ($requestedFrom !== '') {
     $_GET['requested_from'] = $requestedFrom;

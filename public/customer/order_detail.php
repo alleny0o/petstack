@@ -443,7 +443,6 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                             <option
                                                 value="<?= (int) $p['product_id'] ?>"
                                                 data-nuclide-id="<?= (int) $p['nuclide_id'] ?>"
-                                                data-delivery-method="<?= e($p['delivery_method']) ?>"
                                                 data-requires-location="<?= $p['delivery_method'] === 'direct_delivery' ? 1 : 0 ?>"
                                                 data-delivery-label="<?= e(delivery_method_label($p['delivery_method'])) ?>"
                                                 <?= $editOld['product_id'] === (string) $p['product_id'] ? 'selected' : '' ?>

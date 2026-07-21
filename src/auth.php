@@ -63,7 +63,6 @@ function attempt_login(string $username, string $password): array
     $_SESSION['user_id'] = (int) $user['user_id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['role'] = $role;
-    $_SESSION['role_id'] = (int) $user['user_id']; // admins/staff/customers all key off user_id
     $_SESSION['must_change_password'] = (bool) $user['must_change_password'];
     $_SESSION['last_activity'] = time();
 
