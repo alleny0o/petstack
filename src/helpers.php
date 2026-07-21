@@ -9,7 +9,7 @@
 // local time.
 date_default_timezone_set('America/New_York');
 
-require_once __DIR__ . '/config.sample.php';
+require_once __DIR__ . '/config.php';
 
 /**
  * Starts the session with hardened cookie flags. Every page must call

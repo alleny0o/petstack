@@ -130,6 +130,9 @@ function require_role($allowedRoles): void
         redirect('/change_password.php');
     }
 
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
     $_SESSION['last_activity'] = time();
 }
 
