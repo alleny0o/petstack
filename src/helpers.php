@@ -11,6 +11,29 @@ date_default_timezone_set('America/New_York');
 
 require_once __DIR__ . '/config.php';
 
+// display_errors is PHP_INI_ALL (runtime-changeable), so this forces
+// error detail out of the browser regardless of the server's php.ini --
+// the set_exception_handler() below still logs the real message via
+// error_log() so nothing is lost, just moved server-side.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+// Global backstop for anything uncaught (most commonly a PDOException --
+// db.php runs with ERRMODE_EXCEPTION app-wide). Registered here because
+// helpers.php is the first file every entry point requires, so this is
+// live before db.php/config.php's constants are even used to connect.
+set_exception_handler(function (Throwable $e): void {
+    error_log('[UNCAUGHT] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString());
+
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+
+    echo '<!DOCTYPE html><html><head><title>Something went wrong</title></head><body>'
+        . '<p>Something went wrong. Please try again, and contact your administrator if the problem continues.</p>'
+        . '</body></html>';
+});
+
 /**
  * Starts the session with hardened cookie flags. Every page must call
  * this instead of a bare session_start() so HttpOnly/Secure are never
@@ -21,6 +44,7 @@ function bootstrap_session(): void
     session_set_cookie_params([
         'httponly' => true,
         'secure'   => REQUIRE_SECURE_COOKIES,
+        'samesite' => 'Lax',
     ]);
     session_start();
 }

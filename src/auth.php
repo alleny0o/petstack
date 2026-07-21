@@ -24,9 +24,8 @@ function attempt_login(string $username, string $password): array
     }
 
     if ($user['locked_until'] !== null && strtotime($user['locked_until']) > time()) {
-        $minutesLeft = (int) ceil((strtotime($user['locked_until']) - time()) / 60);
-        $unit = $minutesLeft === 1 ? 'minute' : 'minutes';
-        return ['success' => false, 'reason' => "Account temporarily locked. Try again in {$minutesLeft} {$unit}."];
+        error_log('Login attempt on locked account: username=' . $username);
+        return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
     if (!password_verify($password, $user['password_hash'])) {
@@ -132,12 +131,25 @@ function require_role($allowedRoles): void
 
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
 
     $_SESSION['last_activity'] = time();
 }
 
 function logout(): void
 {
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires'  => time() - 42000,
+            'path'     => $params['path'],
+            'domain'   => $params['domain'],
+            'secure'   => $params['secure'],
+            'httponly' => $params['httponly'],
+            'samesite' => $params['samesite'] ?? 'Lax',
+        ]);
+    }
     session_destroy();
     redirect('/login.php');
 }
