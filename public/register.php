@@ -91,7 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Duplicate prevention: a pending request already exists, or an
         // account already exists. A rejected prior request does not
         // block resubmission. These are the only two account-existence
-        // signals shown to an unauthenticated visitor.
+        // signals shown to an unauthenticated visitor -- yes, this lets a
+        // visitor enumerate which emails are registered (SECURITY_AUDIT.md
+        // 5.3). Reviewed deliberately in the Batch 4 security pass and
+        // kept as-is: the distinct messages have real self-service UX
+        // value (a genuine user can tell whether to wait for review or
+        // just log in) and this is an acceptable trade-off on an internal
+        // intranet app. Formally accepted risk, not an oversight.
         $stmt = $pdo->prepare("SELECT 1 FROM customer_registration_requests WHERE email = ? AND status = 'pending'");
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {

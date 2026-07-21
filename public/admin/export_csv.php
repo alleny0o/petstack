@@ -18,8 +18,10 @@ $nuclide    = ctype_digit((string) ($_GET['nuclide'] ?? '')) ? (int) $_GET['nucl
 $product    = ctype_digit((string) ($_GET['product'] ?? '')) ? (int) $_GET['product'] : 0;
 $chargeable = in_array($_GET['chargeable'] ?? '', ['0', '1'], true) ? $_GET['chargeable'] : '';
 
-if (!$start_date || !$end_date) {
-    die("Please provide a valid date range.");
+$dateRegex = '/^\d{4}-\d{2}-\d{2}$/';
+if (!$start_date || !$end_date || !preg_match($dateRegex, $start_date) || !preg_match($dateRegex, $end_date)) {
+    http_response_code(400);
+    die('Please provide a valid date range.');
 }
 
 $start_datetime = $start_date . " 00:00:00";
@@ -106,12 +108,12 @@ foreach ($orders as $row) {
     fputcsv($output, [
         $row['order_id'],
         $formatted_date,
-        $row['institute_name'] ?? 'N/A', // Fallback if no location found
-        $row['nuclide_name'] ?? 'N/A',   // Fallback if no nuclide found
-        $row['product_name'] ?? 'N/A',
+        csv_safe($row['institute_name'] ?? 'N/A'), // Fallback if no location found
+        csv_safe($row['nuclide_name'] ?? 'N/A'),   // Fallback if no nuclide found
+        csv_safe($row['product_name'] ?? 'N/A'),
         ucfirst($row['status']),
         $chargeable_text,
-        $row['cancellation_reason']
+        csv_safe($row['cancellation_reason'])
     ]);
 }
 

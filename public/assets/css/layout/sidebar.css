@@ -353,6 +353,14 @@
   flex-shrink: 0;
   color: var(--color-text-placeholder);
   display: flex;
+  /* Now a <button> (POST logout for CSRF), not an <a> -- same native
+     chrome reset as .sidebar-account above. */
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
 }
 .sidebar .sidebar-footer .logout-link:hover {
   color: var(--color-error);

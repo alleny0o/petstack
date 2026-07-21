@@ -194,16 +194,6 @@ if ($labId > 0) {
     );
     $listStmt->execute($params);
     $deliveryLocations = $listStmt->fetchAll();
-
-    // [LOC-DEBUG] Temporary evidence logging -- keep until Allen has
-    // confirmed live in the browser that (1) no "Undefined index" notices
-    // appear and (2) toggling active/inactive actually changes the badge
-    // on reload. Do not remove preemptively.
-    error_log('[LOC-DEBUG] SQL=' . $listStmt->queryString);
-    error_log('[LOC-DEBUG] row_count=' . count($deliveryLocations));
-    if ($deliveryLocations) {
-        error_log('[LOC-DEBUG] first_row=' . print_r($deliveryLocations[0], true));
-    }
 }
 
 // Embeds the current search/page/page-size state into every POST form's
