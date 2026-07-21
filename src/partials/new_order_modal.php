@@ -17,7 +17,7 @@
     </div>
     <div class="modal__body">
       <?php
-      // Isolated in a closure so the pristine $old/$fieldErrors/$todayDate
+      // Isolated in a closure so the pristine $old/$fieldErrors
       // this render needs never leak into (or collide with) the including
       // page's variable scope. The modal always renders the form empty --
       // submission is AJAX and validation errors are injected client-side,
@@ -36,7 +36,6 @@
               'product_user_id' => '',
           ];
           $fieldErrors = [];
-          $todayDate = date('Y-m-d');
           // The submit button renders in this modal's pinned footer below
           // instead of inside the form -- see the form="order-form"
           // association on Place order.

@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // approved account exists for a given email (same principle as the
         // Phase B login hardening).
         $stmt = get_db()->prepare(
-            'SELECT status, rejection_reason
+            'SELECT status
              FROM customer_registration_requests
              WHERE email = ?
              ORDER BY request_id DESC
@@ -69,7 +69,7 @@ $pageTitle = 'Registration Status';
             <?php elseif ($result['status'] === 'rejected'): ?>
               <div class="alert alert--error">
                 <div><span class="badge badge--rejected">Rejected</span></div>
-                <div>Your registration was not approved. Reason: <?= e($result['rejection_reason']) ?></div>
+                <div>Your registration was not approved. Contact an administrator for details.</div>
                 <div>You may submit a new registration if you'd like.</div>
               </div>
             <?php elseif ($result['status'] === 'approved'): ?>

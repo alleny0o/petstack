@@ -229,17 +229,6 @@ if ($labId > 0) {
     );
     $listStmt->execute($params);
     $productUsersList = $listStmt->fetchAll();
-
-    // [PU-DEBUG] Temporary evidence logging -- keep until Allen has
-    // confirmed live in the browser that (1) no "Undefined index" notices
-    // appear, (2) a newly created product user shows Active immediately,
-    // and (3) toggling in either direction never makes a row vanish or
-    // mislabel. Do not remove preemptively.
-    error_log('[PU-DEBUG] SQL=' . $listStmt->queryString);
-    error_log('[PU-DEBUG] row_count=' . count($productUsersList));
-    if ($productUsersList) {
-        error_log('[PU-DEBUG] first_row=' . print_r($productUsersList[0], true));
-    }
 }
 
 // Embeds the current search/page/page-size state into every POST form's

@@ -261,8 +261,6 @@ nuclide is inactive shows an amber "Unavailable" pill (with a "Nuclide
 inactive" hint) — distinct from the gray "Inactive" pill, which always
 means an admin turned that product off directly.
 Staff do not manage the catalog — their role is order processing only.
-Still open: sync with Xiaofan/Kris to confirm the seeded nuclide/product
-list is the long-term list.
 
 **Naming collision (intentional):** "product" now has two senses in this
 codebase — a catalog item (the `products` table) and a "product user" / dose

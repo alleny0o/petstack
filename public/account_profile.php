@@ -17,7 +17,7 @@ require_role(['staff', 'admin']);
  */
 function local_redirect_target(string $candidate, string $fallback): string
 {
-    if ($candidate === '' || $candidate[0] !== '/' || str_starts_with($candidate, '//')) {
+    if ($candidate === '' || $candidate[0] !== '/' || strpos($candidate, '//') === 0 || strpos($candidate, '/\\') === 0) {
         return $fallback;
     }
     return $candidate;
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $target = local_redirect_target((string) ($_POST['redirect_to'] ?? ''), dashboard_path_for_role($_SESSION['role']));
-    $sep = str_contains($target, '?') ? '&' : '?';
+    $sep = strpos($target, '?') !== false ? '&' : '?';
 
     $firstName = trim($_POST['first_name'] ?? '');
     $lastName = trim($_POST['last_name'] ?? '');

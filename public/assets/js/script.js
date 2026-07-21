@@ -825,6 +825,16 @@ function initReportsForm() {
 // touches the DOM, then the page-wide confirm/form/copy/dashboard
 // behaviors) ========================================================
 
+// ===== bfcache backstop after logout ===============================
+// Server sends no-store (see require_role() in src/auth.php), but some
+// browsers still restore a bfcache snapshot on back/forward before
+// re-requesting. Force a reload on any bfcache restore so a stale
+// authenticated page is never shown after logout.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) window.location.reload();
+});
+
+
 document.addEventListener('DOMContentLoaded', () => {
   initSidebarToggle();
   initHamburgerToggle();
