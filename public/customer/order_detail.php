@@ -685,7 +685,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
              so the document outline keeps the on-screen page's single h1. -->
         <div class="order-print" aria-hidden="true">
             <div class="order-print__header">
-                <div class="order-print__brand">PETCOM</div>
+                <div class="order-print__brand"><?= e(app_setting('app_name')) ?></div>
                 <?php // Chargeable mirrors both of its on-screen placements --
                       // inline next to the status pill here, and as an Order
                       // Details field below (this page has no Billing card;

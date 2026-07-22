@@ -48,10 +48,10 @@ $pageTitle = 'Log In';
       <div class="auth-card__head">
         <div class="auth-card__brand">
           <div class="auth-card__logo">
-            <img src="/favicons/android-chrome-192x192.png" alt="PETCOM">
+            <img src="/favicons/android-chrome-192x192.png" alt="<?= e(app_setting('app_name')) ?>">
           </div>
           <div>
-            <div class="auth-card__title">PETCOM</div>
+            <div class="auth-card__title"><?= e(app_setting('app_name')) ?></div>
             <div class="auth-card__subtitle">Sign In</div>
           </div>
         </div>

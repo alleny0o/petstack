@@ -561,7 +561,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
              .comment-list, which is sized for screen. -->
         <div class="order-print" aria-hidden="true">
             <div class="order-print__header">
-                <div class="order-print__brand">PETCOM</div>
+                <div class="order-print__brand"><?= e(app_setting('app_name')) ?></div>
                 <div class="order-print__identity">
                     <span class="order-print__title">Order #<?= (int) $order['order_id'] ?></span>
                     <span class="order-print__status-pill"><?= e(ucfirst($order['status'])) ?></span>

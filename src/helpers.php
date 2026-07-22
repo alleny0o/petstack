@@ -35,6 +35,19 @@ set_exception_handler(function (Throwable $e): void {
 });
 
 /**
+ * Reads a value from config/app_settings.php, the static app-wide
+ * settings file (no DB table, no admin UI -- see that file).
+ */
+function app_setting(string $key, $default = null)
+{
+    static $settings = null;
+    if ($settings === null) {
+        $settings = require __DIR__ . '/../config/app_settings.php';
+    }
+    return $settings[$key] ?? $default;
+}
+
+/**
  * Starts the session with hardened cookie flags. Every page must call
  * this instead of a bare session_start() so HttpOnly/Secure are never
  * missed (see CLAUDE.md page template).

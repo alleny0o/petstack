@@ -48,7 +48,7 @@ $petcomLayout['directory_section_active'] = in_array($petcomLayout['current_page
   <!-- Sidebar Header -->
   <header class="sidebar-header">
 
-    <div class="sidebar-logo"><img src="/favicons/android-chrome-192x192.png" alt="PETCOM"></div>
+    <div class="sidebar-logo"><img src="/favicons/android-chrome-192x192.png" alt="<?= e(app_setting('app_name')) ?>"></div>
     <button class="sidebar-toggle">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="15 18 9 12 15 6"></polyline>
