@@ -133,6 +133,10 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($fieldErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $fieldErrors], 422);
+        }
+
         if (!$fieldErrors) {
             $pdo->beginTransaction();
             $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?')
@@ -151,17 +155,26 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $customer = fetch_customer($pdo, $userId);
             $editOld = reset_edit_old($customer);
             $flash = ['type' => 'success', 'message' => 'Customer updated.'];
+            // No redirect target -- same self-rendering shape as
+            // account_detail.php's Edit Profile form.
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'message' => $flash['message']]);
+            }
         }
     } elseif ($action === 'toggle_active') {
+        // No business-rule blocks here (unlike account_detail.php's
+        // last-admin protection) -- a customer toggle always succeeds.
         $newActive = $customer['active'] ? 0 : 1;
         $pdo->prepare('UPDATE users SET active = ? WHERE user_id = ?')->execute([$newActive, $userId]);
-        $customer = fetch_customer($pdo, $userId);
-        $flash = [
-            'type' => 'success',
-            'message' => $newActive
-                ? 'Customer reactivated.'
-                : 'Customer deactivated. They have been signed out and can no longer log in.',
-        ];
+
+        // PRG like every other converted action on this page -- no secret
+        // to preserve here, so a plain arrival flag is enough (unlike
+        // reset_password's session flash).
+        $dest = '/admin/customer_detail.php?id=' . $userId . '&' . ($newActive ? 'reactivated=1' : 'deactivated=1');
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => $dest]);
+        }
+        redirect($dest);
     } elseif ($action === 'reset_password') {
         $tempPassword = generate_temp_password();
         $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
@@ -174,12 +187,48 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$userId]);
         $outgoingHash = (string) $stmt->fetchColumn();
 
-        $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?')
+        // Also clears any lockout: login checks locked_until before the
+        // password, so a fresh temp would otherwise stay unusable for
+        // up to 15 minutes after a fumbled-old-password lockout.
+        $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1, failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
             ->execute([$tempHash, $userId]);
 
         record_password_history($pdo, $userId, $outgoingHash);
 
-        $tempPasswordReveal = $tempPassword;
+        // PRG like every other converted action on this page. The temp
+        // password can't safely round-trip through a redirect URL, so
+        // the reveal is session-flashed instead -- plaintext lives
+        // server-side only, read-once with a short TTL, consumed by
+        // the ?reset=1 arrival below. Same one-time-secret pattern as
+        // accounts.php's New Account modal, distinct session key so
+        // the two flashes can never collide.
+        $_SESSION['password_reset_reveal'] = [
+            'user_id'      => $userId,
+            'tempPassword' => $tempPassword,
+            'at'           => time(),
+        ];
+
+        $dest = '/admin/customer_detail.php?id=' . $userId . '&reset=1';
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => $dest]);
+        }
+        redirect($dest);
+    }
+}
+
+// Server half of the arrival-flag convention (see accounts.php) -- the
+// client half is petcomCleanArrivalFlags() near the bottom.
+$arrival = consume_arrival_flags(['reset', 'reactivated', 'deactivated']);
+
+// Consume the flash: cleared on ANY load that finds it (read-once
+// hygiene), shown only on a fresh ?reset=1 arrival for the SAME
+// customer the reveal was generated for -- guards against a stale
+// flash bleeding into a different customer_detail.php?id=... visit.
+if (isset($_SESSION['password_reset_reveal'])) {
+    $reveal = $_SESSION['password_reset_reveal'];
+    unset($_SESSION['password_reset_reveal']);
+    if ($arrival['reset'] && (int) $reveal['user_id'] === $userId && time() - (int) $reveal['at'] <= 60) {
+        $tempPasswordReveal = $reveal['tempPassword'];
     }
 }
 
@@ -251,6 +300,8 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                 <?php elseif ($flash): ?>
                     <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
                 <?php endif; ?>
+                <?= $arrival['reactivated'] ? toast_flash('success', 'Customer reactivated.') : '' ?>
+                <?= $arrival['deactivated'] ? toast_flash('success', 'Customer deactivated. They have been signed out and can no longer log in.') : '' ?>
 
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
@@ -260,7 +311,8 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             <span class="temp-password-banner__password" id="temp-password-value"><?= e($tempPasswordReveal) ?></span>
                             <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
                         </div>
-                        <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
+                        <div class="temp-password-banner__warning">Copy it now &mdash; this password will not be shown again.</div>
+                        <div class="mt-2">Missed it? Use Reset Password below to generate a new one.</div>
                     </div>
                 <?php endif; ?>
 
@@ -288,9 +340,10 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
 
                 <div class="card">
                     <span class="card__title">Edit Details</span>
-                    <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>">
+                    <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="edit-customer-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="edit">
+                        <div class="alert alert--error" data-error-banner-for="edit-customer-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
                         <div class="field-row">
                             <div class="<?= field_class($fieldErrors, 'first_name') ?>">
@@ -357,7 +410,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     <span class="card__title">Account Actions</span>
                     <div class="flex gap-3">
                         <?php if ($customer['active']): ?>
-                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="toggle-active-form" novalidate data-ajax-submit
                                   data-confirm="Deactivate <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? They will be signed out immediately and unable to log in. Their order history stays intact."
                                   data-confirm-title="Deactivate customer"
                                   data-confirm-verb="Deactivate"
@@ -367,7 +420,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 <button type="submit" class="btn btn--danger">Deactivate Customer</button>
                             </form>
                         <?php else: ?>
-                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="toggle-active-form" novalidate data-ajax-submit
                                   data-confirm="Reactivate <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? They will be able to log in again."
                                   data-confirm-title="Reactivate customer"
                                   data-confirm-verb="Reactivate">
@@ -377,7 +430,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             </form>
                         <?php endif; ?>
 
-                        <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>"
+                        <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="reset-password-form" novalidate data-ajax-submit
                               data-confirm="Generate a new temporary password for <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? Their current password will stop working immediately."
                               data-confirm-title="Reset password"
                               data-confirm-verb="Reset password"
@@ -435,6 +488,11 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
   labSelect.addEventListener('change', filterPis);
   filterLabs();
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  window.petcomCleanArrivalFlags(['reset', 'reactivated', 'deactivated']);
+});
 </script>
 <?php endif; ?>
 </html>

@@ -71,6 +71,14 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $addErrors = validate_location_fields($addOld['name'], $addOld['room']);
 
+        // AJAX submits (script.js initAjaxForms) get the errors as JSON
+        // and render them in the still-open modal; a plain POST falls
+        // through to the full-page re-render + reopen below -- kept as
+        // the no-JS fallback, not dead code.
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO lab_delivery_locations (lab_id, name, room, active) VALUES (?, ?, ?, 1)')
                 ->execute([$labId, $addOld['name'], $addOld['room'] !== '' ? $addOld['room'] : null]);
@@ -79,8 +87,14 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // silently re-create the location) -- same pattern as
             // order_detail.php's save_notes/save_details/cancel_order.
             // build_query() carries the current search/page state
-            // forward so the person lands back where they were.
-            redirect('/customer/lab_delivery_locations.php?' . build_query(['created' => '1']));
+            // forward so the person lands back where they were. The AJAX
+            // path navigates to the same destination itself, so the
+            // arrival-flag toast works identically either way.
+            $dest = '/customer/lab_delivery_locations.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         $editOld['location_id'] = trim($_POST['location_id'] ?? '');
@@ -101,10 +115,22 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Same AJAX/no-JS split as the create branch above. The
+        // location_id error key has no field slot in the modal, so on
+        // the AJAX path it surfaces as the summary banner alone
+        // (renderFieldErrors' unknown-key behavior).
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE lab_delivery_locations SET name = ?, room = ? WHERE location_id = ? AND lab_id = ?')
                 ->execute([$editOld['name'], $editOld['room'] !== '' ? $editOld['room'] : null, $locationId, $labId]);
-            redirect('/customer/lab_delivery_locations.php?' . build_query(['updated' => '1']));
+            $dest = '/customer/lab_delivery_locations.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $locationId = ctype_digit((string) ($_POST['location_id'] ?? '')) ? (int) $_POST['location_id'] : 0;
@@ -360,10 +386,15 @@ $pageTitle = 'Delivery Locations';
                                 </svg>
                             </button>
                         </div>
-                        <form method="post" action="<?= e($formAction) ?>" id="add-location-form">
+                        <form method="post" action="<?= e($formAction) ?>" id="add-location-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="create">
                             <div class="modal__body">
+                                <?php // Always in the DOM (hidden when clean), same as the
+                                      // New Order modal's banner: the AJAX submit unhides it
+                                      // alongside the injected field errors; a no-JS POST
+                                      // re-render shows it via the $addErrors check. ?>
+                                <div class="alert alert--error" data-error-banner-for="add-location-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                                 <div class="<?= field_class($addErrors, 'name') ?>">
                                     <label for="add-location-name">Name <span class="required-mark">*</span></label>
                                     <input type="text" id="add-location-name" name="name" maxlength="100" value="<?= e($addOld['name']) ?>" required data-modal-focus>
@@ -397,11 +428,12 @@ $pageTitle = 'Delivery Locations';
                                 </svg>
                             </button>
                         </div>
-                        <form method="post" action="<?= e($formAction) ?>" id="edit-location-form">
+                        <form method="post" action="<?= e($formAction) ?>" id="edit-location-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="location_id" id="edit-location-id" value="<?= e($editOld['location_id']) ?>">
                             <div class="modal__body">
+                                <div class="alert alert--error" data-error-banner-for="edit-location-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                                 <div class="<?= field_class($editErrors, 'name') ?>">
                                     <label for="edit-location-name">Name <span class="required-mark">*</span></label>
                                     <input type="text" id="edit-location-name" name="name" maxlength="100" value="<?= e($editOld['name']) ?>" required data-modal-focus>

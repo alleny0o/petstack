@@ -78,10 +78,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addErrors['active'] = 'Select a status.';
         }
 
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO institutes (name, shorthand_name, active) VALUES (?, ?, ?)')
                 ->execute([$addOld['name'], $addOld['shorthand_name'] !== '' ? $addOld['shorthand_name'] : null, (int) $addOld['active']]);
-            redirect('/admin/institutes.php?' . build_query(['created' => '1']));
+            $dest = '/admin/institutes.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         // Free rename, same reasoning as nuclides.php: a rename is a
@@ -106,10 +114,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $editErrors += validate_institute_fields($pdo, $editOld['name'], $editOld['shorthand_name'], $instituteId);
 
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE institutes SET name = ?, shorthand_name = ? WHERE institute_id = ?')
                 ->execute([$editOld['name'], $editOld['shorthand_name'] !== '' ? $editOld['shorthand_name'] : null, $instituteId]);
-            redirect('/admin/institutes.php?' . build_query(['updated' => '1']));
+            $dest = '/admin/institutes.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $instituteId = ctype_digit((string) ($_POST['institute_id'] ?? '')) ? (int) $_POST['institute_id'] : 0;
@@ -395,10 +411,11 @@ $pageTitle = 'Institutes';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="add-institute-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="add-institute-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="add-institute-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($addErrors, 'name') ?>">
                                 <label for="add-institute-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="add-institute-name" name="name" maxlength="255" value="<?= e($addOld['name']) ?>" required data-modal-focus>
@@ -446,11 +463,12 @@ $pageTitle = 'Institutes';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="edit-institute-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="edit-institute-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="institute_id" id="edit-institute-id" value="<?= e($editOld['institute_id']) ?>">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="edit-institute-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($editErrors, 'name') ?>">
                                 <label for="edit-institute-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="edit-institute-name" name="name" maxlength="255" value="<?= e($editOld['name']) ?>" required data-modal-focus>

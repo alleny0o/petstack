@@ -46,7 +46,7 @@
     </div>
     <div class="modal__footer modal__footer--split">
       <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
-      <button type="submit" class="btn btn--primary" id="order-submit" form="order-form" disabled>Place order</button>
+      <button type="submit" class="btn btn--primary" id="order-submit" form="order-form">Place order</button>
     </div>
   </div>
 </div>

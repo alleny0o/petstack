@@ -131,6 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addErrors['pi_ids'] = $normalized['error'];
         }
 
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->beginTransaction();
             $pdo->prepare('INSERT INTO labs (institute_id, lab_name, building, room, active) VALUES (?, ?, ?, ?, ?)')
@@ -147,7 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pairStmt->execute([$newLabId, $piId]);
             }
             $pdo->commit();
-            redirect('/admin/labs.php?' . build_query(['created' => '1']));
+            $dest = '/admin/labs.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         $editOld['lab_id'] = trim($_POST['lab_id'] ?? '');
@@ -194,6 +202,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $editErrors['pi_ids'] = $normalized['error'];
         }
 
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             // Sync lab_pis to the submitted roster in the same transaction
             // as the lab row update. Removals are allowed even for a PI
@@ -227,7 +239,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pairStmt->execute([$labId, $piId]);
             }
             $pdo->commit();
-            redirect('/admin/labs.php?' . build_query(['updated' => '1']));
+            $dest = '/admin/labs.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
 
         // Validation-error reopen needs the per-PI customer counts for
@@ -592,10 +608,11 @@ $pageTitle = 'Labs';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="add-lab-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="add-lab-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="add-lab-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($addErrors, 'institute_id') ?>">
                                 <label for="add-lab-institute">Institute <span class="required-mark">*</span></label>
                                 <select id="add-lab-institute" name="institute_id" required data-modal-focus>
@@ -678,11 +695,12 @@ $pageTitle = 'Labs';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="edit-lab-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="edit-lab-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="lab_id" id="edit-lab-id" value="<?= e($editOld['lab_id']) ?>">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="edit-lab-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($editErrors, 'lab_name') ?>">
                                 <label for="edit-lab-name">Lab name <span class="required-mark">*</span></label>
                                 <input type="text" id="edit-lab-name" name="lab_name" maxlength="100" value="<?= e($editOld['lab_name']) ?>" required data-modal-focus>

@@ -63,16 +63,34 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $profileErrors['last_name'] = 'Last name is required.';
         }
 
+        if ($profileErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $profileErrors], 422);
+        }
+
         if (!$profileErrors) {
             $pdo->prepare('UPDATE users SET first_name = ?, last_name = ? WHERE user_id = ?')
                 ->execute([$profileOld['first_name'], $profileOld['last_name'], $userId]);
             $account = fetch_account($pdo, $userId);
             $profileOld = ['first_name' => $account['first_name'], 'last_name' => $account['last_name']];
             $flash = ['type' => 'success', 'message' => 'Profile updated.'];
+            // No redirect target -- edit_profile alone re-renders in
+            // place rather than PRGing (unlike toggle_active/reset_password
+            // below); the AJAX success carries just the message, so the
+            // client shows the same toast without navigating instead of
+            // following a redirect.
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'message' => $flash['message']]);
+            }
         }
     } elseif ($action === 'toggle_active') {
         if ($isSelf && $account['active']) {
+            // Not reachable through the UI (the button is disabled for
+            // this case below) -- defensive server-side twin, same shape
+            // as reset_password's isSelf guard.
             $flash = ['type' => 'error', 'message' => 'You cannot deactivate your own account.'];
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'message' => $flash['message']], 422);
+            }
         } else {
             $newActive = $account['active'] ? 0 : 1;
 
@@ -94,21 +112,30 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($otherActiveAdmins === 0) {
                     $pdo->rollBack();
                     $flash = ['type' => 'error', 'message' => 'Cannot deactivate the last active admin account.'];
+                    if (request_wants_json()) {
+                        json_response(['ok' => false, 'message' => $flash['message']], 422);
+                    }
                 } else {
                     $pdo->prepare('UPDATE users SET active = 0 WHERE user_id = ?')->execute([$userId]);
                     $pdo->commit();
-                    $account = fetch_account($pdo, $userId);
-                    $flash = ['type' => 'success', 'message' => 'Account deactivated. They have been signed out and can no longer log in.'];
+
+                    // PRG like every other converted action on this page --
+                    // no secret to preserve here, so a plain arrival flag
+                    // is enough (unlike reset_password's session flash).
+                    $dest = '/admin/account_detail.php?id=' . $userId . '&deactivated=1';
+                    if (request_wants_json()) {
+                        json_response(['ok' => true, 'redirect' => $dest]);
+                    }
+                    redirect($dest);
                 }
             } else {
                 $pdo->prepare('UPDATE users SET active = ? WHERE user_id = ?')->execute([$newActive, $userId]);
-                $account = fetch_account($pdo, $userId);
-                $flash = [
-                    'type' => 'success',
-                    'message' => $newActive
-                        ? 'Account reactivated.'
-                        : 'Account deactivated. They have been signed out and can no longer log in.',
-                ];
+
+                $dest = '/admin/account_detail.php?id=' . $userId . '&' . ($newActive ? 'reactivated=1' : 'deactivated=1');
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
             }
         }
     } elseif ($action === 'reset_password') {
@@ -117,8 +144,13 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // legitimate use (use Change Password instead) and is a
             // lockout foot-gun for the sole admin -- the session's
             // must_change_password flag stays stale, so nothing visibly
-            // changes while your real password is already gone.
+            // changes while your real password is already gone. Not
+            // reachable through the UI (the button is disabled/hidden for
+            // $isSelf below) -- this is the defensive server-side twin.
             $flash = ['type' => 'error', 'message' => 'You cannot reset your own password here. Use Change Password instead.'];
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'message' => $flash['message']], 422);
+            }
         } else {
             $tempPassword = generate_temp_password();
             $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
@@ -131,13 +163,49 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId]);
             $outgoingHash = (string) $stmt->fetchColumn();
 
-            $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?')
+            // Also clears any lockout: login checks locked_until before the
+            // password, so a fresh temp would otherwise stay unusable for
+            // up to 15 minutes after a fumbled-old-password lockout.
+            $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 1, failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
                 ->execute([$tempHash, $userId]);
 
             record_password_history($pdo, $userId, $outgoingHash);
 
-            $tempPasswordReveal = $tempPassword;
+            // PRG like every other converted action on this page. The temp
+            // password can't safely round-trip through a redirect URL, so
+            // the reveal is session-flashed instead -- plaintext lives
+            // server-side only, read-once with a short TTL, consumed by
+            // the ?reset=1 arrival below. Same one-time-secret pattern as
+            // accounts.php's New Account modal, distinct session key so
+            // the two flashes can never collide.
+            $_SESSION['password_reset_reveal'] = [
+                'user_id'      => $userId,
+                'tempPassword' => $tempPassword,
+                'at'           => time(),
+            ];
+
+            $dest = '/admin/account_detail.php?id=' . $userId . '&reset=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
+    }
+}
+
+// Server half of the arrival-flag convention (see accounts.php) -- the
+// client half is petcomCleanArrivalFlags() near the bottom.
+$arrival = consume_arrival_flags(['reset', 'reactivated', 'deactivated']);
+
+// Consume the flash: cleared on ANY load that finds it (read-once
+// hygiene), shown only on a fresh ?reset=1 arrival for the SAME account
+// the reveal was generated for -- guards against a stale flash bleeding
+// into a different account_detail.php?id=... visit.
+if (isset($_SESSION['password_reset_reveal'])) {
+    $reveal = $_SESSION['password_reset_reveal'];
+    unset($_SESSION['password_reset_reveal']);
+    if ($arrival['reset'] && (int) $reveal['user_id'] === $userId && time() - (int) $reveal['at'] <= 60) {
+        $tempPasswordReveal = $reveal['tempPassword'];
     }
 }
 
@@ -176,6 +244,8 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                 <?php elseif ($flash): ?>
                     <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
                 <?php endif; ?>
+                <?= $arrival['reactivated'] ? toast_flash('success', 'Account reactivated.') : '' ?>
+                <?= $arrival['deactivated'] ? toast_flash('success', 'Account deactivated. They have been signed out and can no longer log in.') : '' ?>
 
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
@@ -185,15 +255,17 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                             <span class="temp-password-banner__password" id="temp-password-value"><?= e($tempPasswordReveal) ?></span>
                             <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
                         </div>
-                        <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
+                        <div class="temp-password-banner__warning">Copy it now &mdash; this password will not be shown again.</div>
+                        <div class="mt-2">Missed it? Use Reset Password below to generate a new one.</div>
                     </div>
                 <?php endif; ?>
 
                 <div class="card">
                     <span class="card__title">Profile</span>
-                    <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>">
+                    <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="edit-profile-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="edit_profile">
+                        <div class="alert alert--error" data-error-banner-for="edit-profile-form" <?= $profileErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
                         <div class="field-row">
                             <div class="<?= field_class($profileErrors, 'first_name') ?>">
@@ -242,7 +314,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                         <?php if ($isSelf && $account['active']): ?>
                             <button type="button" class="btn btn--danger" disabled title="You cannot deactivate your own account.">Deactivate Account</button>
                         <?php elseif ($account['active']): ?>
-                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="toggle-active-form" novalidate data-ajax-submit
                                   data-confirm="Deactivate <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? They will be signed out immediately and unable to log in."
                                   data-confirm-title="Deactivate account"
                                   data-confirm-verb="Deactivate"
@@ -252,7 +324,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                                 <button type="submit" class="btn btn--danger">Deactivate Account</button>
                             </form>
                         <?php else: ?>
-                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="toggle-active-form" novalidate data-ajax-submit
                                   data-confirm="Reactivate <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? They will be able to log in again."
                                   data-confirm-title="Reactivate account"
                                   data-confirm-verb="Reactivate">
@@ -265,7 +337,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                         <?php if ($isSelf): ?>
                             <button type="button" class="btn btn--secondary" disabled title="You cannot reset your own password here. Use Change Password instead.">Reset Password</button>
                         <?php else: ?>
-                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>"
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="reset-password-form" novalidate data-ajax-submit
                                   data-confirm="Generate a new temporary password for <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? Their current password will stop working immediately."
                                   data-confirm-title="Reset password"
                                   data-confirm-verb="Reset password"
@@ -284,4 +356,11 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
         </main>
     </div>
 </body>
+<?php if ($account !== null): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  window.petcomCleanArrivalFlags(['reset', 'reactivated', 'deactivated']);
+});
+</script>
+<?php endif; ?>
 </html>

@@ -76,10 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addErrors['active'] = 'Select a status.';
         }
 
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO nuclides (name, active) VALUES (?, ?)')
                 ->execute([$addOld['name'], (int) $addOld['active']]);
-            redirect('/admin/nuclides.php?' . build_query(['created' => '1']));
+            $dest = '/admin/nuclides.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         // Free rename, deliberately allowed even once orders exist: a
@@ -103,10 +111,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $editErrors += validate_nuclide_name($pdo, $editOld['name'], $nuclideId);
 
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE nuclides SET name = ? WHERE nuclide_id = ?')
                 ->execute([$editOld['name'], $nuclideId]);
-            redirect('/admin/nuclides.php?' . build_query(['updated' => '1']));
+            $dest = '/admin/nuclides.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $nuclideId = ctype_digit((string) ($_POST['nuclide_id'] ?? '')) ? (int) $_POST['nuclide_id'] : 0;
@@ -390,10 +406,11 @@ $pageTitle = 'Nuclides';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="add-nuclide-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="add-nuclide-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="add-nuclide-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($addErrors, 'name') ?>">
                                 <label for="add-nuclide-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="add-nuclide-name" name="name" maxlength="50" value="<?= e($addOld['name']) ?>" required data-modal-focus>
@@ -435,11 +452,12 @@ $pageTitle = 'Nuclides';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="edit-nuclide-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="edit-nuclide-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="nuclide_id" id="edit-nuclide-id" value="<?= e($editOld['nuclide_id']) ?>">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="edit-nuclide-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($editErrors, 'name') ?>">
                                 <label for="edit-nuclide-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="edit-nuclide-name" name="name" maxlength="50" value="<?= e($editOld['name']) ?>" required data-modal-focus>
