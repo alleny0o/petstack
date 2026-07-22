@@ -51,9 +51,11 @@ $old = [
 // modal opened from this page, same overlay/dirty-tracking/discard-confirm
 // convention as the New Order modal and lab_product_users.php's Add
 // modal. The temp password can only be shown once and can't safely
-// round-trip through a redirect URL, so -- like registrations.php's
-// approve action -- success re-renders this same POST response inline
-// (no PRG) rather than redirecting.
+// round-trip through a redirect URL, so success flashes the reveal
+// through the session instead (read-once + short TTL, consumed by the
+// ?created=1 arrival below) and PRGs like every other modal --
+// registrations.php's approve action still uses the older re-render-
+// the-POST-response-inline approach.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
@@ -111,20 +113,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            $successReveal = [
+            // Session-flash the reveal across the PRG: plaintext lives
+            // server-side only (never a URL/history/log), read-once with
+            // a short TTL -- consumed by the ?created=1 arrival below.
+            $_SESSION['account_created_reveal'] = [
                 'user_id'      => $newUserId,
                 'email'        => $old['email'],
                 'first_name'   => $old['first_name'],
                 'last_name'    => $old['last_name'],
                 'role'         => $old['role'],
                 'tempPassword' => $tempPassword,
+                'at'           => time(),
             ];
 
-            $old = ['email' => '', 'first_name' => '', 'last_name' => '', 'role' => 'staff'];
+            // build_query() carries the current search/role/status/page
+            // view state forward, same as the other converted pages.
+            $dest = '/admin/accounts.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         } catch (PDOException $e) {
             $pdo->rollBack();
             $fieldErrors['email'] = 'Could not create the account. An account for this email may already exist.';
         }
+    }
+
+    // One check covers all three error sources (field validation, the
+    // duplicate pre-check, and the transaction's race-condition catch) --
+    // the success path has already exited above. AJAX gets the errors as
+    // JSON for the still-open modal; a plain POST falls through to the
+    // full-page re-render + reopen below, kept as the no-JS fallback.
+    if ($fieldErrors && request_wants_json()) {
+        json_response(['ok' => false, 'errors' => $fieldErrors], 422);
+    }
+}
+
+// Server half of the arrival-flag convention: strips created from $_GET
+// so build_query()/canonicalize_get() below never echo it back into the
+// form action or pagination links (petcomCleanArrivalFlags() near the
+// bottom handles the URL-bar half).
+$arrival = consume_arrival_flags(['created']);
+
+// Consume the flash: cleared on ANY accounts.php load that finds it
+// (read-once hygiene -- a crashed redirect can't leave the plaintext
+// sitting in the session past the next visit), shown only on a fresh
+// ?created=1 arrival. Refreshing drops it, exactly as the banner warns.
+if (isset($_SESSION['account_created_reveal'])) {
+    $reveal = $_SESSION['account_created_reveal'];
+    unset($_SESSION['account_created_reveal']);
+    if ($arrival['created'] && time() - (int) $reveal['at'] <= 60) {
+        $successReveal = $reveal;
     }
 }
 
@@ -250,8 +289,8 @@ $pageTitle = 'Accounts';
                         <span class="temp-password-banner__password" id="temp-password-value"><?= e($successReveal['tempPassword']) ?></span>
                         <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
                     </div>
-                    <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
-                    <div class="mt-2"><a href="/admin/account_detail.php?id=<?= (int) $successReveal['user_id'] ?>">View the new account &rarr;</a></div>
+                    <div class="temp-password-banner__warning">Copy it now &mdash; this password will not be shown again.</div>
+                    <div class="mt-2">Missed it? You can generate a new one anytime with Reset Password on <a href="/admin/account_detail.php?id=<?= (int) $successReveal['user_id'] ?>">the account's page</a>.</div>
                 </div>
             <?php endif; ?>
 
@@ -366,9 +405,14 @@ $pageTitle = 'Accounts';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="new-account-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="new-account-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <div class="modal__body">
+                            <?php // Always in the DOM (hidden when clean), same as the
+                                  // other converted modals: the AJAX submit unhides it
+                                  // alongside the injected field errors; a no-JS POST
+                                  // re-render shows it via the $fieldErrors check. ?>
+                            <div class="alert alert--error" data-error-banner-for="new-account-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($fieldErrors, 'email') ?>">
                                 <label for="new-account-email">Email <span class="required-mark">*</span></label>
                                 <input type="email" id="new-account-email" name="email" value="<?= e($old['email']) ?>" required data-modal-focus>
@@ -417,6 +461,11 @@ $pageTitle = 'Accounts';
 </body>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  // Strip the one-time ?created=1 arrival flag from the URL bar once the
+  // temp-password banner (or nothing, if the flash was already consumed)
+  // has rendered -- same convention as the order-detail pages.
+  window.petcomCleanArrivalFlags(['created']);
+
   function snapshotForm(form) {
     var values = {};
     Array.prototype.forEach.call(form.elements, function (el) {

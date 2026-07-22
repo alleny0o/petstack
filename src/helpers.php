@@ -103,6 +103,34 @@ function redirect(string $path): void
 }
 
 /**
+ * Emits a JSON response and stops. Success: {ok:true, redirect}.
+ * Failure: {ok:false, errors:{field: message}} and/or {ok:false, message}
+ * with a non-200 status. The contract behind every AJAX form submit:
+ * new_order.php (a dedicated JSON-only endpoint) and the CRUD pages'
+ * request_wants_json() branches (which keep their full-page POST
+ * fallback -- see below).
+ */
+function json_response(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json');
+    echo json_encode($payload);
+    exit;
+}
+
+/**
+ * True when the request came from script.js's AJAX form submit
+ * (initAjaxForms sets this header explicitly on every fetch). Pages
+ * check it to answer a POST with json_response() instead of the normal
+ * PRG redirect / full-page re-render -- which both stay in place as the
+ * no-JS fallback, not as dead code.
+ */
+function request_wants_json(): bool
+{
+    return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+}
+
+/**
  * Escaped asset URL with the file's mtime baked in as ?v=, so a changed
  * CSS/JS file always busts the browser cache while an unchanged one
  * keeps its cached copy. $path is root-relative (e.g. "/assets/css/style.css").

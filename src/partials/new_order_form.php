@@ -27,7 +27,7 @@
         <?php // Always in the DOM (hidden when clean) -- the AJAX submit
               // handler below unhides it when the server returns field
               // errors, alongside the injected per-field messages. ?>
-        <div class="alert alert--error" id="order-form-error-banner" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
+        <div class="alert alert--error" id="order-form-error-banner" data-error-banner-for="order-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
         <form method="post" action="/customer/new_order.php" novalidate id="order-form">
             <?= csrf_field() ?>
@@ -233,27 +233,12 @@ document.addEventListener('DOMContentLoaded', function () {
         updateNotesCounter();
     }
 
-    // ---- Place order stays disabled until every required field in the
-    // form passes constraint validation. Disabled selects (product
-    // before a nuclide is chosen, the hidden delivery location) are
-    // skipped by form.checkValidity(), but their still-empty required
-    // parent keeps the form invalid, so the cascade can't be skipped.
-    // The product select's direct change listener above runs before the
-    // delegated listeners below (target phase before bubble), so
-    // location_id's conditional visibility/required is always current
-    // when validity is checked. The form stays novalidate; the server
-    // remains authoritative. ----
+    // ---- Submit is always clickable (the app-wide convention -- no
+    // disable-until-valid gating anywhere). The form is novalidate and
+    // the server is authoritative: invalid input comes back as 422
+    // field errors, rendered below. ----
     var form = document.getElementById('order-form');
     var submitBtn = document.getElementById('order-submit');
-
-    function updateSubmitState() {
-        submitBtn.disabled = !form.checkValidity();
-    }
-
-    form.addEventListener('input', updateSubmitState);
-    form.addEventListener('change', updateSubmitState);
-
-    updateSubmitState();
 
     // ---- AJAX field errors. Mirrors the server-side field_error()/
     // field_class() markup (span.field-error appended inside the .field
@@ -294,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---- Dirty tracking: one on-demand snapshot comparison, no
     // per-keystroke listeners. The pristine baseline is captured after
-    // the initial cascade/updateSubmitState() run above, so it
+    // the initial cascade run above, so it
     // reflects the form's real settled load state. form.elements
     // includes disabled controls (the pre-cascade product select, the
     // hidden location select), so their values participate too -- their
@@ -322,13 +307,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Confirmed discard resets to pristine rather than preserving stale
     // values for the next open: form.reset() restores the markup
     // defaults (all empty), then the cascade re-derives its state
-    // (product select disabled, location hidden, hint cleared, submit
-    // disabled) exactly as on first load.
+    // (product select disabled, location hidden, hint cleared)
+    // exactly as on first load.
     function resetFormToPristine() {
         form.reset();
         clearInjectedErrors();
         cascade.refresh();
-        updateSubmitState();
     }
 
     // ---- Discard confirm on close. All four close paths (Esc,

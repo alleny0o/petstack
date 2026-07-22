@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $flash = [
                     'type'         => 'success',
                     'email'        => $request['email'],
+                    'user_id'      => $newUserId,
                     'tempPassword' => $tempPassword,
                 ];
             }
@@ -88,6 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($reason === '') {
             $rejectErrors[$requestId] = 'A reason is required to reject a request.';
             $rejectOld[$requestId] = $reason;
+
+            // $rejectErrors is keyed by request_id (this page's own
+            // convention, unlike every other page's field-name keys) --
+            // translated to the client's field-name contract here since
+            // the modal only ever has one active field, "reason".
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'errors' => ['reason' => $rejectErrors[$requestId]]], 422);
+            }
         } else {
             $stmt = $pdo->prepare(
                 "UPDATE customer_registration_requests
@@ -98,18 +107,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($stmt->rowCount() === 0) {
                 $flash = ['type' => 'error', 'message' => 'This request has already been reviewed.'];
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'message' => $flash['message']], 422);
+                }
             } else {
-                $flash = ['type' => 'success', 'message' => 'Registration request rejected.'];
+                // PRG with an arrival-flag toast, same convention as the
+                // admin CRUD list pages -- a no-redirect JSON success would
+                // leave the reject modal open and the rejected row sitting
+                // in the pending list until a manual refresh.
+                $dest = '/admin/registrations.php?rejected=1';
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
             }
         }
     }
 }
 
+// Server half of the arrival-flag convention (see accounts.php) -- the
+// client half is petcomCleanArrivalFlags() in the script at the bottom.
+$arrival = consume_arrival_flags(['rejected']);
+
 // Institute is derived via lab_id -> labs.institute_id, per the
 // nuclide/product-style "always derive, never duplicate" rule.
+// prior_rejections/last_rejection_reason surface resubmissions: rejection
+// is a soft block (register.php only stops pending duplicates), so a
+// pending request whose email was rejected before would otherwise look
+// identical to a first-time applicant.
 $requests = $pdo->query(
     "SELECT r.request_id, r.first_name, r.last_name, r.email, r.phone, r.submitted_at,
-            l.lab_name, i.name AS institute_name, p.pi_name
+            l.lab_name, i.name AS institute_name, p.pi_name,
+            (SELECT COUNT(*)
+             FROM customer_registration_requests pr
+             WHERE pr.email = r.email AND pr.status = 'rejected') AS prior_rejections,
+            (SELECT pr.rejection_reason
+             FROM customer_registration_requests pr
+             WHERE pr.email = r.email AND pr.status = 'rejected'
+             ORDER BY pr.reviewed_at DESC, pr.request_id DESC
+             LIMIT 1) AS last_rejection_reason
      FROM customer_registration_requests r
      JOIN labs l ON l.lab_id = r.lab_id
      JOIN institutes i ON i.institute_id = l.institute_id
@@ -145,13 +181,13 @@ $pageTitle = 'Registrations';
                         <span class="temp-password-banner__password" id="temp-password-value"><?= e($flash['tempPassword']) ?></span>
                         <button type="button" class="btn btn--secondary btn--sm" data-copy-target="#temp-password-value">Copy</button>
                     </div>
-                    <div class="temp-password-banner__warning">Save this now. Leaving or refreshing this page will not bring it back.</div>
+                    <div class="temp-password-banner__warning">Copy it now &mdash; this password will not be shown again.</div>
+                    <div class="mt-2">Missed it? You can generate a new one anytime with Reset Password on <a href="/admin/customer_detail.php?id=<?= (int) $flash['user_id'] ?>">the customer's page</a>.</div>
                 </div>
-            <?php elseif ($flash && $flash['type'] === 'success'): ?>
-                <?= toast_flash('success', $flash['message']) ?>
             <?php elseif ($flash && $flash['type'] === 'error'): ?>
                 <div class="alert alert--error"><?= e($flash['message']) ?></div>
             <?php endif; ?>
+            <?= $arrival['rejected'] ? toast_flash('success', 'Registration request rejected.') : '' ?>
 
             <div class="table-card">
                 <div class="table-card-header">
@@ -187,7 +223,17 @@ $pageTitle = 'Registrations';
                                 <?php foreach ($requests as $r): ?>
                                     <?php $applicantName = $r['first_name'] . ' ' . $r['last_name']; ?>
                                     <tr>
-                                        <td><?= e($applicantName) ?></td>
+                                        <td>
+                                            <?= e($applicantName) ?>
+                                            <?php if ((int) $r['prior_rejections'] > 0): ?>
+                                                <?php $lastReason = trim((string) $r['last_rejection_reason']); ?>
+                                                <div class="mt-2">
+                                                    <span class="badge badge--prev-rejected"<?= $lastReason !== '' ? ' title="' . e('Last reason: ' . $lastReason) . '"' : '' ?>>
+                                                        Previously rejected<?= (int) $r['prior_rejections'] > 1 ? ' &times;' . (int) $r['prior_rejections'] : '' ?>
+                                                    </span>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= e($r['email']) ?></td>
                                         <td><?= e($r['institute_name']) ?></td>
                                         <td><?= e($r['lab_name']) ?></td>
@@ -223,13 +269,14 @@ $pageTitle = 'Registrations';
                  to the old inline <details> form. -->
             <div class="modal-overlay" id="reject-modal" hidden>
                 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
-                    <form method="post">
+                    <form method="post" id="reject-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reject">
                         <input type="hidden" name="request_id" id="reject-request-id" value="<?= $rejectRetryId ?>">
                         <div class="modal__body">
                             <h2 class="modal__title" id="reject-modal-title">Reject registration</h2>
                             <p class="modal__message">Rejecting <strong id="reject-applicant-name">this request</strong>. The applicant sees your reason on the status page and may submit a new registration.</p>
+                            <div class="alert alert--error" data-error-banner-for="reject-form" <?= $rejectErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= $rejectErrors ? 'field field--invalid' : 'field' ?> mb-0">
                                 <label for="reject-reason">Reason <span class="required-mark">*</span></label>
                                 <textarea id="reject-reason" name="reason" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
@@ -250,6 +297,8 @@ $pageTitle = 'Registrations';
 </body>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  window.petcomCleanArrivalFlags(['rejected']);
+
   var modal = document.getElementById('reject-modal');
   var requestIdInput = document.getElementById('reject-request-id');
   var applicantLabel = document.getElementById('reject-applicant-name');

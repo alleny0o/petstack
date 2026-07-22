@@ -93,10 +93,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO products (nuclide_id, name, delivery_method, active) VALUES (?, ?, ?, ?)')
                 ->execute([$nuclideId, $addOld['name'], $addOld['delivery_method'], (int) $addOld['active']]);
-            redirect('/admin/products.php?' . build_query(['created' => '1']));
+            $dest = '/admin/products.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         $editOld['product_id'] = trim($_POST['product_id'] ?? '');
@@ -167,10 +175,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE products SET name = ?, nuclide_id = ?, delivery_method = ? WHERE product_id = ?')
                 ->execute([$editOld['name'], $nuclideId, $editOld['delivery_method'], $productId]);
-            redirect('/admin/products.php?' . build_query(['updated' => '1']));
+            $dest = '/admin/products.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $productId = ctype_digit((string) ($_POST['product_id'] ?? '')) ? (int) $_POST['product_id'] : 0;
@@ -499,10 +515,11 @@ $pageTitle = 'Products';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="add-product-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="add-product-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="add-product-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($addErrors, 'nuclide_id') ?>">
                                 <label for="add-product-nuclide">Nuclide <span class="required-mark">*</span></label>
                                 <select id="add-product-nuclide" name="nuclide_id" required data-modal-focus>
@@ -572,11 +589,12 @@ $pageTitle = 'Products';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="edit-product-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="edit-product-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="product_id" id="edit-product-id" value="<?= e($editOld['product_id']) ?>">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="edit-product-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($editErrors, 'name') ?>">
                                 <label for="edit-product-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="edit-product-name" name="name" maxlength="150" value="<?= e($editOld['name']) ?>" required data-modal-focus>

@@ -87,6 +87,14 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $notesErrors['notes'] = 'Notes must be 500 characters or fewer.';
         }
 
+        // AJAX submits (script.js initAjaxForms) get the errors as JSON
+        // and render them in place; a plain POST falls through to the
+        // full-page re-render below -- kept as the no-JS fallback, not
+        // dead code. Same split as the Stage-1 CRUD pages.
+        if ($notesErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $notesErrors], 422);
+        }
+
         if (!$notesErrors) {
             // Ownership repeated in the WHERE clause -- the mutation
             // itself refuses a tampered id, not just the gate above.
@@ -97,8 +105,14 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // PRG: redirect after a successful save so a reload doesn't
             // hit the browser's resubmit-form prompt (confirming it would
             // silently re-save the note) -- same pattern as
-            // cancel_order/save_details below.
-            redirect('/customer/order_detail.php?id=' . $orderId . '&notes_updated=1');
+            // cancel_order/save_details below. The AJAX path navigates to
+            // the same destination itself, so the arrival-flag toast
+            // works identically either way.
+            $dest = '/customer/order_detail.php?id=' . $orderId . '&notes_updated=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'save_details' && $detailsEditable) {
         // No notes key here: notes keeps its own separately-gated form
@@ -121,6 +135,11 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // the UPDATE below never writes that column.
         $validation = validate_order_input($pdo, $editOld + ['notes' => ''], $labId);
         $editErrors = $validation['errors'];
+
+        // Same AJAX/no-JS split as save_notes above.
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
 
         if (!$editErrors) {
             $values = $validation['values'];
@@ -154,14 +173,24 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->commit();
                     // Query flag carries the toast across the redirect,
                     // mirroring ?placed=1 / ?cancelled=1.
-                    redirect('/customer/order_detail.php?id=' . $orderId . '&updated=1');
+                    $dest = '/customer/order_detail.php?id=' . $orderId . '&updated=1';
+                    if (request_wants_json()) {
+                        json_response(['ok' => true, 'redirect' => $dest]);
+                    }
+                    redirect($dest);
                 }
 
                 // The order moved on mid-request (e.g. staff accepted
                 // it). Re-fetch AND re-derive the gates so the page
                 // renders the real current state -- read-only, no edit
-                // form -- rather than our stale copy.
+                // form -- rather than our stale copy. The AJAX path can
+                // only surface this as an error toast ({ok:false,
+                // message}); its page keeps the stale edit form, so the
+                // re-fetch below is skipped for it.
                 $pdo->rollBack();
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'message' => 'This order can no longer be edited.'], 422);
+                }
                 $flash = ['type' => 'error', 'message' => 'This order can no longer be edited.'];
                 $order = fetch_order_for_lab($pdo, $orderId, $labId);
                 $isOwnOrder = $order !== null && (int) $order['customer_id'] === $myUserId;
@@ -184,12 +213,25 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result['ok']) {
             // Query flag carries the toast across the redirect,
             // mirroring the ?placed=1 arrival pattern.
-            redirect('/customer/order_detail.php?id=' . $orderId . '&cancelled=1');
+            $dest = '/customer/order_detail.php?id=' . $orderId . '&cancelled=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
 
         if ($result['reason'] === 'reason_required') {
             $cancelErrors['cancellation_reason'] = 'Enter a reason for cancelling this order (500 characters max).';
+            // AJAX: the error renders inside the still-open modal -- no
+            // full-page re-render + reopen flicker. Plain POST falls
+            // through to the reopen-on-error script below.
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'errors' => $cancelErrors], 422);
+            }
         } else {
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'message' => 'This order can no longer be cancelled.'], 422);
+            }
             // The order moved on mid-request (e.g. staff accepted it).
             // Re-fetch AND re-derive the gates so the page renders the
             // real current state, not our stale copy -- same pattern as
@@ -334,7 +376,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <?php if ($isOwnOrder && $order['status'] === 'pending'): ?>
                     <div class="modal-overlay" id="cancel-order-modal" hidden>
                         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-modal-title">
-                            <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>">
+                            <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>" novalidate data-ajax-submit>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="cancel_order">
                                 <div class="modal__header">
@@ -390,21 +432,25 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                     <div class="card order-edit-card">
                         <span class="card__title">Edit Order Details</span>
 
-                        <?php if ($editErrors): ?>
-                            <div class="alert alert--error">Please correct the errors below and resubmit.</div>
-                        <?php endif; ?>
+                        <?php // Always in the DOM (hidden when clean), same as the
+                              // Stage-1 modal banners: the AJAX submit unhides it
+                              // alongside the injected field errors, and
+                              // initFieldErrorClearing() hides it again once the
+                              // last invalid field clears -- both keyed off
+                              // data-error-banner-for matching the form id. ?>
+                        <div class="alert alert--error" data-error-banner-for="order-edit-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
                         <?php // edit_-prefixed ids throughout: the new-order
                               // modal (included on every customer page) already
                               // owns #nuclide_id, #product_id, #location-field,
                               // etc. Field NAMES stay identical to creation so
                               // validate_order_input() reads both forms the
-                              // same way. Traditional POST (this page's
-                              // pattern), not the modal's AJAX. Bare
-                              // .field/.field-row rows (account_detail.php's
-                              // plain-card form idiom), not the modal's
-                              // .form-section groupings. ?>
-                        <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>&amp;edit=1" novalidate
+                              // same way. data-ajax-submit (the shared
+                              // initAjaxForms handler), not the modal's
+                              // bespoke fetch. Bare .field/.field-row rows
+                              // (account_detail.php's plain-card form idiom),
+                              // not the modal's .form-section groupings. ?>
+                        <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>&amp;edit=1" id="order-edit-form" novalidate data-ajax-submit
                               data-confirm="Save your changes to order #<?= (int) $order['order_id'] ?>?"
                               data-confirm-title="Save changes?"
                               data-confirm-verb="Save changes">
@@ -604,7 +650,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="card">
                     <span class="card__title">Notes</span>
                     <?php if ($notesEditable): ?>
-                        <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>" class="order-notes-form" novalidate>
+                        <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>" class="order-notes-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="save_notes">
                             <div class="<?= field_class($notesErrors, 'notes', 'field mb-0') ?>">

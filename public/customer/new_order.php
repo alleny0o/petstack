@@ -15,19 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 verify_csrf();
 
-/**
- * Emits a JSON response and stops. Success: {ok:true, redirect}.
- * Failure: {ok:false, errors:{field: message}} and/or {ok:false, message}
- * with a non-200 status.
- */
-function order_json_response(array $payload, int $status = 200): void
-{
-    http_response_code($status);
-    header('Content-Type: application/json');
-    echo json_encode($payload);
-    exit;
-}
-
 $pdo = get_db();
 $myUserId = (int) $_SESSION['user_id'];
 
@@ -36,7 +23,7 @@ $labId = current_customer_lab_id($pdo, $myUserId);
 if ($labId <= 0) {
     // The modal renders a "no lab assigned" notice instead of the form in
     // this state, so a POST here means a stale session or tampering.
-    order_json_response(
+    json_response(
         ['ok' => false, 'message' => 'No lab assigned to your account yet — contact an administrator.'],
         422
     );
@@ -64,7 +51,7 @@ foreach ($input as $key => $_) {
 $validation = validate_order_input($pdo, $input, $labId);
 
 if ($validation['errors']) {
-    order_json_response(['ok' => false, 'errors' => $validation['errors']], 422);
+    json_response(['ok' => false, 'errors' => $validation['errors']], 422);
 }
 
 $values = $validation['values'];
@@ -100,4 +87,4 @@ try {
 
 // ?placed=1 is order_detail.php's arrival-toast contract (kept compatible
 // with that page's pending rebuild / future print view).
-order_json_response(['ok' => true, 'redirect' => '/customer/order_detail.php?id=' . $orderId . '&placed=1']);
+json_response(['ok' => true, 'redirect' => '/customer/order_detail.php?id=' . $orderId . '&placed=1']);

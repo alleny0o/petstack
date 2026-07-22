@@ -100,16 +100,30 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $addErrors = validate_product_user_fields($pdo, $labId, $addOld['first_name'], $addOld['last_name'], $addOld['email'], 0);
 
+        // AJAX submits (script.js initAjaxForms) get the errors as JSON
+        // and render them in the still-open modal; a plain POST falls
+        // through to the full-page re-render + reopen below -- kept as
+        // the no-JS fallback, not dead code.
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO lab_product_users (lab_id, first_name, last_name, email, active) VALUES (?, ?, ?, ?, 1)')
                 ->execute([$labId, $addOld['first_name'], $addOld['last_name'], $addOld['email']]);
             // PRG: redirect after a successful save so a reload doesn't hit
             // the browser's resubmit-form prompt (confirming it would
             // silently re-create the product user) -- same pattern as
-            // order_detail.php / lab_delivery_locations.php.
-            // build_query() carries the current search/page state
-            // forward so the person lands back where they were.
-            redirect('/customer/lab_product_users.php?' . build_query(['created' => '1']));
+            // order_detail.php / lab_delivery_locations.php. build_query()
+            // carries the current search/page state forward so the person
+            // lands back where they were. The AJAX path navigates to the
+            // same destination itself, so the arrival-flag toast works
+            // identically either way.
+            $dest = '/customer/lab_product_users.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         $editOld['product_user_id'] = trim($_POST['product_user_id'] ?? '');
@@ -131,10 +145,21 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $editErrors += validate_product_user_fields($pdo, $labId, $editOld['first_name'], $editOld['last_name'], $editOld['email'], $productUserId);
 
+        // Same AJAX/no-JS split as the create branch above. The
+        // product_user_id error key has no field slot in the modal, so
+        // on the AJAX path it surfaces as the summary banner alone.
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE lab_product_users SET first_name = ?, last_name = ?, email = ? WHERE product_user_id = ? AND lab_id = ?')
                 ->execute([$editOld['first_name'], $editOld['last_name'], $editOld['email'], $productUserId, $labId]);
-            redirect('/customer/lab_product_users.php?' . build_query(['updated' => '1']));
+            $dest = '/customer/lab_product_users.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $productUserId = ctype_digit((string) ($_POST['product_user_id'] ?? '')) ? (int) $_POST['product_user_id'] : 0;
@@ -398,10 +423,11 @@ $pageTitle = 'Product Users';
                                 </svg>
                             </button>
                         </div>
-                        <form method="post" action="<?= e($formAction) ?>" id="add-product-user-form">
+                        <form method="post" action="<?= e($formAction) ?>" id="add-product-user-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="create">
                             <div class="modal__body">
+                                <div class="alert alert--error" data-error-banner-for="add-product-user-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                                 <div class="<?= field_class($addErrors, 'first_name') ?>">
                                     <label for="add-product-user-first-name">First name <span class="required-mark">*</span></label>
                                     <input type="text" id="add-product-user-first-name" name="first_name" maxlength="100" value="<?= e($addOld['first_name']) ?>" required data-modal-focus>
@@ -441,11 +467,12 @@ $pageTitle = 'Product Users';
                                 </svg>
                             </button>
                         </div>
-                        <form method="post" action="<?= e($formAction) ?>" id="edit-product-user-form">
+                        <form method="post" action="<?= e($formAction) ?>" id="edit-product-user-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="product_user_id" id="edit-product-user-id" value="<?= e($editOld['product_user_id']) ?>">
                             <div class="modal__body">
+                                <div class="alert alert--error" data-error-banner-for="edit-product-user-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                                 <div class="<?= field_class($editErrors, 'first_name') ?>">
                                     <label for="edit-product-user-first-name">First name <span class="required-mark">*</span></label>
                                     <input type="text" id="edit-product-user-first-name" name="first_name" maxlength="100" value="<?= e($editOld['first_name']) ?>" required data-modal-focus>

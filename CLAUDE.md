@@ -73,7 +73,14 @@ petcom/
                              history)
     admin/
       dashboard.php
-      registrations.php
+      registrations.php      (pending-request review queue — approve creates
+                             the account + temp-password reveal inline;
+                             reject PRGs with a `?rejected=1` toast; rows
+                             whose email has earlier rejected request(s)
+                             carry a warning "Previously rejected ×N" chip
+                             (last reason in the title attr) so
+                             resubmissions don't read as first-time
+                             applicants)
       customers.php          (status tabs (Active/Inactive) + search/
                              institute/lab filter/pagination, same
                              convention as orders.php)
@@ -130,7 +137,16 @@ petcom/
                           customer_detail.php)
     registration_status.php  (public, unauthenticated lookup of a
                           submitted registration request's pending/
-                          approved/rejected status by email)
+                          approved/rejected status by email — latest
+                          request only; a rejected result shows the
+                          admin's rejection_reason (the app sends no
+                          email, so this page is the only automated
+                          channel the reason reaches the applicant
+                          through) plus an invite to resubmit —
+                          rejection is a soft block by design:
+                          register.php only blocks a pending duplicate
+                          or an existing account, never a prior
+                          rejection)
     assets/
       css/
         style.css        (tokens + base/reset + typography + accessibility)
@@ -471,7 +487,7 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 **No role-specific CSS files.** All three roles share the same component library.
 
 **UI feedback conventions:**
-- Transient success → toast via `toast_flash($type, $message)` (helpers.php), which emits a DOMContentLoaded `showToast()` call. PRG (post-redirect-GET) with arrival-flag query params is the established convention for this — 7 admin CRUD pages (`nuclides.php`, `pis.php`, `institutes.php`, `products.php`, `labs.php`, `lab_product_users.php`, `lab_delivery_locations.php`) and both order-detail pages (`customer/order_detail.php`, `staff/order_detail.php`) redirect after a successful POST and toast off the arrival flag. The one exception is a one-time secret that can't safely round-trip through a redirect (a temp password): `accounts.php`'s New Account modal and `registrations.php`'s approve action re-render the same POST response inline instead — see the Admin CRUD Page Conventions section
+- Transient success → toast via `toast_flash($type, $message)` (helpers.php), which emits a DOMContentLoaded `showToast()` call. PRG (post-redirect-GET) with arrival-flag query params is the established convention for this — 7 admin CRUD pages (`nuclides.php`, `pis.php`, `institutes.php`, `products.php`, `labs.php`, `lab_product_users.php`, `lab_delivery_locations.php`) and both order-detail pages (`customer/order_detail.php`, `staff/order_detail.php`) redirect after a successful POST and toast off the arrival flag. A temp password (a one-time secret) can't safely round-trip through a redirect **URL**, so every temp-password-reveal surface instead session-flashes the reveal and PRGs normally: `accounts.php`'s New Account modal (`$_SESSION['account_created_reveal']`, read-once + 60s TTL, consumed by the `?created=1` arrival) and the Reset Password action on `account_detail.php`/`customer_detail.php` (`$_SESSION['password_reset_reveal']`, same read-once + 60s TTL shape plus a `user_id` match so a stale flash can't bleed into a different account's page, consumed by the `?reset=1` arrival) — distinct session keys so the two flashes can never collide. `registrations.php`'s approve action is the one remaining exception: it still re-renders the same POST response inline rather than PRGing — see the Admin CRUD Page Conventions section
 - Errors/warnings → inline `.alert--error/--warning` banners; per-field validation → `field_class()` on the `.field` wrapper + `field_error()` below the input
 - Destructive/irreversible actions → `data-confirm` / `data-confirm-title` / `data-confirm-verb` / `data-confirm-danger` attributes on the form; script.js intercepts submit and shows a custom modal (never `window.confirm`)
 - Temp-password reveals → `.temp-password-banner` with a `data-copy-target` Copy button; never a toast
@@ -489,7 +505,7 @@ Role is determined by which table a `user_id` appears in (`customers`, `staff`, 
 New admin (and any other role's) list/create/edit pages should default to the patterns already established by `staff/orders.php`, `customer/orders.php`, `customer/lab_product_users.php`, `customer/lab_delivery_locations.php`, and `admin/accounts.php`/`customers.php` — without needing to be told each time:
 
 - **List pages:** a `.status-tabs` strip (not a `<select>`) whenever there's a meaningful status dimension (active/inactive, pending/accepted/…), with each tab's count computed against the *other* active filters, not globally. A full `.table-pagination` footer — `__status-group` (range text + a page-size `<select>`) and `__controls` (Prev / jump-to-page mini-form / Next) — not a bare Prev/Next pair. Search/filter forms are explicit-submit (`method="get"`, hidden fields to carry the rest of the current view forward), never live-as-you-type.
-- **Create/Edit:** the modal overlay convention — `.modal-overlay` > `.modal`, header X-close, dirty-tracking + discard-confirm via a `wireModalDirtyTracking()` helper (copied inline into the page's own script, same as `lab_product_users.php`/`lab_delivery_locations.php`/`accounts.php` — not shared into `script.js`), wired through `overlay.petcomBeforeClose` + `window.petcomConfirm()` — triggered from the list page itself, never a standalone create/edit page, unless a genuine constraint prevents it. The one confirmed exception: a one-time secret (a temp password) can't safely round-trip through a PRG redirect, so success still re-renders the same POST response inline rather than redirecting (`accounts.php`'s New Account modal, `registrations.php`'s approve action) — that's a redirect constraint, not a reason to skip the modal convention itself.
+- **Create/Edit:** the modal overlay convention — `.modal-overlay` > `.modal`, header X-close, dirty-tracking + discard-confirm via a `wireModalDirtyTracking()` helper (copied inline into the page's own script, same as `lab_product_users.php`/`lab_delivery_locations.php`/`accounts.php` — not shared into `script.js`), wired through `overlay.petcomBeforeClose` + `window.petcomConfirm()` — triggered from the list page itself, never a standalone create/edit page, unless a genuine constraint prevents it. A temp password (a one-time secret) can't ride a redirect URL; `accounts.php`'s New Account modal and the Reset Password action on `account_detail.php`/`customer_detail.php` both solve this with a session flash (`$_SESSION['account_created_reveal']` / `$_SESSION['password_reset_reveal']`, read-once + 60s TTL) so they PRG like every other converted action, while `registrations.php`'s approve action still re-renders the same POST response inline — the remaining confirmed exception. Either way it's a redirect constraint, not a reason to skip the modal convention itself.
 - **CSS reuse:** reach for the existing shared components (`.table-card`, `.status-tabs`, `.dash-grid`/`.dash-stack`, `.modal`/`.modal--wide`/`.modal--order`) before adding a page-specific variant.
 - **Sidebar grouping:** the admin sidebar groups related pages into expandable
   submenus using the `$accountsChildPages`-style array + `in_array`

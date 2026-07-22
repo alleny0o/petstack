@@ -81,12 +81,24 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $notesErrors['notes'] = 'Notes must be 500 characters or fewer.';
         }
 
+        // AJAX submits (script.js initAjaxForms) get the errors as JSON
+        // and render them in place; a plain POST falls through to the
+        // full-page re-render below -- kept as the no-JS fallback, not
+        // dead code. Same split as customer/order_detail.php.
+        if ($notesErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $notesErrors], 422);
+        }
+
         if (!$notesErrors) {
             // No customer_id in the WHERE -- staff isn't the order's
             // owner, unlike the customer page's equivalent UPDATE.
             $pdo->prepare('UPDATE orders SET notes = ? WHERE order_id = ?')
                 ->execute([$notesOld !== '' ? $notesOld : null, $orderId]);
-            redirect('/staff/order_detail.php?id=' . $orderId . '&notes_updated=1');
+            $dest = '/staff/order_detail.php?id=' . $orderId . '&notes_updated=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif (in_array($action, ['accept', 'return', 'complete', 'reopen'], true)) {
         // Plain transitions with no extra data, routed through
@@ -125,12 +137,27 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = transition_order_status($pdo, $orderId, 'cancelled', $staffRole, $staffUserId, $cancelReasonOld);
 
         if ($result['ok']) {
-            redirect('/staff/order_detail.php?id=' . $orderId . '&cancelled=1');
+            $dest = '/staff/order_detail.php?id=' . $orderId . '&cancelled=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
 
         if ($result['reason'] === 'reason_required') {
             $cancelErrors['cancellation_reason'] = 'Enter a reason for cancelling this order (500 characters max).';
+            // AJAX: the error renders inside the still-open modal -- no
+            // full-page re-render + reopen flicker. Plain POST falls
+            // through to the reopen-on-error script below.
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'errors' => $cancelErrors], 422);
+            }
         } else {
+            // AJAX can only surface this as an error toast; its page
+            // keeps the stale state, so the re-fetch below is skipped.
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'message' => 'This order can no longer be cancelled.'], 422);
+            }
             $flash = ['type' => 'error', 'message' => 'This order can no longer be cancelled.'];
             $order = fetch_order_for_staff($pdo, $orderId);
             $notesEditable = $order !== null && can_edit_order_notes($staffRole, false);
@@ -308,7 +335,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <?php if (in_array($order['status'], ['pending', 'accepted'], true)): ?>
                     <div class="modal-overlay" id="cancel-order-modal" hidden>
                         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-modal-title">
-                            <form method="post" action="/staff/order_detail.php?id=<?= (int) $order['order_id'] ?>">
+                            <form method="post" action="/staff/order_detail.php?id=<?= (int) $order['order_id'] ?>" novalidate data-ajax-submit>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="cancel">
                                 <div class="modal__header">
@@ -459,7 +486,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="card">
                     <span class="card__title">Notes</span>
                     <?php if ($notesEditable): ?>
-                        <form method="post" action="/staff/order_detail.php?id=<?= (int) $order['order_id'] ?>" class="order-notes-form" novalidate>
+                        <form method="post" action="/staff/order_detail.php?id=<?= (int) $order['order_id'] ?>" class="order-notes-form" novalidate data-ajax-submit>
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="save_notes">
                             <div class="<?= field_class($notesErrors, 'notes', 'field mb-0') ?>">

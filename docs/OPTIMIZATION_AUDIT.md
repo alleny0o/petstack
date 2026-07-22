@@ -75,7 +75,7 @@ Verified zero references including dynamic construction patterns (`badge--<?= $x
 
 **[Low] Single orphaned variants/utilities:** `.dot--success` (dashboard.css:76), `.spinner--lg` (feedback.css:17–21), `.stat-tile__value--text` (dashboard.css:62–65), `.label-optional` (forms.css:126–130), `.form-section__suffix` (forms.css:147–152), `.flex-between` (utilities.css:36–40), `.mt-0` (utilities.css:11–13).
 
-**[Resolved]** `.app-header`/`.app-footer` — investigated (git history showed a real header/footer implementation, deliberately pruned to bare grid bindings back in commit `24409e2` when sidebar nav replaced it) and deleted; see git history for the removal commit. `grid-template-areas`'s `header`/`footer` names stay, since `.app-topbar` still binds to `grid-area: header`.
+**[Low — confirm intent first]** `.app-header`/`.app-footer` (`layout/shell.css:50–54, 68–71`) — never emitted by any template (the header grid-area is occupied by `.app-topbar`); shell.css's own comments describe them as optional per-page partials that don't exist. Looks like deliberate forward-provisioning of the grid contract — confirm before deleting.
 
 ### 3.3 Stale comments and housekeeping
 
@@ -172,7 +172,7 @@ Small, independently reviewable, one commit each, ordered docs → bugs → dele
 
 1. **Docs-first (CLAUDE.md's own rule):** all §7 CLAUDE.md corrections; stale comments/docblocks — `helpers.php:118` no-PRG claim, `sql/schema.sql:148`, `auth.php:77` "Phase A.2", `helpers.php:167`, `helpers.php:414`, helpers file docblock. Zero code behavior change.
 2. **Small real bugs + dead code (no behavior risk):** flyout title bug (§6.2), dead submenu pageshow handler, dead `data-delivery-method` ×2, dead `$_SESSION['role_id']`, `customer/orders.php` status canonicalization one-liner (§5.1).
-3. **Dead CSS removal:** everything in §3.2 (`.app-header`/`.app-footer` intent question now settled — see §3.2). Pure deletions, one scannable diff.
+3. **Dead CSS removal:** everything in §3.2 (settle the `.app-header`/`.app-footer` intent question in review). Pure deletions, one scannable diff.
 4. **List-machinery extraction (the big one):** `build_query()` + `paginate()` + shared canonicalization + `table_pagination.php` partial, applied across the 11 pages (§4.1). Largest payoff; do it as one pattern-change reviewed page-by-page.
 5. **Secondary consolidation:** `like_contains()`, `current_customer_lab_id()`, `consume_arrival_flags()` + JS moved into script.js, badge-class alias (§4.2); optionally the §5.4 alignments while touching those files.
 6. **Layout scope fix:** `$petcomLayout` single-array refactor + `_sidebar_footer.php` sub-partial + `e()` standardization + script-tag centralization (§1.2, §6.2). Touches every page's chrome — do last, verify by diff + `php -l`.

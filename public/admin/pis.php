@@ -84,6 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addErrors['active'] = 'Select a status.';
         }
 
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        }
+
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO pis (pi_name, email, phone, active) VALUES (?, ?, ?, ?)')
                 ->execute([
@@ -92,7 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $addOld['phone'] !== '' ? $addOld['phone'] : null,
                     (int) $addOld['active'],
                 ]);
-            redirect('/admin/pis.php?' . build_query(['created' => '1']));
+            $dest = '/admin/pis.php?' . build_query(['created' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'update') {
         // Free edit, same reasoning as nuclides.php's rename: these are
@@ -116,6 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $editErrors += validate_pi_fields($editOld['pi_name'], $editOld['email'], $editOld['phone']);
 
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        }
+
         if (!$editErrors) {
             $pdo->prepare('UPDATE pis SET pi_name = ?, email = ?, phone = ? WHERE pi_id = ?')
                 ->execute([
@@ -124,7 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $editOld['phone'] !== '' ? $editOld['phone'] : null,
                     $piId,
                 ]);
-            redirect('/admin/pis.php?' . build_query(['updated' => '1']));
+            $dest = '/admin/pis.php?' . build_query(['updated' => '1']);
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $piId = ctype_digit((string) ($_POST['pi_id'] ?? '')) ? (int) $_POST['pi_id'] : 0;
@@ -387,10 +403,11 @@ $pageTitle = 'PIs';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="add-pi-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="add-pi-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="create">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="add-pi-form" <?= $addErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($addErrors, 'pi_name') ?>">
                                 <label for="add-pi-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="add-pi-name" name="pi_name" maxlength="100" value="<?= e($addOld['pi_name']) ?>" required data-modal-focus>
@@ -442,11 +459,12 @@ $pageTitle = 'PIs';
                             </svg>
                         </button>
                     </div>
-                    <form method="post" action="<?= e($formAction) ?>" id="edit-pi-form">
+                    <form method="post" action="<?= e($formAction) ?>" id="edit-pi-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="pi_id" id="edit-pi-id" value="<?= e($editOld['pi_id']) ?>">
                         <div class="modal__body">
+                            <div class="alert alert--error" data-error-banner-for="edit-pi-form" <?= $editErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($editErrors, 'pi_name') ?>">
                                 <label for="edit-pi-name">Name <span class="required-mark">*</span></label>
                                 <input type="text" id="edit-pi-name" name="pi_name" maxlength="100" value="<?= e($editOld['pi_name']) ?>" required data-modal-focus>

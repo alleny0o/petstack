@@ -107,3 +107,19 @@
   color: var(--status-warning-text);
   background: var(--status-warning-tint);
 }
+
+/* Admin registration queue only: this pending request's email has one or
+   more earlier rejected requests — a resubmission, not a first-time
+   applicant. A fact about the request's history, not its state (the row
+   itself is still pending), so it takes the square/no-dot shape in the
+   same warning tones as .badge--not-chargeable. */
+.badge--prev-rejected {
+  border-radius: var(--radius-sm);
+}
+.badge--prev-rejected::before {
+  display: none;
+}
+.badge--prev-rejected {
+  color: var(--status-warning-text);
+  background: var(--status-warning-tint);
+}

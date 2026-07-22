@@ -607,6 +607,16 @@ function initConfirmForms() {
         } else {
           form.submit();
         }
+        // An AJAX form (initAjaxForms) has now started its fetch and no
+        // page navigation will sweep this dialog away, so close it here
+        // — otherwise a 422 would leave it open forever over the field
+        // errors. Re-arming the confirm keeps fix-and-resubmit behavior
+        // identical to the full-page path, where the re-rendered form
+        // starts unconfirmed.
+        if (form.hasAttribute('data-ajax-submit')) {
+          petcomCloseModal();
+          form.dataset.confirmed = 'false';
+        }
       });
 
       document.body.appendChild(overlay);
@@ -832,6 +842,193 @@ function initReportsForm() {
 }
 
 
+// ===== Field errors (shared render/clear + clear-on-fix) ==========
+// The app-wide field-error DOM contract: field_class() puts
+// field--invalid on the .field wrapper, field_error() appends
+// span.field-error inside it. The render/clear pair below injects and
+// removes markup byte-compatible with that, so AJAX-injected errors
+// are indistinguishable from server-rendered ones. A form's optional
+// summary banner is the element carrying
+// data-error-banner-for="<form id>" — matched by attribute, not
+// containment, because the New Order modal's banner sits outside its
+// form element.
+
+function formErrorBanner(form) {
+  if (!form || !form.id) return null;
+  return document.querySelector('[data-error-banner-for="' + form.id + '"]');
+}
+
+function clearFieldErrors(form) {
+  const banner = formErrorBanner(form);
+  if (banner) banner.hidden = true;
+  form.querySelectorAll('.field-error').forEach((el) => el.remove());
+  form.querySelectorAll('.field--invalid').forEach((el) => {
+    el.classList.remove('field--invalid');
+  });
+}
+
+// Some forms (e.g. products.php's edit modal) share one name between an
+// enabled control and a disabled "locked" mirror -- exactly one enabled
+// at a time (see the applyLockState comment there). form.elements[name]
+// then returns a RadioNodeList, which has no .closest(); resolve it to
+// whichever sharing element is actually enabled so its error still
+// renders inline instead of silently falling back to banner-only.
+// Separately, a checkbox/multi-select group (e.g. labs.php's PI roster)
+// posts under "name[]" while its server error key is the bare "name" --
+// falling back to the bracketed form covers that convention too; any
+// one checkbox in the group resolves to the same shared .field wrapper.
+function resolveNamedFormControl(form, name) {
+  let match = form.elements[name];
+  if (!match) match = form.elements[name + '[]'];
+  if (!match || !(match instanceof RadioNodeList)) return match;
+  for (const el of match) {
+    if (!el.disabled) return el;
+  }
+  return match[0];
+}
+
+function renderFieldErrors(form, errors) {
+  clearFieldErrors(form);
+  let firstInvalidControl = null;
+  Object.keys(errors).forEach((name) => {
+    const control = resolveNamedFormControl(form, name);
+    if (!control || !control.closest) return; // unknown key — banner still shows
+    const fieldWrap = control.closest('.field');
+    if (!fieldWrap) return;
+    fieldWrap.classList.add('field--invalid');
+    const span = document.createElement('span');
+    span.className = 'field-error';
+    span.textContent = errors[name];
+    fieldWrap.appendChild(span);
+    if (!firstInvalidControl) firstInvalidControl = control;
+  });
+  const banner = formErrorBanner(form);
+  if (banner) banner.hidden = false;
+  if (firstInvalidControl) firstInvalidControl.focus();
+}
+
+window.petcomClearFieldErrors = clearFieldErrors;
+window.petcomRenderFieldErrors = renderFieldErrors;
+
+// ===== Field-error clearing =======================================
+// A field showing a validation error — server-rendered via
+// field_class()/field_error() or AJAX-injected — clears it on the
+// user's next input/change: drop the wrapper's field--invalid modifier
+// and remove its .field-error span(s). Delegated at the document level
+// so errors injected after load are covered too, with no per-form
+// wiring. Only the edited field clears; sibling errors stay until
+// their own edit or the next submit's server verdict — and once the
+// form's LAST invalid field clears, its summary banner (if it has
+// one) hides too.
+
+function initFieldErrorClearing() {
+  ['input', 'change'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+      const wrap = e.target.closest && e.target.closest('.field--invalid');
+      if (!wrap) return;
+      wrap.classList.remove('field--invalid');
+      wrap.querySelectorAll('.field-error').forEach((el) => el.remove());
+      const form = wrap.closest('form');
+      if (form && !form.querySelector('.field--invalid')) {
+        const banner = formErrorBanner(form);
+        if (banner) banner.hidden = true;
+      }
+    });
+  });
+}
+
+
+// ===== AJAX form submit ===========================================
+// Any <form data-ajax-submit> posts via fetch instead of a full-page
+// POST — same protocol as the New Order modal's bespoke handler
+// (new_order_form.php): FormData carries the CSRF token and matches
+// native submit semantics; the X-Requested-With header is what the
+// server's request_wants_json() (helpers.php) keys on, so the same
+// page keeps working as a normal POST fallback without JS. The JSON
+// contract is json_response()'s: {ok:true, redirect} → navigate (the
+// page's usual PRG destination, arrival-flag toast included);
+// {ok:false, errors} (422) → per-field red text + summary banner via
+// renderFieldErrors above; {ok:false, message} → error toast.
+// Listeners attach per form (target phase), so they run before the
+// document-level loading guard — which skips preventDefault-ed
+// submits — and loading state is owned here, as in New Order.
+
+function initAjaxForms() {
+  document.querySelectorAll('form[data-ajax-submit]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      // A data-confirm form's interceptor (attached first — see the
+      // DOMContentLoaded init order) preventDefaults the unconfirmed
+      // submit to show its dialog; fetching then would bypass the
+      // confirmation. The confirmed requestSubmit() arrives unprevented.
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      if (form.dataset.submitting === 'true') return;
+      form.dataset.submitting = 'true';
+
+      const btn =
+        e.submitter && e.submitter.classList && e.submitter.classList.contains('btn')
+          ? e.submitter
+          : form.querySelector('button[type="submit"]');
+      setButtonLoading(btn);
+
+      function finishSubmitAttempt() {
+        form.dataset.submitting = 'false';
+        clearButtonLoading(btn);
+      }
+
+      // getAttribute, NOT form.action: these forms carry a hidden input
+      // named "action" (the CRUD verb), and HTMLFormElement's named-control
+      // access overrides built-in properties -- form.action would be that
+      // input element, not the URL.
+      fetch(form.getAttribute('action') || window.location.href, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+        .then((response) => {
+          if (response.redirected) {
+            // require_role() bounced us (idle timeout, forced password
+            // change) — follow its redirect for real.
+            window.location.href = response.url;
+            return null;
+          }
+          if (response.ok || response.status === 422) {
+            return response.json();
+          }
+          // CSRF failure (403 text), 500s, anything non-JSON.
+          throw new Error('Unexpected response ' + response.status);
+        })
+        .then((data) => {
+          if (!data) return; // already navigating
+          if (data.ok) {
+            if (data.redirect) {
+              // Button stays in its loading state while the browser
+              // navigates to the usual PRG destination.
+              window.location.href = data.redirect;
+              return;
+            }
+            // No redirect target -- a self-contained detail-page form
+            // (account_detail.php/customer_detail.php's Edit forms) that
+            // never PRGs even on a full-page POST, just re-renders in
+            // place with a success toast. Same visible result, no reload.
+            clearFieldErrors(form);
+            if (data.message) window.showToast('success', data.message);
+            finishSubmitAttempt();
+            return;
+          }
+          if (data.errors) renderFieldErrors(form, data.errors);
+          if (data.message) window.showToast('error', data.message);
+          finishSubmitAttempt();
+        })
+        .catch(() => {
+          window.showToast('error', 'Something went wrong. Please try again.');
+          finishSubmitAttempt();
+        });
+    });
+  });
+}
+
+
 // ===== Init (single entry point — order matters: sidebar first so its
 // pre-paint collapsed/submenu state is wired up before anything else
 // touches the DOM, then the page-wide confirm/form/copy/dashboard
@@ -856,6 +1053,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initConfirmForms();
   initFormLoadingStates();
+  initFieldErrorClearing();
+  initAjaxForms();
   initCopyButtons();
   initReportsForm();
 });
