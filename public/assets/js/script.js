@@ -813,6 +813,22 @@ function initCopyButtons() {
 // Reset Filters restores that same range plus clears every select back to
 // "All" (value ""). No-op on every other page — guarded on #report-form's
 // absence, same as the rest of this file's init functions.
+//
+// #report-form is method="GET" and its target (export_csv.php) streams
+// back a CSV file (Content-Disposition: attachment) -- the shared
+// data-ajax-submit/initAjaxForms() convention doesn't fit here (it always
+// fetch()es via POST and always parses the response as JSON on a 2xx,
+// which would swallow the CSV bytes instead of downloading anything), so
+// this form carries data-no-loading-guard and is handled on its own.
+// export_csv.php's only rule is "both dates present" -- exactly what
+// `required` already encodes, and a native <input type="date"> never
+// emits a malformed value once non-empty, so there's no case a server
+// round-trip would catch that this client-only check doesn't. The form
+// also carries novalidate so this renders red banner/field text (the same
+// renderFieldErrors()/data-error-banner-for contract every other converted
+// form uses) instead of the browser's native validation tooltip; a
+// passing submission falls through untouched to the ordinary native GET,
+// so the download behaves exactly as it always has.
 
 function initReportsForm() {
   const form = document.getElementById('report-form');
@@ -838,6 +854,20 @@ function initReportsForm() {
     form.querySelectorAll('select').forEach((select) => {
       select.value = '';
     });
+  });
+
+  form.addEventListener('submit', (e) => {
+    const errors = {};
+    if (!startDateInput.value) {
+      errors.start_date = 'From Date is required.';
+    }
+    if (!endDateInput.value) {
+      errors.end_date = 'To Date is required.';
+    }
+    if (Object.keys(errors).length === 0) return; // both valid, native GET submit proceeds untouched
+
+    e.preventDefault();
+    renderFieldErrors(form, errors);
   });
 }
 
