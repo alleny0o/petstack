@@ -46,7 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $_SESSION['must_change_password'] = false;
 
-        redirect(dashboard_path_for_role($_SESSION['role']));
+        $dest = dashboard_path_for_role($_SESSION['role']);
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => $dest]);
+        }
+        redirect($dest);
+    }
+
+    if ($fieldErrors && request_wants_json()) {
+        json_response(['ok' => false, 'errors' => $fieldErrors], 422);
     }
 }
 
@@ -77,7 +85,9 @@ $pageTitle = 'Change Password';
             <div class="alert alert--info">You're signed in with a temporary password. Set a new one to continue.</div>
           <?php endif; ?>
 
-          <form method="post" novalidate>
+          <div class="alert alert--error" data-error-banner-for="change-password-form" <?= $fieldErrors ? '' : 'hidden' ?>>Some fields need attention — see the messages below.</div>
+
+          <form method="post" id="change-password-form" novalidate data-ajax-submit>
             <?= csrf_field() ?>
 
             <div class="<?= field_class($fieldErrors, 'current_password') ?>">

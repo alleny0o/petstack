@@ -38,7 +38,9 @@ $pageTitle = 'Reports';
             </div>
 
             <div class="card">
-                <form method="GET" action="export_csv.php" id="report-form" data-no-loading-guard>
+                <form method="GET" action="export_csv.php" id="report-form" novalidate data-no-loading-guard>
+
+                    <div class="alert alert--error" data-error-banner-for="report-form" hidden>Please provide a valid date range.</div>
 
                     <div class="field-row">
                         <div class="field">

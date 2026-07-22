@@ -19,9 +19,28 @@ $product    = ctype_digit((string) ($_GET['product'] ?? '')) ? (int) $_GET['prod
 $chargeable = in_array($_GET['chargeable'] ?? '', ['0', '1'], true) ? $_GET['chargeable'] : '';
 
 $dateRegex = '/^\d{4}-\d{2}-\d{2}$/';
-if (!$start_date || !$end_date || !preg_match($dateRegex, $start_date) || !preg_match($dateRegex, $end_date)) {
+$startInvalid = !$start_date || !preg_match($dateRegex, $start_date);
+$endInvalid   = !$end_date || !preg_match($dateRegex, $end_date);
+if ($startInvalid || $endInvalid) {
+    if (request_wants_json()) {
+        $errors = [];
+        if ($startInvalid) {
+            $errors['start_date'] = 'From Date is required.';
+        }
+        if ($endInvalid) {
+            $errors['end_date'] = 'To Date is required.';
+        }
+        json_response(['ok' => false, 'errors' => $errors], 422);
+    }
     http_response_code(400);
     die('Please provide a valid date range.');
+}
+
+if (request_wants_json()) {
+    // Valid -- the client's precheck fetch stops here; it never sets this
+    // header on the real download request, so the query + CSV streaming
+    // below only ever runs for an actual (non-AJAX) navigation.
+    json_response(['ok' => true]);
 }
 
 $start_datetime = $start_date . " 00:00:00";

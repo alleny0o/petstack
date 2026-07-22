@@ -9,7 +9,7 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
 }
 
 $fieldErrors = [];
-$submitted = false;
+$submitted = (($_GET['submitted'] ?? '') === '1');
 $old = [
     'institute_id'      => '',
     'lab_id'            => '',
@@ -126,7 +126,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['phone'],
         ]);
 
-        $submitted = true;
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => '/register.php?submitted=1']);
+        }
+        redirect('/register.php?submitted=1');
+    }
+
+    if ($fieldErrors && request_wants_json()) {
+        json_response(['ok' => false, 'errors' => $fieldErrors], 422);
     }
 }
 
@@ -197,11 +204,9 @@ $pageTitle = 'Register';
             </div>
           <?php else: ?>
 
-            <?php if ($fieldErrors): ?>
-              <div class="alert alert--error">Some fields need attention — see the messages below.</div>
-            <?php endif; ?>
+            <div class="alert alert--error" data-error-banner-for="register-form" <?= $fieldErrors ? '' : 'hidden' ?>>Some fields need attention — see the messages below.</div>
 
-            <form method="post" novalidate>
+            <form method="post" id="register-form" novalidate data-ajax-submit>
               <?= csrf_field() ?>
 
               <div class="form-section">

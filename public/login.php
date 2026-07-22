@@ -20,10 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $result = attempt_login($username, $password);
 
   if ($result['success']) {
-    redirect(dashboard_path_for_role($_SESSION['role']));
+    $dest = dashboard_path_for_role($_SESSION['role']);
+    if (request_wants_json()) {
+      json_response(['ok' => true, 'redirect' => $dest]);
+    }
+    redirect($dest);
   }
 
   $error = $result['reason'];
+  if (request_wants_json()) {
+    json_response(['ok' => false, 'message' => $error], 422);
+  }
 }
 
 $pageTitle = 'Log In';
@@ -55,7 +62,7 @@ $pageTitle = 'Log In';
           <div class="alert alert--error"><?= e($error) ?></div>
         <?php endif; ?>
 
-        <form method="post" novalidate>
+        <form method="post" id="login-form" novalidate data-ajax-submit>
           <?= csrf_field() ?>
 
           <div class="field">
