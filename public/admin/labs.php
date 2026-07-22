@@ -645,14 +645,39 @@ $pageTitle = 'Labs';
                                 <?php if (!$allPis): ?>
                                     <p class="field-hint mb-0">No PIs exist yet &mdash; add them under Directory &rsaquo; PIs first.</p>
                                 <?php else: ?>
-                                    <?php foreach ($allPis as $pi): ?>
-                                        <label class="text-sm">
-                                            <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>" <?= in_array((int) $pi['pi_id'], $addOld['pi_ids'], true) ? 'checked' : '' ?>>
-                                            <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
-                                        </label>
-                                    <?php endforeach; ?>
+                                    <!-- Real submission source: unchanged pi_ids[] checkboxes,
+                                         kept fully functional (checked state, name, validation,
+                                         error wiring) but visually hidden. The chip/search
+                                         combobox below is a pure view over these checkboxes'
+                                         checked state -- see initPiSelect() -- never a separate
+                                         selection model, so the server contract is untouched. -->
+                                    <div id="add-lab-pi-field" data-pi-field>
+                                        <div data-pi-source hidden>
+                                            <?php foreach ($allPis as $pi): ?>
+                                                <label class="text-sm">
+                                                    <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>"
+                                                           data-pi-name="<?= e($pi['pi_name']) ?>"
+                                                           data-pi-active="<?= $pi['active'] ? '1' : '0' ?>"
+                                                           <?= in_array((int) $pi['pi_id'], $addOld['pi_ids'], true) ? 'checked' : '' ?>>
+                                                    <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="pi-select" data-pi-select>
+                                            <div class="pi-select__control">
+                                                <div class="pi-select__chips" data-pi-chips></div>
+                                                <div class="pi-select__search-wrap">
+                                                    <svg class="pi-select__search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <circle cx="10" cy="10" r="7"></circle>
+                                                        <line x1="21" y1="21" x2="15" y2="15"></line>
+                                                    </svg>
+                                                    <input type="text" class="pi-select__search" placeholder="Search PIs&hellip;" autocomplete="off" data-pi-search>
+                                                </div>
+                                            </div>
+                                            <div class="pi-select__dropdown" data-pi-dropdown hidden></div>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
-                                <span class="field-hint">A lab with no PIs can't be chosen on new registrations &mdash; a supervising PI from the lab's roster is required there.</span>
                                 <?= field_error($addErrors, 'pi_ids') ?>
                             </div>
                             <?php // No required-mark or required attr on Status: the
@@ -734,15 +759,39 @@ $pageTitle = 'Labs';
                                 <?php if (!$allPis): ?>
                                     <p class="field-hint mb-0">No PIs exist yet &mdash; add them under Directory &rsaquo; PIs first.</p>
                                 <?php else: ?>
-                                    <?php foreach ($allPis as $pi): ?>
-                                        <label class="text-sm">
-                                            <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>" data-edit-lab-pi <?= in_array((int) $pi['pi_id'], $editOld['pi_ids'], true) ? 'checked' : '' ?>>
-                                            <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
-                                            <span class="muted" data-pi-count-label></span>
-                                        </label>
-                                    <?php endforeach; ?>
+                                    <!-- Same hidden-source + chip/search combobox pattern as the
+                                         Add modal above -- see initPiSelect(). Each PI checkbox's
+                                         count label ("supervises N customers here") is still
+                                         filled per-lab by JS from data-lab-pi-counts, exactly as
+                                         before; the combobox just reads it back off the DOM. -->
+                                    <div id="edit-lab-pi-field" data-pi-field>
+                                        <div data-pi-source hidden>
+                                            <?php foreach ($allPis as $pi): ?>
+                                                <label class="text-sm">
+                                                    <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>" data-edit-lab-pi
+                                                           data-pi-name="<?= e($pi['pi_name']) ?>"
+                                                           data-pi-active="<?= $pi['active'] ? '1' : '0' ?>"
+                                                           <?= in_array((int) $pi['pi_id'], $editOld['pi_ids'], true) ? 'checked' : '' ?>>
+                                                    <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
+                                                    <span class="muted" data-pi-count-label></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="pi-select" data-pi-select>
+                                            <div class="pi-select__control">
+                                                <div class="pi-select__chips" data-pi-chips></div>
+                                                <div class="pi-select__search-wrap">
+                                                    <svg class="pi-select__search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <circle cx="10" cy="10" r="7"></circle>
+                                                        <line x1="21" y1="21" x2="15" y2="15"></line>
+                                                    </svg>
+                                                    <input type="text" class="pi-select__search" placeholder="Search PIs&hellip;" autocomplete="off" data-pi-search>
+                                                </div>
+                                            </div>
+                                            <div class="pi-select__dropdown" data-pi-dropdown hidden></div>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
-                                <span class="field-hint">Unchecking a PI removes them from this lab's roster; customers they already supervise keep their assignment.</span>
                                 <?= field_error($editErrors, 'pi_ids') ?>
                             </div>
                         </div>
@@ -774,6 +823,131 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
     return values;
+  }
+
+  // ---- PI multi-select: searchable chip combobox over the hidden
+  // pi_ids[] checkboxes (data-pi-source). Pure view, no selection state
+  // of its own -- every read/write goes straight through the checkboxes
+  // themselves, so snapshotForm()/isDirty() above, the AJAX error
+  // renderer's resolveNamedFormControl()/renderFieldErrors() (script.js),
+  // and the server's pi_ids[] handling all keep working unmodified. ----
+  function initPiSelect(fieldRoot) {
+    if (!fieldRoot) return null;
+    var source = fieldRoot.querySelector('[data-pi-source]');
+    var chipsEl = fieldRoot.querySelector('[data-pi-chips]');
+    var searchEl = fieldRoot.querySelector('[data-pi-search]');
+    var dropdownEl = fieldRoot.querySelector('[data-pi-dropdown]');
+    // Selected-count line lives in the field-hint below the box, not
+    // inside fieldRoot itself -- both are siblings under the same
+    // .field wrapper.
+    var countEl = fieldRoot.parentElement.querySelector('[data-pi-selected-count]');
+
+    function checkboxes() {
+      return Array.prototype.slice.call(source.querySelectorAll('input[type="checkbox"]'));
+    }
+
+    function countLabelFor(box) {
+      var label = box.closest('label');
+      var span = label && label.querySelector('[data-pi-count-label]');
+      return span ? span.textContent : '';
+    }
+
+    function setChecked(box, checked) {
+      box.checked = checked;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function renderChips() {
+      var selected = checkboxes().filter(function (box) { return box.checked; });
+      chipsEl.innerHTML = '';
+      if (countEl) {
+        countEl.textContent = selected.length ? (selected.length + ' selected. ') : '';
+      }
+      selected.forEach(function (box) {
+        var name = box.dataset.piName + (box.dataset.piActive === '0' ? ' (inactive)' : '');
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.appendChild(document.createTextNode(name));
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'chip__remove';
+        removeBtn.setAttribute('aria-label', 'Remove ' + box.dataset.piName);
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', function () {
+          setChecked(box, false);
+          renderChips();
+          renderDropdown();
+          searchEl.focus();
+        });
+        chip.appendChild(removeBtn);
+        chipsEl.appendChild(chip);
+      });
+    }
+
+    function renderDropdown() {
+      var query = searchEl.value.trim().toLowerCase();
+      var candidates = checkboxes().filter(function (box) { return !box.checked; });
+      if (query) {
+        candidates = candidates.filter(function (box) {
+          return box.dataset.piName.toLowerCase().indexOf(query) !== -1;
+        });
+      }
+      dropdownEl.innerHTML = '';
+      if (!candidates.length) {
+        var empty = document.createElement('div');
+        empty.className = 'pi-select__empty';
+        empty.textContent = query ? 'No matching PIs' : 'No more PIs to add';
+        dropdownEl.appendChild(empty);
+        return;
+      }
+      candidates.forEach(function (box) {
+        var opt = document.createElement('div');
+        opt.className = 'pi-select__option';
+        opt.setAttribute('role', 'option');
+        var label = document.createElement('span');
+        label.textContent = box.dataset.piName + (box.dataset.piActive === '0' ? ' (inactive)' : '');
+        opt.appendChild(label);
+        var count = countLabelFor(box);
+        if (count) {
+          var countEl = document.createElement('span');
+          countEl.className = 'pi-select__option-count';
+          countEl.textContent = count;
+          opt.appendChild(countEl);
+        }
+        // mousedown + preventDefault (not click) so the search input
+        // never blurs -- the dropdown stays open for picking several
+        // PIs in a row instead of closing after each one.
+        opt.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          setChecked(box, true);
+          searchEl.value = '';
+          renderChips();
+          renderDropdown();
+        });
+        dropdownEl.appendChild(opt);
+      });
+    }
+
+    function openDropdown() {
+      renderDropdown();
+      dropdownEl.hidden = false;
+    }
+    function closeDropdown() {
+      dropdownEl.hidden = true;
+    }
+
+    searchEl.addEventListener('input', openDropdown);
+    searchEl.addEventListener('focus', openDropdown);
+    searchEl.addEventListener('blur', closeDropdown);
+    searchEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeDropdown(); searchEl.blur(); }
+    });
+
+    renderChips();
+
+    return {
+      refresh: function () { renderChips(); renderDropdown(); }
+    };
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
@@ -812,11 +986,12 @@ document.addEventListener('DOMContentLoaded', function () {
   // ---- Add modal ----
   var addModal = document.getElementById('add-lab-modal');
   var addForm = document.getElementById('add-lab-form');
+  var addPiSelect = initPiSelect(document.getElementById('add-lab-pi-field'));
   var addTracking = wireModalDirtyTracking(
     addModal,
     addForm,
     { title: 'Discard this lab?', message: 'Your entries will be discarded.' },
-    function () { addForm.reset(); }
+    function () { addForm.reset(); if (addPiSelect) addPiSelect.refresh(); }
   );
 
   ['add-lab-btn', 'add-lab-btn-empty'].forEach(function (id) {
@@ -824,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btn) {
       btn.addEventListener('click', function (e) {
         window.petcomOpenModal(addModal, { opener: e.currentTarget });
+        if (addPiSelect) addPiSelect.refresh();
         addTracking.markPristine();
       });
     }
@@ -831,6 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($addErrors): ?>
   window.petcomOpenModal(addModal);
+  if (addPiSelect) addPiSelect.refresh();
   addTracking.markPristine();
   <?php endif; ?>
 
@@ -843,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var editBuildingField = document.getElementById('edit-lab-building');
   var editRoomField = document.getElementById('edit-lab-room');
   var editPiCheckboxes = editModal.querySelectorAll('[data-edit-lab-pi]');
+  var editPiSelect = initPiSelect(document.getElementById('edit-lab-pi-field'));
   var editTracking = wireModalDirtyTracking(editModal, editForm, {
     title: 'Discard these changes?',
     message: 'Your edits to this lab will be discarded.'
@@ -860,6 +1038,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var label = box.parentElement.querySelector('[data-pi-count-label]');
       label.textContent = count ? '— supervises ' + count + ' customer' + (count === 1 ? '' : 's') + ' here' : '';
     });
+    if (editPiSelect) editPiSelect.refresh();
     window.petcomOpenModal(editModal, { opener: opener || document.activeElement });
     editTracking.markPristine();
   }

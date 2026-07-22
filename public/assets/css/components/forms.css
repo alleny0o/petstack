@@ -71,7 +71,6 @@ textarea {
   color: var(--color-text-tertiary);
   margin-top: var(--sp-1);
 }
-
 /* Live NN/500 character counter under a textarea: same quiet type as
    .field-hint, but explicitly its own block line so it always sits at
    the textarea's bottom-left and can never ride inline after other
@@ -105,6 +104,9 @@ textarea {
 .field--invalid > label {
   color: var(--status-error-text);
 }
+.field--invalid .pi-select__control {
+  border-color: var(--color-error);
+}
 
 /* Two fields side by side; stacks on mobile */
 .field-row {
@@ -137,4 +139,168 @@ textarea {
   text-transform: uppercase;
   color: var(--color-text-tertiary);
   margin-bottom: var(--sp-4);
+}
+
+/* PI multi-select (chip + search combobox) -- labs.php add/edit lab
+   modals. This is a pure view over a hidden pi_ids[] checkbox list
+   (see data-pi-source in labs.php): no separate selection state, so
+   the underlying form submission and validation/error wiring never
+   change. */
+.pi-select {
+  position: relative;
+}
+.pi-select__control {
+  /* Always two stacked rows -- chips row, then the search row on its
+     own line below -- never inline together, regardless of chip count
+     or container width. Border/radius/background match the plain
+     input fields (forms.css above) so this reads as one text field,
+     not a distinct panel. */
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  background: var(--color-bg-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pi-select__control:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.pi-select__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+/* No chips selected -- collapse the row (including its margin-bottom)
+   entirely, so the container's own uniform padding is the only
+   spacing around the search input, same as any plain input. */
+.pi-select__chips:empty {
+  display: none;
+  margin-bottom: 0;
+}
+/* Empty state: mirror the plain text inputs' own vertical padding
+   (0.45rem -- input[type="text"] etc. above) exactly on the container,
+   AND zero the search input's own vertical padding here so the two
+   don't stack -- otherwise the box ends up taller than a plain input
+   by the search input's padding on top of the container's. Scoped to
+   :empty only; the chips-present padding is untouched. */
+@supports selector(:has(*)) {
+  .pi-select__control:has(.pi-select__chips:empty) {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+  .pi-select__control:has(.pi-select__chips:empty) .pi-select__search-wrap .pi-select__search {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+/* Icon + input as normal flex siblings (not an absolutely-positioned
+   icon over padded text) -- the two can never overlap regardless of
+   the input's own padding, so this can't regress into the icon/text
+   collision this component shipped with twice before. */
+.pi-select__search-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+}
+.pi-select__search-icon {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+.pi-select__search-wrap .pi-select__search {
+  /* Scoped two-class selector so this reliably beats the plain
+     input[type="text"] rule above (an element+attribute selector,
+     which otherwise outranks a single class and silently wins --
+     that specificity gap, not the padding value, was the real cause
+     of the icon/placeholder overlap). */
+  flex: 1;
+  min-width: 0;
+  border: none;
+  /* Equal top/bottom so text sits vertically centered -- at padding:0
+     the input's default line-height metrics read as slightly
+     top-heavy; a small symmetric pad masks that instead of trying to
+     hand-tune line-height. */
+  padding: 0.3rem 0;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: transparent;
+}
+.pi-select__search-wrap .pi-select__search:focus {
+  outline: none;
+  box-shadow: none;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-600);
+  background: var(--accent-100);
+  border-radius: var(--radius-full);
+  padding: 0.3rem 0.4rem 0.3rem 0.7rem;
+  white-space: nowrap;
+}
+.chip__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+.chip__remove:hover {
+  /* Same subtle hover token as every other icon-only button in the
+     app (modal close, toast close) -- not a bespoke tint. */
+  background: var(--color-hover-primary);
+}
+.pi-select__dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-1);
+}
+.pi-select__option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
+.pi-select__option:hover {
+  background: var(--color-hover-primary);
+}
+.pi-select__option-count {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.pi-select__empty {
+  padding: 0.4rem 0.5rem;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
 }

@@ -1,3 +1,16 @@
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+
+# Block directory listing for folders with no index file.
+Options -Indexes
+
+# Suppress the Apache version/OS string from error pages and the
+# Server response header. Requires AllowOverride to permit core
+# directives here (AllowOverride All, or FileInfo at minimum) — if the
+# RHEL vhost restricts AllowOverride, set this in the server/vhost
+# config instead (ServerTokens also lives there, not .htaccess).
+ServerSignature Off
+
+# Route missing pages to the on-brand 404 instead of Apache's default.
+ErrorDocument 404 /404.php

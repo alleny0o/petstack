@@ -19,6 +19,13 @@
   from { opacity: 0; }
 }
 
+/* Flex column, capped to the viewport, with the header/footer as
+   non-shrinking rows and .modal__body the sole scrolling region (see
+   its overflow-y below) -- shared by every modal in the app, not just
+   .modal--order, so a tall Add/Edit form never scrolls its title or
+   action buttons out of view. Only the new-order modal has header/
+   body/footer as direct children; every other form modal wraps some
+   of them in a <form>, handled by the .modal > form rule below. */
 .modal {
   width: 100%;
   max-width: 440px;
@@ -27,7 +34,9 @@
   box-shadow: var(--shadow-lg);
   animation: modal-pop-in 0.15s ease;
   max-height: calc(100vh - 2 * var(--sp-4));
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 @keyframes modal-pop-in {
   from {
@@ -36,10 +45,26 @@
   }
 }
 
-/* Pinned title row (new-order modal). Most modals keep their title
-   inside .modal__body; this exists for tall internally-scrolling modals
-   whose title must stay visible. */
+/* Most modals nest a <form> between .modal and the body/footer
+   (sometimes the header too) rather than New Order's direct-children
+   arrangement. Pass the flex-column mechanics through it: the form
+   becomes a shrinkable (min-height: 0 -- flex items otherwise refuse
+   to shrink below content height) nested column, so .modal__body's
+   overflow-y and the header/footer flex-shrink: 0 work identically
+   whether or not a form wraps them. */
+.modal > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Pinned title row. Simple confirm dialogs (petcomConfirm in script.js,
+   registrations.php's reject modal) keep their title inside
+   .modal__body instead, since those are always short enough that
+   nothing scrolls; any modal with a real form uses this. Never
+   shrinks/scrolls away -- see .modal's flex column above. */
 .modal__header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -74,6 +99,14 @@
 
 .modal__body {
   padding: var(--sp-5);
+  /* flex-basis auto (not 0%, unlike .modal--order's own override below)
+     so a short modal still auto-sizes to its content instead of
+     stretching to fill max-height; min-height:0 lets it actually
+     shrink below that content size once header+body+footer together
+     exceed the cap, at which point overflow-y here is what scrolls. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 .modal__title {
   font-size: 16px;
@@ -90,6 +123,7 @@
   margin-top: var(--sp-4);
 }
 .modal__footer {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-2);
@@ -106,37 +140,38 @@
 
 /* Wider variant of the default .modal (440px) for a form with more
    fields than a typical Add/Edit modal but not so much content it needs
-   the near-fullscreen, pinned-header/footer .modal--order treatment --
-   e.g. accounts.php's New Account modal (email, first/last name, and a
-   role radio-card-group benefit from the extra horizontal room). Still
-   a normal auto-height modal, no internal-scroll wiring needed. */
+   the near-fullscreen .modal--order treatment -- e.g. accounts.php's New
+   Account modal (email, first/last name, and a role radio-card-group
+   benefit from the extra horizontal room). Still a normal auto-height
+   modal -- the shared .modal rules already give it pinned header/footer
+   if its content ever does need to scroll. */
 .modal--wide {
   max-width: 640px;
 }
 
-/* New-order modal: flex column so only .modal__body scrolls, keeping
-   the header (title + X) and footer (Cancel/Place order) pinned at the
-   modal's true edges. Capped near-fullscreen size, centered by the
-   overlay's existing flex (align/justify center); the overlay keeps a
-   small padding as the minimum gap on viewports the caps don't clear.
-   Header, footer, and form content all span the same width -- shared
-   --sp-5 horizontal padding, no narrower inner content cap
+/* New-order modal: near-fullscreen size (the flex-column/pinned-header-
+   footer mechanics are just the shared .modal/.modal__body rules above).
+   Centered by the overlay's existing flex (align/justify center); the
+   overlay keeps a small padding as the minimum gap on viewports the caps
+   don't clear. Header, footer, and form content all span the same width
+   -- shared --sp-5 horizontal padding, no narrower inner content cap
    (order-page.css strips the card's max-width in the modal). */
 .modal-overlay--order {
   padding: var(--sp-5);
 }
 .modal--order {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   width: 94vw;
   max-width: 1140px;
   height: min(92vh, 960px);
   max-height: 92vh;
 }
+/* Unlike the shared .modal__body rule's flex-basis:auto (which lets a
+   short modal auto-size to its content), this modal has an explicit
+   fixed height above regardless of content -- flex-basis:0% here makes
+   .modal__body actually fill that height rather than leaving dead space
+   under a short form. */
 .modal--order .modal__body {
   flex: 1;
-  overflow-y: auto;
 }
 
 @media (max-width: 768px) {

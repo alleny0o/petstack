@@ -506,6 +506,24 @@ New admin (and any other role's) list/create/edit pages should default to the pa
 
 - **List pages:** a `.status-tabs` strip (not a `<select>`) whenever there's a meaningful status dimension (active/inactive, pending/accepted/…), with each tab's count computed against the *other* active filters, not globally. A full `.table-pagination` footer — `__status-group` (range text + a page-size `<select>`) and `__controls` (Prev / jump-to-page mini-form / Next) — not a bare Prev/Next pair. Search/filter forms are explicit-submit (`method="get"`, hidden fields to carry the rest of the current view forward), never live-as-you-type.
 - **Create/Edit:** the modal overlay convention — `.modal-overlay` > `.modal`, header X-close, dirty-tracking + discard-confirm via a `wireModalDirtyTracking()` helper (copied inline into the page's own script, same as `lab_product_users.php`/`lab_delivery_locations.php`/`accounts.php` — not shared into `script.js`), wired through `overlay.petcomBeforeClose` + `window.petcomConfirm()` — triggered from the list page itself, never a standalone create/edit page, unless a genuine constraint prevents it. A temp password (a one-time secret) can't ride a redirect URL; `accounts.php`'s New Account modal and the Reset Password action on `account_detail.php`/`customer_detail.php` both solve this with a session flash (`$_SESSION['account_created_reveal']` / `$_SESSION['password_reset_reveal']`, read-once + 60s TTL) so they PRG like every other converted action, while `registrations.php`'s approve action still re-renders the same POST response inline — the remaining confirmed exception. Either way it's a redirect constraint, not a reason to skip the modal convention itself.
+- **Modal markup:** copy `nuclides.php`'s Add modal as the canonical
+  skeleton — `.modal-overlay` > `.modal` > (`.modal__header` with title +
+  X-close, then a `<form>` wrapping `.modal__body` + `.modal__footer`).
+  A second accepted shape puts the `<form>` around everything with the
+  title inside the body and no header (the reject/cancel modals, styled
+  like confirm dialogs). Both shapes get pinned header/footer + a
+  scrolling body from modals.css's shared `.modal` flex column — the
+  `.modal > form` rule there is what makes the wrapping-`<form>` shapes
+  work, so don't "simplify" it away. The `<form>` must be a DIRECT child
+  of `.modal` for that rule to match. New Order
+  (`new_order_modal.php`) is the one deliberate exception: header/body/
+  footer are direct children, its form lives inside the body, and the
+  footer submit associates via `form="order-form"` — unique to it, not
+  a pattern to copy. There is deliberately no shared modal-shell
+  partial: the per-modal markup is mostly parameterization (IDs, form
+  action, hidden inputs, footer buttons), the CSS/JS wiring is all
+  class/attribute-driven, and a slot-taking partial was assessed and
+  rejected as more config surface than it saves.
 - **CSS reuse:** reach for the existing shared components (`.table-card`, `.status-tabs`, `.dash-grid`/`.dash-stack`, `.modal`/`.modal--wide`/`.modal--order`) before adding a page-specific variant.
 - **Sidebar grouping:** the admin sidebar groups related pages into expandable
   submenus using the `$accountsChildPages`-style array + `in_array`
