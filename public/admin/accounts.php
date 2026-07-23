@@ -380,8 +380,6 @@ $pageTitle = 'Accounts';
                     ];
                     include __DIR__ . '/../../src/partials/table_pagination.php';
                     ?>
-                        </div>
-                    </div>
                 <?php endif; ?>
             </div>
 
