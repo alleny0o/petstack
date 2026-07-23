@@ -2,6 +2,8 @@
 src/config.php
 logs/*
 !logs/.gitkeep
+CLAUDE.md
+.claude/
 
 # ---- Node ----
 node_modules/

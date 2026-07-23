@@ -74,16 +74,18 @@ INSERT INTO lab_pis (lab_id, pi_id) VALUES
 -- Usernames are real NIH-email-style, matching Kris's requirement
 -- that username = NIH email address.
 -- first_name/last_name/phone live on users now (moved off staff/customers)
--- -- phone stays NULL/omitted for all 7 seeded people, matching how no
--- seeded customer set a phone value before this move either.
-INSERT INTO users (username, password_hash, first_name, last_name, must_change_password, active) VALUES
-  ('robert.nguyen@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Robert', 'Nguyen',   1, 1), -- 1: admin
-  ('maria.santos@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Maria',  'Santos',   1, 1), -- 2: staff
-  ('james.oconnor@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'James',  'O''Connor', 1, 1), -- 3: staff
-  ('alice.carter@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Alice',  'Carter',   1, 1), -- 4: customer
-  ('brian.kim@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Brian',  'Kim',      1, 1), -- 5: customer
-  ('deepa.patel@nih.gov',    'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Deepa',  'Patel',    1, 1), -- 6: customer
-  ('evan.feng@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Evan',   'Feng',     1, 1); -- 7: customer (lab-mate of Alice, for lab-wide visibility testing)
+-- -- phone stays NULL for admin/staff (no real requirement behind it there),
+-- but every customer gets a placeholder phone: real approved customers
+-- always have one, since register.php requires it and registration
+-- approval copies it onto the new users row (see registrations.php).
+INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES
+  ('robert.nguyen@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Robert', 'Nguyen',   NULL,           1, 1), -- 1: admin
+  ('maria.santos@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Maria',  'Santos',   NULL,           1, 1), -- 2: staff
+  ('james.oconnor@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'James',  'O''Connor', NULL,          1, 1), -- 3: staff
+  ('alice.carter@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Alice',  'Carter',   '301-555-0142', 1, 1), -- 4: customer
+  ('brian.kim@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Brian',  'Kim',      '301-555-0157', 1, 1), -- 5: customer
+  ('deepa.patel@nih.gov',    'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Deepa',  'Patel',    '301-555-0163', 1, 1), -- 6: customer
+  ('evan.feng@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Evan',   'Feng',     '301-555-0178', 1, 1); -- 7: customer (lab-mate of Alice, for lab-wide visibility testing)
 
 -- ---- Staff (3) ----
 -- Must be inserted before admins: admins.user_id now FKs to staff.user_id
