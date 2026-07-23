@@ -1,7 +1,7 @@
 -- ============================================================
--- PETCOM — seed.sql
+-- PETOrders — seed.sql
 -- Minimal test data. Load after schema.sql, into an empty
--- `petcom` database (relies on AUTO_INCREMENT starting at 1).
+-- `petorders` database (relies on AUTO_INCREMENT starting at 1).
 --
 -- password_hash values are placeholders — run
 -- tools/set_temp_passwords.php once to replace with real hashes.

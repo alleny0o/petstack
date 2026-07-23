@@ -127,7 +127,7 @@ function require_role($allowedRoles): void
         redirect(dashboard_path_for_role($_SESSION['role']));
     }
 
-    $currentPage = basename($_SERVER['PHP_SELF']);
+    $currentPage = basename($_SERVER['SCRIPT_NAME']);
     if (!empty($_SESSION['must_change_password']) && $currentPage !== 'change_password.php') {
         redirect('/change_password.php');
     }
