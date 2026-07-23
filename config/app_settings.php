@@ -5,5 +5,5 @@
 // Read via app_setting() in src/helpers.php.
 
 return [
-    'app_name' => 'PETORDERS',
+    'app_name' => 'PETOrders',
 ];

@@ -661,11 +661,10 @@ function mark_orders_seen(): ?int
     return $previous;
 }
 
-// Allowed page-size choices for every list page's page-size selector --
-// identical everywhere; each page keeps its own *_DEFAULT_PAGE_SIZE
-// constant since the default deliberately differs (10 customer/staff, 20
-// admin).
+// Allowed page-size choices and the shared default for every list page's
+// page-size selector -- identical across all roles.
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 10;
 
 /**
  * Builds a query string from the current $_GET with the given overrides
@@ -682,6 +681,20 @@ function build_query(array $overrides = []): string
         }
     }
     return http_build_query($params);
+}
+
+/**
+ * Builds a list page's POST-form action: the given path with the current
+ * search/filter/page state (via build_query()) appended, so create/edit/
+ * toggle handlers redirect back to the exact view the person was on, not
+ * page 1. Call after paginate() + canonicalize_get(['page' => $page]) so
+ * the clamped page number is what gets embedded.
+ */
+function form_action(string $path): string
+{
+    $queryString = build_query();
+
+    return $queryString !== '' ? $path . '?' . $queryString : $path;
 }
 
 /**

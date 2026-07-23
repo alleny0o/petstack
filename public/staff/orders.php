@@ -6,8 +6,6 @@ require_role('staff');
 
 $pdo = get_db();
 
-const QUEUE_DEFAULT_PAGE_SIZE = 10;
-
 // Pure triage list -- no actions, no POST handler. Every lifecycle
 // action (accept/return/complete/cancel) and the chargeable toggle now
 // live on staff/order_detail.php; this page only searches/filters/
@@ -26,7 +24,7 @@ $queueTo = isset($_GET['requested_to']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $
     ? $_GET['requested_to'] : '';
 $queuePage = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $queuePageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : QUEUE_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize $_GET so every link built via build_query() below (tabs,
 // pagination) carries the real applied values forward.
@@ -155,8 +153,8 @@ $queueListStmt = $pdo->prepare(
 $queueListStmt->execute($queueParams);
 $queueOrders = $queueListStmt->fetchAll();
 
-$queueRangeStart = $queueTotalCount > 0 ? $queueOffset + 1 : 0;
-$queueRangeEnd = min($queueOffset + $queuePageSize, $queueTotalCount);
+$queueRangeStart = $queuePagination['rangeStart'];
+$queueRangeEnd = $queuePagination['rangeEnd'];
 // Status DOES count toward $queueHasFilters (unlike an earlier version of
 // this page) -- a status tab with zero results is still a filtered-empty
 // state, and treating it as "no filters" produced a misleading "no orders

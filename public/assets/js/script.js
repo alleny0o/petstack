@@ -937,9 +937,6 @@ function renderFieldErrors(form, errors) {
   if (firstInvalidControl) firstInvalidControl.focus();
 }
 
-window.petcomClearFieldErrors = clearFieldErrors;
-window.petcomRenderFieldErrors = renderFieldErrors;
-
 // ===== Field-error clearing =======================================
 // A field showing a validation error — server-rendered via
 // field_class()/field_error() or AJAX-injected — clears it on the

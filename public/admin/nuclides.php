@@ -6,8 +6,6 @@ require_role('admin'); // catalog management is admin-only; staff only process o
 
 $pdo = get_db();
 
-const NUCLIDES_DEFAULT_PAGE_SIZE = 10;
-
 // One-shot arrival-toast flags set by the PRG redirects below. Captured
 // into locals then immediately stripped from $_GET so this render's own
 // pagination/tab links (built via build_query()) never carry a stale
@@ -20,7 +18,7 @@ $q = trim($_GET['q'] ?? '');
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : NUCLIDES_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below (tabs,
 // pagination, and every POST form's action, which embeds the current
@@ -216,17 +214,10 @@ $listStmt = $pdo->prepare(
 $listStmt->execute($listParams);
 $nuclidesList = $listStmt->fetchAll();
 
-// Embeds the current search/status/page state into every POST form's
-// action, computed after the page clamp above -- so create/edit/toggle
-// all redirect back to the exact view the admin was on, not page 1.
-$formAction = '/admin/nuclides.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
+$formAction = form_action('/admin/nuclides.php');
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $status !== '';
 
 $pageTitle = 'Nuclides';

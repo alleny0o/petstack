@@ -6,8 +6,6 @@ require_role('admin'); // catalog management is admin-only; staff only process o
 
 $pdo = get_db();
 
-const PRODUCTS_DEFAULT_PAGE_SIZE = 10;
-
 // The three fixed delivery methods (products.delivery_method enum) --
 // display labels always come from delivery_method_label() (helpers.php).
 $deliveryMethods = ['radiopharmacy', 'pick_up', 'direct_delivery'];
@@ -27,7 +25,7 @@ $nuclideFilter = ctype_digit((string) ($_GET['nuclide'] ?? '')) ? (int) $_GET['n
 $fulfillmentFilter = in_array($_GET['fulfillment'] ?? '', $deliveryMethods, true) ? $_GET['fulfillment'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : PRODUCTS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below carries the
 // real applied values -- same convention as accounts.php / nuclides.php.
@@ -304,17 +302,10 @@ $products = $listStmt->fetchAll();
 $allNuclides = $pdo->query('SELECT nuclide_id, name, active FROM nuclides ORDER BY name')->fetchAll();
 $activeNuclides = array_values(array_filter($allNuclides, fn($n) => $n['active']));
 
-// Embeds the current search/filter/status/page state into every POST
-// form's action, computed after the page clamp above -- so
-// create/edit/toggle all redirect back to the exact view the admin was on.
-$formAction = '/admin/products.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
+$formAction = form_action('/admin/products.php');
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $status !== '' || $nuclideFilter > 0 || $fulfillmentFilter !== '';
 
 $pageTitle = 'Products';

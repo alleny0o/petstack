@@ -7,8 +7,6 @@ require_role('customer');
 $pdo = get_db();
 $myUserId = (int) $_SESSION['user_id'];
 
-const ORDERS_DEFAULT_PAGE_SIZE = 10;
-
 // Pre-setting $labId here means layout_customer.php's guarded lookup
 // never re-queries -- same convention as order_detail.php.
 $labId = current_customer_lab_id($pdo, $myUserId);
@@ -39,7 +37,7 @@ $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (in
 // value (hand-edited URL) falls back to the default rather than driving
 // LIMIT with an arbitrary number.
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : ORDERS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize $_GET to the validated/clamped values so every link built
 // via build_query() below (pagination, filter changes) carries the real
@@ -55,6 +53,8 @@ $orders = [];
 $totalCount = 0;
 $totalPages = 1;
 $offset = 0;
+$rangeStart = 0;
+$rangeEnd = 0;
 $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
 $allCount = 0;
 $tabs = [];
@@ -142,6 +142,8 @@ if ($labId > 0) {
     $page = $pagination['page'];
     $totalPages = $pagination['totalPages'];
     $offset = $pagination['offset'];
+    $rangeStart = $pagination['rangeStart'];
+    $rangeEnd = $pagination['rangeEnd'];
     canonicalize_get(['page' => $page]);
 
     // LIMIT/OFFSET are interpolated directly rather than bound: both are
@@ -162,9 +164,6 @@ if ($labId > 0) {
     $listStmt->execute($params);
     $orders = $listStmt->fetchAll();
 }
-
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
 
 // Status DOES count toward $hasFilters (unlike an earlier version of this
 // page) -- a status tab with zero results is still a filtered-empty state,

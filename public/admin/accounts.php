@@ -6,14 +6,12 @@ require_role('admin');
 
 $pdo = get_db();
 
-const ACCOUNTS_DEFAULT_PAGE_SIZE = 10;
-
 $q = trim($_GET['q'] ?? '');
 $role = $_GET['role'] ?? '';
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : ACCOUNTS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below (tabs,
 // pagination, and the New Account form's action, which embeds the
@@ -249,18 +247,12 @@ $listStmt = $pdo->prepare(
 $listStmt->execute($listParams);
 $accounts = $listStmt->fetchAll();
 
-// Embeds the current search/role/status/page state into the New Account
-// form's action so a validation-error reopen lands back on the exact
-// view the admin was on -- same convention as lab_product_users.php's
-// $formAction.
-$formAction = '/admin/accounts.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
+// Used by the New Account form's action so a validation-error reopen
+// lands back on the exact view the admin was on.
+$formAction = form_action('/admin/accounts.php');
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $role !== '' || $status !== '';
 
 $pageTitle = 'Accounts';

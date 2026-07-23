@@ -6,8 +6,6 @@ require_role('admin'); // directory management is admin-only
 
 $pdo = get_db();
 
-const PIS_DEFAULT_PAGE_SIZE = 10;
-
 // One-shot arrival-toast flags set by the PRG redirects below -- same
 // convention as nuclides.php / institutes.php.
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
@@ -17,7 +15,7 @@ $q = trim($_GET['q'] ?? '');
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : PIS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below carries the
 // real applied values -- same convention as nuclides.php.
@@ -229,14 +227,10 @@ $listStmt = $pdo->prepare(
 $listStmt->execute($listParams);
 $pisList = $listStmt->fetchAll();
 
-$formAction = '/admin/pis.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
+$formAction = form_action('/admin/pis.php');
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $status !== '';
 
 $pageTitle = 'PIs';

@@ -7,8 +7,6 @@ require_role('customer');
 $pdo = get_db();
 $myUserId = (int) $_SESSION['user_id'];
 
-const LOCATIONS_DEFAULT_PAGE_SIZE = 10;
-
 // Pre-setting $labId here means layout_customer.php's guarded lookup
 // never re-queries -- same convention as orders.php / order_detail.php.
 $labId = current_customer_lab_id($pdo, $myUserId);
@@ -26,7 +24,7 @@ $labId = current_customer_lab_id($pdo, $myUserId);
 $q = trim($_GET['q'] ?? '');
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : LOCATIONS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below (pagination,
 // and every POST form's action, which embeds the current view so a
@@ -163,6 +161,8 @@ $deliveryLocations = [];
 $totalCount = 0;
 $totalPages = 1;
 $offset = 0;
+$rangeStart = 0;
+$rangeEnd = 0;
 
 if ($labId > 0) {
     $where = ['lab_id = ?'];
@@ -184,6 +184,8 @@ if ($labId > 0) {
     $page = $pagination['page'];
     $totalPages = $pagination['totalPages'];
     $offset = $pagination['offset'];
+    $rangeStart = $pagination['rangeStart'];
+    $rangeEnd = $pagination['rangeEnd'];
     // Keep $_GET in sync with the DB-verified page so build_query() (and
     // $formAction below, which embeds it into every POST form) never
     // echoes back an out-of-range page number.
@@ -203,18 +205,7 @@ if ($labId > 0) {
     $deliveryLocations = $listStmt->fetchAll();
 }
 
-// Embeds the current search/page/page-size state into every POST form's
-// action on this page, computed after the DB-verified page clamp above --
-// so create/edit/toggle_active all redirect back to the exact view the
-// person was on, not page 1.
-$formAction = '/customer/lab_delivery_locations.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
-
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$formAction = form_action('/customer/lab_delivery_locations.php');
 $hasFilters = $q !== '';
 
 $pageTitle = 'Delivery Locations';

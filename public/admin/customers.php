@@ -6,15 +6,13 @@ require_role('admin');
 
 $pdo = get_db();
 
-const CUSTOMERS_DEFAULT_PAGE_SIZE = 10;
-
 $q = trim($_GET['q'] ?? '');
 $instituteId = $_GET['institute_id'] ?? '';
 $labId = $_GET['lab_id'] ?? '';
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : CUSTOMERS_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below (tabs,
 // pagination) carries the real applied values forward -- same convention
@@ -115,8 +113,8 @@ $customers = $listStmt->fetchAll();
 $institutes = $pdo->query('SELECT institute_id, name FROM institutes ORDER BY name')->fetchAll();
 $labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs ORDER BY lab_name')->fetchAll();
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $instituteId !== '' || $labId !== '' || $status !== '';
 
 $pageTitle = 'Customers';

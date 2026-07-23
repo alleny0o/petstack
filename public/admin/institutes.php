@@ -6,8 +6,6 @@ require_role('admin'); // directory management is admin-only
 
 $pdo = get_db();
 
-const INSTITUTES_DEFAULT_PAGE_SIZE = 10;
-
 // One-shot arrival-toast flags set by the PRG redirects below -- same
 // convention as nuclides.php / lab_product_users.php (locals + $_GET strip
 // here, petcomCleanArrivalFlags() near the bottom for the reload half).
@@ -18,7 +16,7 @@ $q = trim($_GET['q'] ?? '');
 $status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : INSTITUTES_DEFAULT_PAGE_SIZE;
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below carries
 // the real applied values -- same convention as nuclides.php.
@@ -215,17 +213,10 @@ $listStmt = $pdo->prepare(
 $listStmt->execute($listParams);
 $institutesList = $listStmt->fetchAll();
 
-// Embeds the current search/status/page state into every POST form's
-// action, computed after the page clamp above -- so create/edit/toggle
-// all redirect back to the exact view the admin was on, not page 1.
-$formAction = '/admin/institutes.php';
-$currentQueryString = build_query();
-if ($currentQueryString !== '') {
-    $formAction .= '?' . $currentQueryString;
-}
+$formAction = form_action('/admin/institutes.php');
 
-$rangeStart = $totalCount > 0 ? $offset + 1 : 0;
-$rangeEnd = min($offset + $pageSize, $totalCount);
+$rangeStart = $pagination['rangeStart'];
+$rangeEnd = $pagination['rangeEnd'];
 $hasFilters = $q !== '' || $status !== '';
 
 $pageTitle = 'Institutes';
