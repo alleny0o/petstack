@@ -39,19 +39,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($old['first_name'] === '') {
         $fieldErrors['first_name'] = 'First name is required.';
+    } elseif (mb_strlen($old['first_name']) > 100) {
+        $fieldErrors['first_name'] = 'First name must be 100 characters or fewer.';
     }
     if ($old['last_name'] === '') {
         $fieldErrors['last_name'] = 'Last name is required.';
+    } elseif (mb_strlen($old['last_name']) > 100) {
+        $fieldErrors['last_name'] = 'Last name must be 100 characters or fewer.';
     }
     if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $fieldErrors['email'] = 'A valid email is required.';
     } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
         $fieldErrors['email'] = 'Email must be an @nih.gov address.';
+    } elseif (mb_strlen($old['email']) > 50) {
+        // 50, not the column's 254: on approval this email becomes
+        // users.username, which is VARCHAR(50).
+        $fieldErrors['email'] = 'Email must be 50 characters or fewer.';
     }
     if ($old['phone'] === '') {
         $fieldErrors['phone'] = 'Phone is required.';
     } elseif (!preg_match('/^[0-9()+.\-\s]+$/', $old['phone']) || !preg_match('/[0-9]/', $old['phone'])) {
         $fieldErrors['phone'] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
+    } elseif (mb_strlen($old['phone']) > 20) {
+        $fieldErrors['phone'] = 'Phone must be 20 characters or fewer.';
     }
     if ($old['pi_id'] === '') {
         $fieldErrors['pi_id'] = 'Supervising PI is required.';

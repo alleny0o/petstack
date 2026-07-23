@@ -66,13 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fieldErrors['email'] = 'A valid email is required.';
     } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
         $fieldErrors['email'] = 'Email must be an @nih.gov address.';
+    } elseif (mb_strlen($old['email']) > 50) {
+        // The email becomes users.username, which is VARCHAR(50).
+        $fieldErrors['email'] = 'Email must be 50 characters or fewer.';
     }
 
     if ($old['first_name'] === '') {
         $fieldErrors['first_name'] = 'First name is required.';
+    } elseif (mb_strlen($old['first_name']) > 100) {
+        $fieldErrors['first_name'] = 'First name must be 100 characters or fewer.';
     }
     if ($old['last_name'] === '') {
         $fieldErrors['last_name'] = 'Last name is required.';
+    } elseif (mb_strlen($old['last_name']) > 100) {
+        $fieldErrors['last_name'] = 'Last name must be 100 characters or fewer.';
     }
 
     if (!$fieldErrors) {

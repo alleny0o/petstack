@@ -81,14 +81,20 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($editOld['first_name'] === '') {
             $fieldErrors['first_name'] = 'First name is required.';
+        } elseif (mb_strlen($editOld['first_name']) > 100) {
+            $fieldErrors['first_name'] = 'First name must be 100 characters or fewer.';
         }
         if ($editOld['last_name'] === '') {
             $fieldErrors['last_name'] = 'Last name is required.';
+        } elseif (mb_strlen($editOld['last_name']) > 100) {
+            $fieldErrors['last_name'] = 'Last name must be 100 characters or fewer.';
         }
         if ($editOld['phone'] === '') {
             $fieldErrors['phone'] = 'Phone is required.';
         } elseif (!preg_match('/^[0-9()+.\-\s]+$/', $editOld['phone']) || !preg_match('/[0-9]/', $editOld['phone'])) {
             $fieldErrors['phone'] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
+        } elseif (mb_strlen($editOld['phone']) > 20) {
+            $fieldErrors['phone'] = 'Phone must be 20 characters or fewer.';
         }
         if ($editOld['lab_id'] === '' || !ctype_digit($editOld['lab_id'])) {
             $fieldErrors['lab_id'] = 'Select a lab.';

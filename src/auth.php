@@ -59,6 +59,10 @@ function attempt_login(string $username, string $password): array
     }
 
     session_regenerate_id(true);
+    // Drop the pre-login CSRF token along with the old session id so the
+    // authenticated session starts with a fresh one (csrf_token() mints it
+    // on the next page render).
+    unset($_SESSION['csrf_token']);
 
     $_SESSION['user_id'] = (int) $user['user_id'];
     $_SESSION['username'] = $user['username'];

@@ -33,10 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastName = trim($_POST['last_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
 
-    if ($firstName === '' || $lastName === '') {
+    if ($firstName === '' || $lastName === ''
+        || mb_strlen($firstName) > 100 || mb_strlen($lastName) > 100) {
         redirect($target . $sep . 'profile_error=1');
     }
-    if ($phone !== '' && (!preg_match('/^[0-9()+.\-\s]+$/', $phone) || !preg_match('/[0-9]/', $phone))) {
+    if ($phone !== '' && (!preg_match('/^[0-9()+.\-\s]+$/', $phone) || !preg_match('/[0-9]/', $phone) || mb_strlen($phone) > 20)) {
         redirect($target . $sep . 'profile_error=1');
     }
 

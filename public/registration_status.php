@@ -22,9 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Only ever reads customer_registration_requests — never users/
         // customers — so this page can't be used to enumerate whether an
         // approved account exists for a given email (same principle as the
-        // Phase B login hardening).
+        // Phase B login hardening). rejection_reason is deliberately NOT
+        // selected: it's admin-authored free text and must never be shown
+        // on an unauthenticated page (Security review #57).
         $stmt = get_db()->prepare(
-            'SELECT status, rejection_reason
+            'SELECT status
              FROM customer_registration_requests
              WHERE email = ?
              ORDER BY request_id DESC
@@ -69,12 +71,7 @@ $pageTitle = 'Registration Status';
             <?php elseif ($result['status'] === 'rejected'): ?>
               <div class="alert alert--error">
                 <div><span class="badge badge--rejected">Rejected</span></div>
-                <div>Your registration was not approved.</div>
-                <?php if (trim((string) $result['rejection_reason']) !== ''): ?>
-                  <div><strong>Reason:</strong> <?= e($result['rejection_reason']) ?></div>
-                <?php else: ?>
-                  <div>Contact an administrator for details.</div>
-                <?php endif; ?>
+                <div>Your registration was not approved. Contact an administrator for details.</div>
                 <div>You may submit a new registration if you'd like.</div>
               </div>
             <?php elseif ($result['status'] === 'approved'): ?>

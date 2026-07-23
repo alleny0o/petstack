@@ -58,9 +58,13 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($profileOld['first_name'] === '') {
             $profileErrors['first_name'] = 'First name is required.';
+        } elseif (mb_strlen($profileOld['first_name']) > 100) {
+            $profileErrors['first_name'] = 'First name must be 100 characters or fewer.';
         }
         if ($profileOld['last_name'] === '') {
             $profileErrors['last_name'] = 'Last name is required.';
+        } elseif (mb_strlen($profileOld['last_name']) > 100) {
+            $profileErrors['last_name'] = 'Last name must be 100 characters or fewer.';
         }
 
         if ($profileErrors && request_wants_json()) {
