@@ -1,16 +1,15 @@
 # PETOrders — Production Deployment Guide (RHEL 8)
 
-**Audience:** IT staff deploying PETOrders for the first time. This guide
-assumes you know your way around RHEL, Apache, and MariaDB generally, but
-know nothing about this application. Follow the steps in order.
+Audience: IT staff deploying PETOrders for the first time. Assumes you
+know RHEL, Apache, and MariaDB in general, but nothing about this app.
+Follow the steps in order.
 
-**What you are deploying:** a self-contained PHP 7.4 web application with a
-MariaDB database. There is no build step, no package manager, no external
-services, and no outbound network dependency of any kind — the app never
-sends email and loads no assets from CDNs. Deployment is: install
-prerequisites, put the files on disk, create the database, fill in one
-config file, point Apache at the right folder, and create the first admin
-account.
+What you're deploying: a self-contained PHP 7.4 app with a MariaDB
+database. No build step, no external services, no outbound network
+calls. The app never sends email and loads no assets from CDNs.
+Deployment = install prerequisites, put files on disk, create the
+database, fill in one config file, point the web server at `public/`,
+create the first admin.
 
 ---
 
@@ -20,7 +19,7 @@ account.
 2. [Get the code](#2-get-the-code)
 3. [Create the database](#3-create-the-database)
 4. [Configure the app (src/config.php)](#4-configure-the-app-srcconfigphp)
-5. [Configure Apache — document root must be public/](#5-configure-apache--document-root-must-be-public)
+5. [Configure Apache: document root must be public/](#5-configure-apache-document-root-must-be-public)
 6. [HTTPS](#6-https)
 7. [Create the first admin account](#7-create-the-first-admin-account)
 8. [Verification checklist](#8-verification-checklist)
@@ -30,67 +29,64 @@ account.
 
 ## 1. Prerequisites
 
-Target platform:
+| Component  | Version                                                                 |
+| ---------- | ----------------------------------------------------------------------- |
+| OS         | RHEL 8                                                                  |
+| Web server | Apache (httpd) with `mod_ssl`                                           |
+| PHP        | 7.4, with `pdo_mysql`                                                   |
+| Database   | MariaDB 10.11                                                           |
 
-| Component | Version |
-|---|---|
-| OS | RHEL 8 |
-| Web server | Apache (httpd) with `mod_ssl` |
-| PHP | 7.4, with the `pdo_mysql` extension |
-| Database | MariaDB 10.11 (MySQL 8.0 also works — the app talks standard SQL over PDO) |
-
-Install on RHEL 8:
+Check what's already installed:
 
 ```bash
-# Apache + SSL
-sudo dnf install -y httpd mod_ssl
+cat /etc/redhat-release
+php -v
+php -m | grep -i pdo_mysql
+httpd -v
+mysql --version || mariadb --version
+```
 
-# PHP 7.4 (module stream) with the extensions the app uses
+Install whatever's missing. If PHP/MariaDB are already present at the
+right version, skip straight to Apache:
+
+```bash
+sudo dnf install -y httpd mod_ssl
+sudo systemctl enable --now httpd
+```
+
+If PHP or MariaDB are missing:
+
+```bash
+# PHP 7.4
 sudo dnf module enable -y php:7.4
 sudo dnf install -y php php-mysqlnd php-json
 
-# MariaDB 10.11 (module stream availability varies by RHEL 8 minor
-# release — if 10.11 is not offered, use the stream your IT group
-# supports; the app requires nothing newer than InnoDB + utf8mb4)
+# MariaDB (module stream name varies by RHEL release, use whatever
+# stream your team supports; the app needs nothing newer than InnoDB
+# + utf8mb4)
 sudo dnf install -y mariadb-server
-
-sudo systemctl enable --now httpd mariadb
+sudo systemctl enable --now mariadb
 ```
 
-Verify versions before continuing:
-
-```bash
-php -v          # expect PHP 7.4.x
-php -m | grep -i pdo_mysql   # must print pdo_mysql
-mysql --version # expect MariaDB 10.x
-```
-
-If this server is a fresh MariaDB install, run the standard hardening
-script once:
-
-```bash
-sudo mysql_secure_installation
-```
+Re-run the check commands to confirm everything's in place.
 
 ---
 
 ## 2. Get the code
 
-Put the application anywhere **outside** an existing web root. The
-conventional location used in the rest of this guide is
+Put the app outside any existing web root. This guide uses
 `/var/www/petorders`.
 
 ```bash
 sudo git clone <your-git-remote>/petorders.git /var/www/petorders
 ```
 
-(If you received the app as a file archive instead of a git remote, extract
-it so that `/var/www/petorders` contains `public/`, `src/`, `sql/`,
-`tools/`, and `config/` directly.)
+(File archive instead of git? Extract so `/var/www/petorders` contains
+`public/`, `src/`, `sql/`, `tools/`, `config/` directly.)
 
-Set ownership and permissions. The `apache` user only needs to **read** the
-application — nothing in the app writes to disk except PHP's own session
-storage and the error log, which live outside the project:
+Ownership and permissions. `apache` only needs to read the app. Nothing
+writes to disk except PHP's session storage and error log, both outside
+the project:
 
 ```bash
 sudo chown -R root:apache /var/www/petorders
@@ -98,14 +94,14 @@ sudo find /var/www/petorders -type d -exec chmod 750 {} \;
 sudo find /var/www/petorders -type f -exec chmod 640 {} \;
 ```
 
-The project layout, so you know what you are looking at:
+Layout:
 
 ```
 /var/www/petorders/
-  public/    # the ONLY folder Apache will serve (see step 5)
-  src/       # PHP application code + config.php (DB credentials)
+  public/    # the ONLY folder Apache serves (step 5)
+  src/       # app code + config.php (DB credentials)
   config/    # static app settings (display name)
-  sql/       # schema.sql (required), seed.sql (dev/test data — NOT for production)
+  sql/       # schema.sql (required), seed.sql (dev only, NOT for production)
   tools/     # command-line setup scripts
 ```
 
@@ -113,8 +109,7 @@ The project layout, so you know what you are looking at:
 
 ## 3. Create the database
 
-Create the database and a dedicated, least-privilege database user. Do
-**not** run the app as the MariaDB `root` user.
+Dedicated, least-privilege user. Don't run the app as `root`.
 
 ```bash
 sudo mysql
@@ -135,18 +130,16 @@ Load the schema:
 sudo mysql petorders < /var/www/petorders/sql/schema.sql
 ```
 
-> **Do not load `sql/seed.sql` in production.** It contains fictional
-> dev/test data (sample labs, sample accounts, sample orders) and exists
-> only for local development. A production database should contain the
-> schema and nothing else until step 7 creates the first real admin.
+**Don't load `sql/seed.sql` in production.** It's fictional dev/test
+data (sample labs, accounts, orders). Production should have schema
+only until step 7 creates the first real admin.
 
 ---
 
 ## 4. Configure the app (src/config.php)
 
-The app reads its settings from `src/config.php`, which is **not** in the
-repository (it is gitignored so credentials never end up in git). Create it
-from the committed template:
+`src/config.php` isn't in the repo (gitignored, keeps credentials out of
+git). Create it from the template:
 
 ```bash
 cd /var/www/petorders
@@ -158,44 +151,39 @@ sudo vi src/config.php
 
 Set every constant:
 
-| Constant | Production value | Notes |
-|---|---|---|
-| `DB_HOST` | `127.0.0.1` | Local MariaDB. |
-| `DB_PORT` | `3306` | MariaDB default. |
-| `DB_NAME` | `petorders` | The database you created in step 3. |
-| `DB_USER` | `petorders_app` | The dedicated user from step 3, never `root`. |
-| `DB_PASS` | *(the password from step 3)* | |
-| `REQUIRE_SECURE_COOKIES` | `true` | **Must be `true` in production.** Marks session cookies HTTPS-only. Requires working HTTPS (step 6) — with this set to `true`, login will not work over plain HTTP. |
+| Constant                 | Production value         | Notes                                                                                                                                                 |
+| ------------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`                | `127.0.0.1`              | Assumes DB runs on the same host. Use the actual hostname if it doesn't.                                                                              |
+| `DB_PORT`                | `3306`                   | MariaDB default.                                                                                                                                      |
+| `DB_NAME`                | `petorders`              | The database from step 3.                                                                                                                             |
+| `DB_USER`                | `petorders_app`          | The dedicated user from step 3, never `root`.                                                                                                         |
+| `DB_PASS`                | _(password from step 3)_ |                                                                                                                                                       |
+| `REQUIRE_SECURE_COOKIES` | `true`                   | **Must be `true` in production.** Marks session cookies HTTPS-only. Requires working HTTPS (step 6). Login won't work over plain HTTP with this set. |
 
-One more file, usually left alone: `config/app_settings.php` holds static
-app-wide settings (currently just the display name, `PETOrders`). It is a
-plain PHP file edited directly — there is no admin UI for it. You do not
-need to touch it for a normal deployment.
+`config/app_settings.php` holds the app display name (currently
+`PETOrders`). Plain PHP file, no admin UI. Leave it alone unless you
+have a reason not to.
 
 ---
 
-## 5. Configure Apache — document root must be public/
+## 5. Configure Apache: document root must be public/
 
-This is the single most important step to get right.
+The most important step.
 
-**Apache's `DocumentRoot` must point at `/var/www/petorders/public` —
-not at `/var/www/petorders`.**
+**`DocumentRoot` must be `/var/www/petorders/public`, not**
+**`/var/www/petorders`.**
 
-Why: `public/` is the only folder designed to be reachable by URL. The
-application code (`src/`, including `config.php` with your database
-credentials), the SQL files (`sql/`), the admin bootstrap script
-(`tools/`), and the settings file (`config/`) all live **outside** the
-document root. That means Apache cannot serve them under any URL, no
-matter what a request looks like — the protection is structural, which is
-strictly stronger than any deny rule. If you point the document root at
-the project root instead, all of those folders become downloadable and the
-database credentials are one URL away.
+Why: `public/` is the only folder meant to be reachable by URL. Code
+(`src/`, including `config.php` with your DB credentials), SQL files,
+the admin bootstrap script, and settings all live outside the document
+root. Apache can't serve them under any URL, period. That's stronger
+than any deny rule. Point the document root at the project root instead
+and those folders become downloadable, credentials included.
 
-For the same reason, the app's only `.htaccess` file lives at
-`public/.htaccess` (it blocks dotfiles, disables directory listings, turns
-off the server signature, and wires the 404 page). It must stay inside
-`public/` — a `.htaccess` at the project root would do nothing, because
-Apache never serves that directory.
+Same reason `public/.htaccess` (dotfile deny, no directory listing,
+server signature off, 404 handler) must stay inside `public/`. A
+`.htaccess` at the project root does nothing, since Apache never serves
+that directory.
 
 Create the vhost:
 
@@ -211,34 +199,43 @@ sudo vi /etc/httpd/conf.d/petorders.conf
     SSLEngine on
     SSLCertificateFile      /etc/pki/tls/certs/petorders.crt
     SSLCertificateKeyFile   /etc/pki/tls/private/petorders.key
-    # If IT provides an intermediate/chain file:
+    # If IT provides a chain file:
     # SSLCertificateChainFile /etc/pki/tls/certs/petorders-chain.crt
 
     <Directory /var/www/petorders/public>
-        # FileInfo is enough for public/.htaccess (ErrorDocument);
-        # AllowOverride All also works if that is your site standard.
         AllowOverride FileInfo Options
         Require all granted
     </Directory>
 </VirtualHost>
 
-# Redirect plain HTTP to HTTPS
 <VirtualHost *:80>
     ServerName petorders.example.nih.gov
     Redirect permanent / https://petorders.example.nih.gov/
 </VirtualHost>
 ```
 
-Replace `petorders.example.nih.gov` and the certificate paths with your
-real values (step 6). Then:
+Replace the server name and cert paths with real values (step 6). Then:
 
 ```bash
 sudo apachectl configtest        # expect: Syntax OK
 sudo systemctl restart httpd
 ```
 
-If SELinux is enforcing (RHEL default), make sure the content is labeled
-for httpd:
+Check SELinux (read-only, changes nothing):
+
+```bash
+sestatus
+```
+
+or, if unavailable:
+
+```bash
+cat /sys/fs/selinux/enforce
+```
+
+(`1` = enforcing, `0` = permissive, file missing = SELinux inactive.)
+
+If enforcing, label the content for httpd:
 
 ```bash
 sudo semanage fcontext -a -t httpd_sys_content_t "/var/www/petorders(/.*)?"
@@ -256,43 +253,38 @@ sudo firewall-cmd --reload
 
 ## 6. HTTPS
 
-Production runs HTTPS-only with a **real certificate provided by IT** for
-the server's hostname. Self-signed certificates are for local development
-machines only — do not use one in production.
+HTTPS-only in production, with a real cert from IT. Self-signed certs
+are for local dev only.
 
-1. Request a certificate for the server's DNS name through your normal IT
-   process.
-2. Install the certificate and key where the vhost in step 5 expects them
-   (`/etc/pki/tls/certs/`, `/etc/pki/tls/private/`), with the key readable
-   only by root (`chmod 600`).
-3. Keep the HTTP→HTTPS redirect vhost from step 5 in place so nobody can
-   use the app over plain HTTP.
+1. Request a cert for the server's DNS name through your normal process.
+2. Install cert + key where the vhost expects them
+   (`/etc/pki/tls/certs/`, `/etc/pki/tls/private/`), key readable only
+   by root (`chmod 600`).
+3. Keep the HTTP→HTTPS redirect vhost from step 5 in place.
 
-This is what makes `REQUIRE_SECURE_COOKIES = true` (step 4) work: session
-cookies are flagged HTTPS-only, so they are never transmitted in clear
-text. The two settings go together — real cert, then `true`.
+This is what makes `REQUIRE_SECURE_COOKIES = true` (step 4) work:
+session cookies get flagged HTTPS-only, never sent in clear text. Real
+cert, then `true`. The two go together.
 
 ---
 
 ## 7. Create the first admin account
 
-The application has no default accounts and no public way to create an
-admin. The first (and only) admin is created from the command line with a
-one-time bootstrap script:
+No default accounts, no public way to create an admin. First (and only)
+admin comes from the command line:
 
 ```bash
 cd /var/www/petorders
 php tools/bootstrap_admin.php jane.smith@nih.gov Jane Smith
 ```
 
-The arguments are `<username> <first_name> <last_name>`. The username must
-be a valid **@nih.gov** email address — it is what the admin will type to
-log in.
+Arguments: `<username> <first_name> <last_name>`. Username must be a
+valid @nih.gov email. It's the login.
 
-What the script does:
+What it does:
 
-- Creates exactly **one** account, with both staff and admin privileges.
-- Prints a randomly generated **temporary password** to the terminal:
+- Creates one account, staff + admin privileges.
+- Prints a temp password to the terminal:
 
   ```
   Admin account created.
@@ -301,91 +293,74 @@ What the script does:
   The account must change this password on first login.
   ```
 
-- Marks the account so that the very first login forces a password change
-  (minimum 12 characters, with at least one letter and one number). The
-  temporary password stops working the moment a real one is set.
+- Forces a password change on first login (12+ chars, one letter, one
+  number). Temp password stops working once a real one is set.
 
-Relay the temporary password to the admin over NIH email — the app itself
-never sends email, and the password is only ever shown in this terminal
-output.
+Relay the temp password over NIH email. The app never sends email
+itself, and this terminal output is the only place it appears.
 
-**Safety guard:** the script refuses to run if the `users` table already
-has any rows, and exits with an error instead. This means it cannot
-clobber a live database — it only works against a freshly created, empty
-schema. If you need a second admin later, the first admin creates it from
-inside the app (Accounts → + Account).
+**Safety guard:** refuses to run if `users` already has any rows. Can't
+clobber a live database, only works against a fresh empty schema. Need
+a second admin later? Create it from inside the app (Accounts → +
+Account).
 
-Do **not** confuse this with `tools/set_temp_passwords.php`. That script is
-a development-only helper that resets *every* account to a shared temporary
-password for use with the seeded dev database. Never run it in production.
+Not the same as `tools/set_temp_passwords.php`, that's a dev-only
+helper that resets every account for the seeded dev database. Never run
+it in production.
 
-Once the admin is created, they can log in and set up everything else
-through the UI: approve customer registrations, create staff accounts, and
-build the catalog (nuclides, products) and directory (institutes, labs,
-PIs).
+Once the admin's in, everything else happens through the UI: approve
+registrations, create staff accounts, build the catalog and directory.
 
 ---
 
 ## 8. Verification checklist
 
-Manual checks only — the app needs no test tooling. Work through these in
-order after finishing steps 1–7:
+Manual only, no test tooling needed.
 
-**From the server:**
+**Server:**
 
-- [ ] `php -l /var/www/petorders/public/login.php` prints
-      `No syntax errors detected`. (Repeat for `public/index.php` if you
-      want a second data point — every page is plain PHP, so `php -l` is a
-      valid smoke test of file integrity.)
-- [ ] `sudo apachectl configtest` prints `Syntax OK`.
+- [ ] `php -l /var/www/petorders/public/login.php` → `No syntax errors detected`
+- [ ] `sudo apachectl configtest` → `Syntax OK`
 
-**From a browser:**
+**Browser:**
 
-- [ ] `https://<hostname>/` loads and redirects to the login page (the
-      root URL simply forwards to `/login.php`).
+- [ ] `https://<hostname>/` loads and redirects to the login page
 
   ![PETOrders login page after a successful deployment](images/deployment/login-first-load.png)
-  *The login page as it should appear on first load — PETOrders heading, Username and Password fields, and a Log In button, served over HTTPS with no certificate warning.*
+  _PETOrders heading, Username/Password fields, Log In button, served over HTTPS with no cert warning._
 
-- [ ] `http://<hostname>/` (plain HTTP) redirects to HTTPS.
-- [ ] `https://<hostname>/src/config.php` returns **404** — this proves
-      the document root is `public/` and the application code is
-      unreachable by URL. If this URL returns PHP source or a blank 200
-      page, **stop**: your DocumentRoot is wrong (step 5).
-- [ ] `https://<hostname>/assets/` returns 403 or 404, not a file listing
-      (directory indexes are disabled by `public/.htaccess`).
-- [ ] Log in with the bootstrapped admin username and temporary password.
-      You are immediately taken to a **Change Password** screen — set a
-      real password (12+ characters, at least one letter and one number).
-- [ ] After the password change you land on the **Admin Dashboard**.
-- [ ] Log out, then log back in with the new password.
+- [ ] `http://<hostname>/` redirects to HTTPS
+- [ ] `https://<hostname>/src/config.php` returns **404**: confirms the
+      document root is correct. PHP source or a blank 200 page here
+      means the DocumentRoot is wrong (step 5). Stop and fix it.
+- [ ] `https://<hostname>/assets/` returns 403/404, not a file listing
+- [ ] Log in with the bootstrapped admin's username + temp password →
+      forced to Change Password → set a real one (12+ chars, letter +
+      number)
+- [ ] Lands on the Admin Dashboard
+- [ ] Log out, log back in with the new password
 
-If every box checks, the deployment is done.
+All boxes checked = done.
 
 ---
 
 ## 9. Operational notes
 
-Things worth knowing before handing the URL to users:
-
-- **Sessions time out after 15 minutes of inactivity.** The user is
-  returned to the login page on their next click. This is by design.
-- **Login lockout:** 5 consecutive failed password attempts lock an
-  account for 15 minutes. Deliberately, the user is *not told* they are
-  locked out — they see the same "Invalid username or password." message
-  throughout. Admins can see recent lockouts on the Admin Dashboard
-  ("Lockouts — Past 7 Days").
-- **The app never sends email.** All temporary passwords (registration
-  approvals, password resets) are displayed once to the admin, who relays
-  them to the user via NIH email manually.
-- **Passwords:** admins can trigger a reset (which generates a new
-  one-time temporary password) but can never see or choose a user's
-  actual password.
-- **Timezone** is pinned in code to `America/New_York`; the server's
-  system timezone does not affect order timestamps.
-- **Backups:** all application state lives in the one MariaDB database —
-  back up the `petorders` database on your standard schedule, plus a copy
-  of `src/config.php` (the only file on disk that isn't in git).
+- **Sessions time out after 15 min idle.** Returns to login on next
+  click. By design.
+- **Lockout:** 5 failed attempts locks the account for 15 min. User
+  sees the same generic "Invalid username or password" the whole time,
+  no indication they're locked out. Admins see recent lockouts on the
+  Admin Dashboard.
+- **No email, ever.** Temp passwords and reset passwords are shown once
+  to the admin, who relays them via NIH email manually.
+- Admins can trigger a password reset but never see or set the actual
+  password.
+- **Timezone** pinned in code to `America/New_York`, server timezone
+  doesn't affect order timestamps.
+- **Backups:** everything lives in the `petorders` database. Back it up
+  on your normal schedule, plus `src/config.php` (the one file on disk
+  not in git).
 - **Logs:** PHP errors go to the system PHP/Apache error log
-  (`display_errors` is off; users see a generic error page). Nothing
-  application-specific to rotate.
+  (`display_errors` off, users see a generic error page). Nothing
+  app-specific to rotate.
