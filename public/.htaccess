@@ -14,3 +14,19 @@ ServerSignature Off
 
 # Route missing pages to the on-brand 404 instead of Apache's default.
 ErrorDocument 404 /404.php
+
+
+# ------------- Remove the .php extensions (On MAMP) -------------
+
+# RewriteEngine On
+
+# # 1. Remove .php extension from URLs internally
+# # If a user requests /catalog, check if /catalog.php exists as a file
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteCond %{REQUEST_FILENAME}\.php -f
+# RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# # 2. (Optional) Redirect visitors typing .php to the clean URL
+# # e.g., redirect /catalog.php -> /catalog
+# RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /([^\ ]+)\.php\ HTTP/
+# RewriteRule ^([^\.]+)\.php$ /$1 [R=301,L]
