@@ -275,11 +275,11 @@ admin comes from the command line:
 
 ```bash
 cd /var/www/petorders
-php tools/bootstrap_admin.php jane.smith@nih.gov Jane Smith
+php tools/bootstrap_admin.php jane.smith@example.com Jane Smith
 ```
 
 Arguments: `<username> <first_name> <last_name>`. Username must be a
-valid @nih.gov email. It's the login.
+valid email address. It's the login.
 
 What it does:
 
@@ -288,7 +288,7 @@ What it does:
 
   ```
   Admin account created.
-  Username: jane.smith@nih.gov
+  Username: jane.smith@example.com
   Temp password: Kx3nQ8rTb2mWp9Ls
   The account must change this password on first login.
   ```

@@ -8,7 +8,7 @@
  * for dev/test data instead.
  *
  * Usage: php tools/bootstrap_admin.php <username> <first_name> <last_name>
- *   <username> must be an @nih.gov address (matches the app-wide
+ *   <username> must be a valid email address (matches the app-wide
  *   username-is-email convention).
  *
  * Run once after loading sql/schema.sql alone, before pointing a real
@@ -34,8 +34,8 @@ if ($argc !== 4) {
 
 [, $username, $firstName, $lastName] = $argv;
 
-if (!filter_var($username, FILTER_VALIDATE_EMAIL) || !preg_match('/@nih\.gov$/i', $username)) {
-    fwrite(STDERR, "Error: username must be a valid @nih.gov email address.\n");
+if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+    fwrite(STDERR, "Error: username must be a valid email address.\n");
     exit(1);
 }
 
