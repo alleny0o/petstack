@@ -91,7 +91,17 @@ CREATE TABLE users (
   locked_until          DATETIME NULL,
   active                TINYINT(1) NOT NULL DEFAULT 1,
   created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_users_username (username)
+  -- username is unique only among ACTIVE accounts, not globally: a
+  -- deactivated account's email becomes reusable by a new account (of
+  -- any role) immediately. Neither MySQL 8.0 nor MariaDB 10.11 supports
+  -- partial/filtered unique indexes, so this emulates one -- the
+  -- generated column is NULL for inactive rows, and both engines allow
+  -- unlimited NULLs in a unique index, so inactive rows never collide.
+  -- idx_users_username (plain, non-unique) replaces the lookup index
+  -- the old UNIQUE key used to provide for attempt_login().
+  username_if_active    VARCHAR(50) GENERATED ALWAYS AS (CASE WHEN active = 1 THEN username ELSE NULL END) VIRTUAL,
+  KEY idx_users_username (username),
+  UNIQUE KEY uq_users_username_active (username_if_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Stores the outgoing password hash each time a user changes their

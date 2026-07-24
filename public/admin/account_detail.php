@@ -90,7 +90,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$profileErrors) {
             // Pre-check, same convention as accounts.php -- the catch
             // block below is the race-condition backstop.
-            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ?');
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ? AND active = 1');
             $stmt->execute([$profileOld['email'], $userId]);
             if ($stmt->fetchColumn()) {
                 $profileErrors['email'] = 'An account already exists for this email.';
@@ -163,10 +163,39 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     redirect($dest);
                 }
-            } else {
-                $pdo->prepare('UPDATE users SET active = ? WHERE user_id = ?')->execute([$newActive, $userId]);
+            } elseif ($newActive === 1) {
+                // Reactivating: the freed-up email may have since been
+                // claimed by a different active account (username is
+                // only unique among active accounts) -- pre-check, same
+                // convention as accounts.php, with the catch below as
+                // the race-condition backstop.
+                $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ? AND active = 1');
+                $stmt->execute([$account['username'], $userId]);
+                if ($stmt->fetchColumn()) {
+                    $flash = ['type' => 'error', 'message' => 'Cannot reactivate: another active account already uses this email.'];
+                    if (request_wants_json()) {
+                        json_response(['ok' => false, 'message' => $flash['message']], 422);
+                    }
+                } else {
+                    try {
+                        $pdo->prepare('UPDATE users SET active = 1 WHERE user_id = ?')->execute([$userId]);
 
-                $dest = '/admin/account_detail.php?id=' . $userId . '&' . ($newActive ? 'reactivated=1' : 'deactivated=1');
+                        $dest = '/admin/account_detail.php?id=' . $userId . '&reactivated=1';
+                        if (request_wants_json()) {
+                            json_response(['ok' => true, 'redirect' => $dest]);
+                        }
+                        redirect($dest);
+                    } catch (PDOException $e) {
+                        $flash = ['type' => 'error', 'message' => 'Cannot reactivate: another active account already uses this email.'];
+                        if (request_wants_json()) {
+                            json_response(['ok' => false, 'message' => $flash['message']], 422);
+                        }
+                    }
+                }
+            } else {
+                $pdo->prepare('UPDATE users SET active = 0 WHERE user_id = ?')->execute([$userId]);
+
+                $dest = '/admin/account_detail.php?id=' . $userId . '&deactivated=1';
                 if (request_wants_json()) {
                     json_response(['ok' => true, 'redirect' => $dest]);
                 }
