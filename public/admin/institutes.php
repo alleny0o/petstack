@@ -8,7 +8,7 @@ $pdo = get_db();
 
 // One-shot arrival-toast flags set by the PRG redirects below -- same
 // convention as nuclides.php / lab_product_users.php (locals + $_GET strip
-// here, petcomCleanArrivalFlags() near the bottom for the reload half).
+// here, petordersCleanArrivalFlags() near the bottom for the reload half).
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
     = consume_arrival_flags(['created', 'updated', 'activated', 'deactivated']);
 
@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petcomBeforeClose / petcomConfirm() pattern as
+  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as
   // nuclides.php / lab_product_users.php -- copied inline per convention,
   // not shared into script.js. ----
   function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
@@ -507,9 +507,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
       if (!isDirty()) return true;
-      window.petcomConfirm({
+      window.petordersConfirm({
         title: discardCopy.title,
         message: discardCopy.message,
         verb: 'Discard',
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function (discard) {
         if (!discard) return;
         if (onDiscard) onDiscard();
-        window.petcomCloseModal(true);
+        window.petordersCloseModal(true);
       });
       return false;
     };
@@ -541,14 +541,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', function (e) {
-        window.petcomOpenModal(addModal, { opener: e.currentTarget });
+        window.petordersOpenModal(addModal, { opener: e.currentTarget });
         addTracking.markPristine();
       });
     }
   });
 
   <?php if ($addErrors): ?>
-  window.petcomOpenModal(addModal);
+  window.petordersOpenModal(addModal);
   addTracking.markPristine();
   <?php endif; ?>
 
@@ -567,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function () {
     editIdField.value = values.institute_id;
     editNameField.value = values.name;
     editShorthandField.value = values.shorthand_name;
-    window.petcomOpenModal(editModal, { opener: opener || document.activeElement });
+    window.petordersOpenModal(editModal, { opener: opener || document.activeElement });
     editTracking.markPristine();
   }
 
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Strip one-time arrival-toast query flags from the URL bar once their
   // toast has been queued -- same fix as nuclides.php /
   // lab_product_users.php.
-  window.petcomCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
 });
 </script>
 </html>

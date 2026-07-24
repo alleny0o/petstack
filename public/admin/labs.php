@@ -945,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petcomBeforeClose / petcomConfirm() pattern as
+  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as
   // nuclides.php / lab_product_users.php -- copied inline per convention. ----
   function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
     var pristineValues = {};
@@ -957,9 +957,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
       if (!isDirty()) return true;
-      window.petcomConfirm({
+      window.petordersConfirm({
         title: discardCopy.title,
         message: discardCopy.message,
         verb: 'Discard',
@@ -967,7 +967,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function (discard) {
         if (!discard) return;
         if (onDiscard) onDiscard();
-        window.petcomCloseModal(true);
+        window.petordersCloseModal(true);
       });
       return false;
     };
@@ -992,7 +992,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', function (e) {
-        window.petcomOpenModal(addModal, { opener: e.currentTarget });
+        window.petordersOpenModal(addModal, { opener: e.currentTarget });
         if (addPiSelect) addPiSelect.refresh();
         addTracking.markPristine();
       });
@@ -1000,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   <?php if ($addErrors): ?>
-  window.petcomOpenModal(addModal);
+  window.petordersOpenModal(addModal);
   if (addPiSelect) addPiSelect.refresh();
   addTracking.markPristine();
   <?php endif; ?>
@@ -1033,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', function () {
       label.textContent = count ? '— supervises ' + count + ' customer' + (count === 1 ? '' : 's') + ' here' : '';
     });
     if (editPiSelect) editPiSelect.refresh();
-    window.petcomOpenModal(editModal, { opener: opener || document.activeElement });
+    window.petordersOpenModal(editModal, { opener: opener || document.activeElement });
     editTracking.markPristine();
   }
 
@@ -1065,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Strip one-time arrival-toast query flags from the URL bar once their
   // toast has been queued -- same fix as nuclides.php.
-  window.petcomCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
 });
 </script>
 </html>

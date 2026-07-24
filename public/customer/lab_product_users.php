@@ -17,7 +17,7 @@ $labId = current_customer_lab_id($pdo, $myUserId);
 // pagination/search links (built via build_query()) never carry a
 // stale flag forward. That alone doesn't stop a manual reload of the
 // arrived-at URL from re-sending the flag to the server, though -- the
-// client-side petcomCleanArrivalFlags() call near the bottom of the page
+// client-side petordersCleanArrivalFlags() call near the bottom of the page
 // handles that half, same fix as order_detail.php's/
 // lab_delivery_locations.php's identical bug.
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
@@ -178,7 +178,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Named $productUsersList (not $productUsers): layout_customer.php's
 // New-Order-modal backing data now lives namespaced under
-// $petcomLayout['product_users'] (guarded on isset($petcomLayout['nuclides'])),
+// $petordersLayout['product_users'] (guarded on isset($petordersLayout['nuclides'])),
 // so this name is no longer strictly required to avoid a collision --
 // kept anyway since $productUsersList is the established name here and
 // renaming it back is an unrelated cosmetic change. Historically, before
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petcomBeforeClose / petcomConfirm() pattern as the New
+  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as the New
   // Order modal (src/partials/new_order_form.php) and
   // lab_delivery_locations.php's Add/Edit modals, scaled down to a plain
   // POST form. markPristine() must be called every time the modal's
@@ -520,9 +520,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
       if (!isDirty()) return true;
-      window.petcomConfirm({
+      window.petordersConfirm({
         title: discardCopy.title,
         message: discardCopy.message,
         verb: 'Discard',
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function (discard) {
         if (!discard) return;
         if (onDiscard) onDiscard();
-        window.petcomCloseModal(true);
+        window.petordersCloseModal(true);
       });
       return false;
     };
@@ -558,14 +558,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', function (e) {
-        window.petcomOpenModal(addModal, { opener: e.currentTarget });
+        window.petordersOpenModal(addModal, { opener: e.currentTarget });
         addTracking.markPristine();
       });
     }
   });
 
   <?php if ($addErrors): ?>
-  window.petcomOpenModal(addModal);
+  window.petordersOpenModal(addModal);
   addTracking.markPristine();
   <?php endif; ?>
 
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function () {
     editFirstNameField.value = values.first_name;
     editLastNameField.value = values.last_name;
     editEmailField.value = values.email;
-    window.petcomOpenModal(editModal, { opener: opener || document.activeElement });
+    window.petordersOpenModal(editModal, { opener: opener || document.activeElement });
     editTracking.markPristine();
   }
 
@@ -622,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // lab_delivery_locations.php's identical bug -- PRG already stops the
   // resubmit-form prompt; this separately stops a stale success toast
   // from replaying on a plain GET reload.
-  window.petcomCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
 });
 </script>
 <?php endif; ?>

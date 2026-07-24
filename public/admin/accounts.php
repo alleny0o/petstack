@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Server half of the arrival-flag convention: strips created from $_GET
 // so build_query()/canonicalize_get() below never echo it back into the
-// form action or pagination links (petcomCleanArrivalFlags() near the
+// form action or pagination links (petordersCleanArrivalFlags() near the
 // bottom handles the URL-bar half).
 $arrival = consume_arrival_flags(['created']);
 
@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Strip the one-time ?created=1 arrival flag from the URL bar once the
   // temp-password banner (or nothing, if the flash was already consumed)
   // has rendered -- same convention as the order-detail pages.
-  window.petcomCleanArrivalFlags(['created']);
+  window.petordersCleanArrivalFlags(['created']);
 
   function snapshotForm(form) {
     var values = {};
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petcomBeforeClose / petcomConfirm() pattern as the New
+  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as the New
   // Order modal (src/partials/new_order_form.php) and
   // lab_product_users.php / lab_delivery_locations.php's Add/Edit
   // modals, scaled down to a plain POST form. markPristine() must be
@@ -503,9 +503,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
       if (!isDirty()) return true;
-      window.petcomConfirm({
+      window.petordersConfirm({
         title: discardCopy.title,
         message: discardCopy.message,
         verb: 'Discard',
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function (discard) {
         if (!discard) return;
         if (onDiscard) onDiscard();
-        window.petcomCloseModal(true);
+        window.petordersCloseModal(true);
       });
       return false;
     };
@@ -541,14 +541,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', function (e) {
-        window.petcomOpenModal(newAccountModal, { opener: e.currentTarget });
+        window.petordersOpenModal(newAccountModal, { opener: e.currentTarget });
         newAccountTracking.markPristine();
       });
     }
   });
 
   <?php if ($fieldErrors): ?>
-  window.petcomOpenModal(newAccountModal);
+  window.petordersOpenModal(newAccountModal);
   newAccountTracking.markPristine();
   <?php endif; ?>
 });

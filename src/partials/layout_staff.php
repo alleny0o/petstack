@@ -1,9 +1,9 @@
 <?php
-// $petcomLayout namespaces every value this layout produces (account
+// $petordersLayout namespaces every value this layout produces (account
 // identity, current page) so it can never silently collide with a
 // page's own same-named variable -- see CLAUDE.md's
 // reserved-layout-variables table.
-$petcomLayout = layout_account_data((int) $_SESSION['user_id'], $_SESSION['role']);
+$petordersLayout = layout_account_data((int) $_SESSION['user_id'], $_SESSION['role']);
 
 // The profile-edit modal below always redirects back here, tagging the
 // outcome via a query flag (no session-flash mechanism in this app —
@@ -48,7 +48,7 @@ if (($_GET['profile_updated'] ?? null) === '1') {
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/staff/dashboard.php" class="menu-link <?= $petcomLayout['current_page'] === 'dashboard' ? 'active' : '' ?>">
+          <a href="/staff/dashboard.php" class="menu-link <?= $petordersLayout['current_page'] === 'dashboard' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -60,7 +60,7 @@ if (($_GET['profile_updated'] ?? null) === '1') {
         </li>
 
         <li class="menu-item">
-          <a href="/staff/orders.php" class="menu-link <?= in_array($petcomLayout['current_page'], ['orders', 'order_detail'], true) ? 'active' : '' ?>">
+          <a href="/staff/orders.php" class="menu-link <?= in_array($petordersLayout['current_page'], ['orders', 'order_detail'], true) ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>

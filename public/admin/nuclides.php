@@ -9,7 +9,7 @@ $pdo = get_db();
 // One-shot arrival-toast flags set by the PRG redirects below. Captured
 // into locals then immediately stripped from $_GET so this render's own
 // pagination/tab links (built via build_query()) never carry a stale
-// flag forward; the client-side petcomCleanArrivalFlags() near the bottom
+// flag forward; the client-side petordersCleanArrivalFlags() near the bottom
 // handles the reload half -- same convention as lab_product_users.php.
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
     = consume_arrival_flags(['created', 'updated', 'activated', 'deactivated']);
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petcomBeforeClose / petcomConfirm() pattern as
+  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as
   // lab_product_users.php / accounts.php -- copied inline per convention,
   // not shared into script.js. markPristine() must be called every time
   // the modal's fields are (re)populated. ----
@@ -492,9 +492,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
       if (!isDirty()) return true;
-      window.petcomConfirm({
+      window.petordersConfirm({
         title: discardCopy.title,
         message: discardCopy.message,
         verb: 'Discard',
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }).then(function (discard) {
         if (!discard) return;
         if (onDiscard) onDiscard();
-        window.petcomCloseModal(true);
+        window.petordersCloseModal(true);
       });
       return false;
     };
@@ -528,14 +528,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', function (e) {
-        window.petcomOpenModal(addModal, { opener: e.currentTarget });
+        window.petordersOpenModal(addModal, { opener: e.currentTarget });
         addTracking.markPristine();
       });
     }
   });
 
   <?php if ($addErrors): ?>
-  window.petcomOpenModal(addModal);
+  window.petordersOpenModal(addModal);
   addTracking.markPristine();
   <?php endif; ?>
 
@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function openEditModal(values, opener) {
     editIdField.value = values.nuclide_id;
     editNameField.value = values.name;
-    window.petcomOpenModal(editModal, { opener: opener || document.activeElement });
+    window.petordersOpenModal(editModal, { opener: opener || document.activeElement });
     editTracking.markPristine();
   }
 
@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Strip one-time arrival-toast query flags from the URL bar once their
   // toast has been queued, so a reload doesn't re-show a toast for an
   // action that already happened -- same fix as lab_product_users.php.
-  window.petcomCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']);
 });
 </script>
 </html>

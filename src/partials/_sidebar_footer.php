@@ -3,15 +3,15 @@
  * Shared sidebar footer (account button + profile-edit modal + its init
  * script) for the staff and admin layouts -- byte-identical between the
  * two before this extraction. Included (not called), same convention as
- * table_pagination.php: reads $petcomLayout directly from the caller's
+ * table_pagination.php: reads $petordersLayout directly from the caller's
  * scope rather than taking parameters.
  */
 ?>
 <!-- Sidebar Footer -->
 <div class="sidebar-footer">
   <button type="button" class="sidebar-account" id="profile-edit-trigger" aria-haspopup="dialog">
-    <div class="account-avatar"><?= e($petcomLayout['initials']) ?></div>
-    <span class="account-name"><?= e($petcomLayout['name']) ?></span>
+    <div class="account-avatar"><?= e($petordersLayout['initials']) ?></div>
+    <span class="account-name"><?= e($petordersLayout['name']) ?></span>
   </button>
 
   <div class="sidebar-footer-actions">
@@ -42,16 +42,16 @@
         <div class="field-row">
           <div class="field">
             <label for="profile-first-name">First name <span class="required-mark">*</span></label>
-            <input type="text" id="profile-first-name" name="first_name" value="<?= e($petcomLayout['account']['first_name']) ?>" required data-modal-focus>
+            <input type="text" id="profile-first-name" name="first_name" value="<?= e($petordersLayout['account']['first_name']) ?>" required data-modal-focus>
           </div>
           <div class="field">
             <label for="profile-last-name">Last name <span class="required-mark">*</span></label>
-            <input type="text" id="profile-last-name" name="last_name" value="<?= e($petcomLayout['account']['last_name']) ?>" required>
+            <input type="text" id="profile-last-name" name="last_name" value="<?= e($petordersLayout['account']['last_name']) ?>" required>
           </div>
         </div>
         <div class="field">
           <label for="profile-phone">Phone <span class="required-mark">*</span></label>
-          <input type="text" id="profile-phone" name="phone" value="<?= e($petcomLayout['account']['phone'] ?? '') ?>" required>
+          <input type="text" id="profile-phone" name="phone" value="<?= e($petordersLayout['account']['phone'] ?? '') ?>" required>
         </div>
         <p class="field-hint mb-0">Need to update your password? <a href="/change_password.php">Change Password</a></p>
       </div>

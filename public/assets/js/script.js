@@ -14,7 +14,7 @@ function isMobileViewport() {
 // pre-paint snippet in <head> can apply it before .sidebar even
 // exists in the DOM — no flash of the wrong state on load.
 
-const SIDEBAR_STORAGE_KEY = 'petcom:sidebar';
+const SIDEBAR_STORAGE_KEY = 'petorders:sidebar';
 
 function setSidebarState(collapsed) {
   if (collapsed) {
@@ -350,9 +350,9 @@ window.showToast = showToast;
 // stops the browser's resubmit-form prompt; this only stops the toast
 // replay on a plain GET reload/back-nav. Called from each page's own
 // inline script with that page's flag list, e.g.
-// petcomCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']).
+// petordersCleanArrivalFlags(['created', 'updated', 'activated', 'deactivated']).
 
-function petcomCleanArrivalFlags(flags) {
+function petordersCleanArrivalFlags(flags) {
   const urlParams = new URLSearchParams(window.location.search);
   const hasArrivalFlag = flags.some((flag) => urlParams.has(flag));
   if (!hasArrivalFlag) return;
@@ -363,12 +363,12 @@ function petcomCleanArrivalFlags(flags) {
   history.replaceState(null, '', cleanedUrl);
 }
 
-window.petcomCleanArrivalFlags = petcomCleanArrivalFlags;
+window.petordersCleanArrivalFlags = petordersCleanArrivalFlags;
 
 
 // ===== Modals =====================================================
 // Two entry points share the open/close/focus-trap machinery:
-//  1. petcomOpenModal(overlayEl) — opens a modal already in the page
+//  1. petordersOpenModal(overlayEl) — opens a modal already in the page
 //     markup (e.g. the reject-with-reason form on registrations.php).
 //  2. Declarative form confirms — any <form data-confirm="…"> gets
 //     its submit intercepted and routed through a built-on-the-fly
@@ -383,9 +383,9 @@ const MODAL_FOCUSABLE =
 
 let activeModal = null; // { overlay, opener, keydownHandler, temporary }
 
-function petcomCloseModal(force = false) {
+function petordersCloseModal(force = false) {
   if (!activeModal) return;
-  // Opt-in veto hook: an overlay may carry a petcomBeforeClose callback
+  // Opt-in veto hook: an overlay may carry a petordersBeforeClose callback
   // (set by its own page script — only the new-order modal does today);
   // returning false aborts the close. Every close path (Esc, backdrop,
   // X, footer Cancel) funnels through here, so one hook covers them
@@ -394,8 +394,8 @@ function petcomCloseModal(force = false) {
   // as before.
   if (
     !force &&
-    typeof activeModal.overlay.petcomBeforeClose === 'function' &&
-    activeModal.overlay.petcomBeforeClose() === false
+    typeof activeModal.overlay.petordersBeforeClose === 'function' &&
+    activeModal.overlay.petordersBeforeClose() === false
   ) {
     return;
   }
@@ -415,10 +415,10 @@ function petcomCloseModal(force = false) {
   }
 }
 
-function petcomOpenModal(overlay, options = {}) {
+function petordersOpenModal(overlay, options = {}) {
   if (activeModal) {
-    petcomCloseModal();
-    // A petcomBeforeClose hook may have vetoed that close — never open
+    petordersCloseModal();
+    // A petordersBeforeClose hook may have vetoed that close — never open
     // a second modal on top of one that refused to leave.
     if (activeModal) return;
   }
@@ -429,7 +429,7 @@ function petcomOpenModal(overlay, options = {}) {
   const keydownHandler = (e) => {
     if (e.key === 'Escape') {
       e.preventDefault();
-      petcomCloseModal();
+      petordersCloseModal();
       return;
     }
     if (e.key !== 'Tab') return;
@@ -454,10 +454,10 @@ function petcomOpenModal(overlay, options = {}) {
   if (overlay.dataset.modalWired !== 'true') {
     overlay.dataset.modalWired = 'true';
     overlay.addEventListener('mousedown', (e) => {
-      if (e.target === overlay) petcomCloseModal();
+      if (e.target === overlay) petordersCloseModal();
     });
     overlay.querySelectorAll('[data-modal-close]').forEach((el) => {
-      el.addEventListener('click', () => petcomCloseModal());
+      el.addEventListener('click', () => petordersCloseModal());
     });
   }
 
@@ -474,8 +474,8 @@ function petcomOpenModal(overlay, options = {}) {
   if (focusTarget) focusTarget.focus();
 }
 
-window.petcomOpenModal = petcomOpenModal;
-window.petcomCloseModal = petcomCloseModal;
+window.petordersOpenModal = petordersOpenModal;
+window.petordersCloseModal = petordersCloseModal;
 
 function buildConfirmModal({ title, message, verb, danger }) {
   const overlay = document.createElement('div');
@@ -485,14 +485,14 @@ function buildConfirmModal({ title, message, verb, danger }) {
   modal.className = 'modal';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-labelledby', 'petcom-confirm-title');
+  modal.setAttribute('aria-labelledby', 'petorders-confirm-title');
 
   const body = document.createElement('div');
   body.className = 'modal__body';
 
   const heading = document.createElement('h2');
   heading.className = 'modal__title';
-  heading.id = 'petcom-confirm-title';
+  heading.id = 'petorders-confirm-title';
   heading.textContent = title;
 
   const msg = document.createElement('p');
@@ -523,7 +523,7 @@ function buildConfirmModal({ title, message, verb, danger }) {
 }
 
 // Promise-based confirm dialog that can STACK on top of an open modal.
-// Deliberately does NOT go through petcomOpenModal — the modal system is
+// Deliberately does NOT go through petordersOpenModal — the modal system is
 // strictly single-modal (opening force-closes activeModal), which would
 // kill the host modal underneath. Instead this reuses buildConfirmModal's
 // DOM and runs its own tiny lifecycle: appended to <body> above the
@@ -533,7 +533,7 @@ function buildConfirmModal({ title, message, verb, danger }) {
 // reach the host modal's close/focus-trap logic. Esc, backdrop, and
 // Cancel resolve false; the confirm button resolves true. Also works with
 // no host modal open — it is fully self-contained.
-function petcomConfirm({ title, message, verb, danger }) {
+function petordersConfirm({ title, message, verb, danger }) {
   return new Promise((resolve) => {
     const { overlay, confirmBtn } = buildConfirmModal({ title, message, verb, danger });
     overlay.classList.add('modal-overlay--stacked');
@@ -569,7 +569,7 @@ function petcomConfirm({ title, message, verb, danger }) {
     };
     window.addEventListener('keydown', keydownHandler, true);
 
-    // Same backdrop semantics as petcomOpenModal: the mousedown must
+    // Same backdrop semantics as petordersOpenModal: the mousedown must
     // START on the backdrop, so a drag-select ending outside the card
     // doesn't dismiss it.
     overlay.addEventListener('mousedown', (e) => {
@@ -583,7 +583,7 @@ function petcomConfirm({ title, message, verb, danger }) {
   });
 }
 
-window.petcomConfirm = petcomConfirm;
+window.petordersConfirm = petordersConfirm;
 
 function initConfirmForms() {
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
@@ -614,13 +614,13 @@ function initConfirmForms() {
         // identical to the full-page path, where the re-rendered form
         // starts unconfirmed.
         if (form.hasAttribute('data-ajax-submit')) {
-          petcomCloseModal();
+          petordersCloseModal();
           form.dataset.confirmed = 'false';
         }
       });
 
       document.body.appendChild(overlay);
-      petcomOpenModal(overlay, { opener, temporary: true });
+      petordersOpenModal(overlay, { opener, temporary: true });
     });
   });
 }
@@ -655,8 +655,8 @@ function clearButtonLoading(btn) {
   if (spinner) spinner.remove();
 }
 
-window.petcomSetButtonLoading = setButtonLoading;
-window.petcomClearButtonLoading = clearButtonLoading;
+window.petordersSetButtonLoading = setButtonLoading;
+window.petordersClearButtonLoading = clearButtonLoading;
 
 function initFormLoadingStates() {
   document.addEventListener('submit', (e) => {
@@ -707,7 +707,7 @@ function initFormLoadingStates() {
 // nuclide). Returns { refresh } so a caller can re-derive the cascade
 // after form.reset().
 
-function petcomInitOrderCascade({ nuclideSelect, productSelect, locationField, locationSelect, deliveryHint }) {
+function petordersInitOrderCascade({ nuclideSelect, productSelect, locationField, locationSelect, deliveryHint }) {
   const productOptions = Array.from(productSelect.querySelectorAll('option[data-nuclide-id]'));
 
   function updateLocationRequirement() {
@@ -765,7 +765,7 @@ function petcomInitOrderCascade({ nuclideSelect, productSelect, locationField, l
   return { refresh: filterProducts };
 }
 
-window.petcomInitOrderCascade = petcomInitOrderCascade;
+window.petordersInitOrderCascade = petordersInitOrderCascade;
 
 
 // ===== Copy to clipboard ==========================================

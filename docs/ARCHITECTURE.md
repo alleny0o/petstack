@@ -81,7 +81,8 @@ and is structurally unreachable by URL. Never move application code into
 
 `users` has no role column. Role is membership in a marker table.
 
-![Role model: users branches into customers and staff, admins is a subset of staff](images/architecture/role-model.png)
+<img src="images/architecture/role-model.png" width="33%" alt="Description">
+
 _`users` has no role column. Role comes from membership in `customers`, `staff`, or `admins` (a subset of `staff`). Customers are further scoped by `lab_id`._
 
 | Table       | Notes                                                                                     |
@@ -160,7 +161,7 @@ real bug: a layout's bare `$products`/`$locations` variables got
 silently overwritten by a page that declared its own.
 
 The fix, and the standing convention: everything a layout produces is
-namespaced under a single `$petcomLayout` array (account identity,
+namespaced under a single `$petordersLayout` array (account identity,
 current-page marker, sidebar state, and, for the customer layout, the
 New Order modal's backing data).
 
@@ -169,7 +170,7 @@ New Order modal's backing data).
 | Naming a variable on a page that includes a layout    | Check the layout for its reserved names first                                                            |
 | `head.php`                                            | Expects `$pageTitle` from the caller                                                                     |
 | Customer layout                                       | Reads a page-owned loose `$labId` (deliberate exception)                                                 |
-| `customer/dashboard.php`, `customer/order_detail.php` | Read `$petcomLayout` fields after including the layout. Treat as an API surface if you touch the layouts |
+| `customer/dashboard.php`, `customer/order_detail.php` | Read `$petordersLayout` fields after including the layout. Treat as an API surface if you touch the layouts |
 
 ## Shared helpers: check here before writing new logic
 

@@ -371,7 +371,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                       // multi-row version of this same modal). Modeled on the
                       // reject-with-reason modal on admin/registrations.php:
                       // required textarea, X-close + Cancel + Esc + backdrop all
-                      // wired automatically by petcomOpenModal(), reopens itself
+                      // wired automatically by petordersOpenModal(), reopens itself
                       // below on a reason_required validation failure. ?>
                 <?php if ($isOwnOrder && $order['status'] === 'pending'): ?>
                     <div class="modal-overlay" id="cancel-order-modal" hidden>
@@ -415,13 +415,13 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                     // the Delivery section only renders visible when the
                     // (submitted or current) product's fixed delivery method
                     // is direct_delivery, and the fulfillment hint pre-paints
-                    // alongside it. $petcomLayout['products']/['nuclides']/
+                    // alongside it. $petordersLayout['products']/['nuclides']/
                     // ['locations']/['product_users'] come from
                     // layout_customer.php's shared get_new_order_form_data()
                     // load -- the same lists backing the new-order modal.
                     $locationVisible = false;
                     $selectedDeliveryLabel = '';
-                    foreach ($petcomLayout['products'] as $p) {
+                    foreach ($petordersLayout['products'] as $p) {
                         if ($editOld['product_id'] === (string) $p['product_id']) {
                             $locationVisible = $p['delivery_method'] === 'direct_delivery';
                             $selectedDeliveryLabel = delivery_method_label($p['delivery_method']);
@@ -462,7 +462,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                     <label for="edit_nuclide_id">Nuclide <span class="required-mark">*</span></label>
                                     <select id="edit_nuclide_id" name="nuclide_id" required>
                                         <option value="">Select nuclide&hellip;</option>
-                                        <?php foreach ($petcomLayout['nuclides'] as $n): ?>
+                                        <?php foreach ($petordersLayout['nuclides'] as $n): ?>
                                             <option value="<?= (int) $n['nuclide_id'] ?>" <?= $editOld['nuclide_id'] === (string) $n['nuclide_id'] ? 'selected' : '' ?>><?= e($n['name']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -476,8 +476,8 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                         <?php // Same option markup as new_order_form.php:
                                               // every label carries its delivery method, and
                                               // the data attributes drive the shared cascade
-                                              // (petcomInitOrderCascade in script.js). ?>
-                                        <?php foreach ($petcomLayout['products'] as $p): ?>
+                                              // (petordersInitOrderCascade in script.js). ?>
+                                        <?php foreach ($petordersLayout['products'] as $p): ?>
                                             <option
                                                 value="<?= (int) $p['product_id'] ?>"
                                                 data-nuclide-id="<?= (int) $p['nuclide_id'] ?>"
@@ -500,11 +500,11 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                     <label for="edit_location_id">Delivery location <span class="required-mark">*</span></label>
                                     <select id="edit_location_id" name="location_id" <?= $locationVisible ? 'required' : 'disabled' ?>>
                                         <option value="">Select a location&hellip;</option>
-                                        <?php foreach ($petcomLayout['locations'] as $loc): ?>
+                                        <?php foreach ($petordersLayout['locations'] as $loc): ?>
                                             <option value="<?= (int) $loc['location_id'] ?>" <?= $editOld['location_id'] === (string) $loc['location_id'] ? 'selected' : '' ?>><?= e($loc['name']) ?><?= $loc['room'] ? ' (' . e($loc['room']) . ')' : '' ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <?php if (!$petcomLayout['locations']): ?>
+                                    <?php if (!$petordersLayout['locations']): ?>
                                         <span class="field-hint">No delivery locations yet &mdash; <a href="/customer/lab_delivery_locations.php">add one</a>.</span>
                                     <?php endif; ?>
                                     <?= field_error($editErrors, 'location_id') ?>
@@ -534,7 +534,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                 <label for="edit_product_user_id">Product user</label>
                                 <select id="edit_product_user_id" name="product_user_id">
                                     <option value="">I'm the recipient&hellip;</option>
-                                    <?php foreach ($petcomLayout['product_users'] as $pu): ?>
+                                    <?php foreach ($petordersLayout['product_users'] as $pu): ?>
                                         <option value="<?= (int) $pu['product_user_id'] ?>" <?= $editOld['product_user_id'] === (string) $pu['product_user_id'] ? 'selected' : '' ?>><?= e($pu['first_name'] . ' ' . $pu['last_name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // the PRG pattern every POST handler above already uses -- PRG is
     // what stops the browser's resubmit-form prompt; this only stops a
     // stale success toast from replaying on a plain GET reload.
-    window.petcomCleanArrivalFlags(['placed', 'cancelled', 'updated', 'notes_updated']);
+    window.petordersCleanArrivalFlags(['placed', 'cancelled', 'updated', 'notes_updated']);
 
     // Browsers' print dialog includes "Save as PDF", so one native
     // mechanism covers both print and PDF -- no libraries (CLAUDE.md).
@@ -767,11 +767,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var cancelModal = document.getElementById('cancel-order-modal');
     if (cancelTrigger && cancelModal) {
         cancelTrigger.addEventListener('click', function (e) {
-            window.petcomOpenModal(cancelModal, { opener: e.currentTarget });
+            window.petordersOpenModal(cancelModal, { opener: e.currentTarget });
         });
     }
     <?php if ($cancelErrors): ?>
-    if (cancelModal) { window.petcomOpenModal(cancelModal); }
+    if (cancelModal) { window.petordersOpenModal(cancelModal); }
     <?php endif; ?>
 
     // ---- Live character counter for Notes: same behavior as the
@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // the pre-selected nuclide.
     var editNuclide = document.getElementById('edit_nuclide_id');
     if (editNuclide) {
-        window.petcomInitOrderCascade({
+        window.petordersInitOrderCascade({
             nuclideSelect: editNuclide,
             productSelect: document.getElementById('edit_product_id'),
             locationField: document.getElementById('edit-location-field'),

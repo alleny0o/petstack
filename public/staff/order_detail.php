@@ -648,7 +648,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
 document.addEventListener('DOMContentLoaded', function () {
     // Strip one-time arrival-toast query flags once their toast has
     // been queued above -- same convention as customer/order_detail.php.
-    window.petcomCleanArrivalFlags(['accepted', 'returned', 'completed', 'cancelled', 'reopened', 'chargeable_updated', 'notes_updated']);
+    window.petordersCleanArrivalFlags(['accepted', 'returned', 'completed', 'cancelled', 'reopened', 'chargeable_updated', 'notes_updated']);
 
     // Browsers' print dialog includes "Save as PDF", so one native
     // mechanism covers both print and PDF -- no libraries (CLAUDE.md).
@@ -662,11 +662,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var cancelModal = document.getElementById('cancel-order-modal');
     if (cancelTrigger && cancelModal) {
         cancelTrigger.addEventListener('click', function (e) {
-            window.petcomOpenModal(cancelModal, { opener: e.currentTarget });
+            window.petordersOpenModal(cancelModal, { opener: e.currentTarget });
         });
     }
     <?php if ($cancelErrors): ?>
-    if (cancelModal) { window.petcomOpenModal(cancelModal); }
+    if (cancelModal) { window.petordersOpenModal(cancelModal); }
     <?php endif; ?>
 
     // ---- Live character counter for Notes: same behavior as

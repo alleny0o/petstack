@@ -1,9 +1,9 @@
 <?php
-// $petcomLayout namespaces every value this layout produces (account
+// $petordersLayout namespaces every value this layout produces (account
 // identity, current page, New Order backing data) so it can never
 // silently collide with a page's own same-named variable -- see
 // CLAUDE.md's reserved-layout-variables table.
-$petcomLayout = layout_account_data((int) $_SESSION['user_id'], $_SESSION['role']);
+$petordersLayout = layout_account_data((int) $_SESSION['user_id'], $_SESSION['role']);
 
 // $labId itself stays a loose variable, not namespaced: every customer
 // page that includes this layout already presets it before the include
@@ -19,12 +19,12 @@ if (!isset($labId)) {
 // Backing data for the New Order modal below, needed on every customer
 // page since the sidebar trigger opens it from anywhere. Guarded so
 // get_new_order_form_data() only ever runs once per request.
-if (!isset($petcomLayout['nuclides'])) {
+if (!isset($petordersLayout['nuclides'])) {
     $newOrderFormData = get_new_order_form_data(get_db(), $labId);
-    $petcomLayout['nuclides'] = $newOrderFormData['nuclides'];
-    $petcomLayout['products'] = $newOrderFormData['products'];
-    $petcomLayout['locations'] = $newOrderFormData['locations'];
-    $petcomLayout['product_users'] = $newOrderFormData['product_users'];
+    $petordersLayout['nuclides'] = $newOrderFormData['nuclides'];
+    $petordersLayout['products'] = $newOrderFormData['products'];
+    $petordersLayout['locations'] = $newOrderFormData['locations'];
+    $petordersLayout['product_users'] = $newOrderFormData['product_users'];
 }
 
 ?>
@@ -62,7 +62,7 @@ if (!isset($petcomLayout['nuclides'])) {
       <ul class="menu-list">
 
         <li class="menu-item">
-          <a href="/customer/dashboard.php" class="menu-link <?= $petcomLayout['current_page'] === 'dashboard' ? 'active' : '' ?>">
+          <a href="/customer/dashboard.php" class="menu-link <?= $petordersLayout['current_page'] === 'dashboard' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -76,7 +76,7 @@ if (!isset($petcomLayout['nuclides'])) {
         <li class="menu-item">
           <?php // order_detail.php counts as part of the Orders section --
                 // the natural path there is Orders -> detail. ?>
-          <a href="/customer/orders.php" class="menu-link <?= in_array($petcomLayout['current_page'], ['orders', 'order_detail'], true) ? 'active' : '' ?>">
+          <a href="/customer/orders.php" class="menu-link <?= in_array($petordersLayout['current_page'], ['orders', 'order_detail'], true) ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -86,7 +86,7 @@ if (!isset($petcomLayout['nuclides'])) {
         </li>
 
         <li class="menu-item">
-          <a href="/customer/lab_delivery_locations.php" class="menu-link <?= $petcomLayout['current_page'] === 'lab_delivery_locations' ? 'active' : '' ?>">
+          <a href="/customer/lab_delivery_locations.php" class="menu-link <?= $petordersLayout['current_page'] === 'lab_delivery_locations' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
               <circle cx="12" cy="10" r="3"></circle>
@@ -96,7 +96,7 @@ if (!isset($petcomLayout['nuclides'])) {
         </li>
 
         <li class="menu-item">
-          <a href="/customer/lab_product_users.php" class="menu-link <?= $petcomLayout['current_page'] === 'lab_product_users' ? 'active' : '' ?>">
+          <a href="/customer/lab_product_users.php" class="menu-link <?= $petordersLayout['current_page'] === 'lab_product_users' ? 'active' : '' ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -112,8 +112,8 @@ if (!isset($petcomLayout['nuclides'])) {
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
     <button type="button" class="sidebar-account" data-my-info-trigger aria-haspopup="dialog">
-      <div class="account-avatar"><?= e($petcomLayout['initials']) ?></div>
-      <span class="account-name"><?= e($petcomLayout['name']) ?></span>
+      <div class="account-avatar"><?= e($petordersLayout['initials']) ?></div>
+      <span class="account-name"><?= e($petordersLayout['name']) ?></span>
     </button>
 
     <div class="sidebar-footer-actions">
@@ -157,10 +157,10 @@ if (!isset($petcomLayout['nuclides'])) {
             // data as the previous pass, just read at a glance rather
             // than key-value scanned. ?>
       <div class="my-info-identity">
-        <div class="my-info-identity__avatar"><?= e($petcomLayout['initials']) ?></div>
+        <div class="my-info-identity__avatar"><?= e($petordersLayout['initials']) ?></div>
         <div>
-          <div class="my-info-identity__name"><?= e($petcomLayout['name']) ?></div>
-          <div class="my-info-identity__username"><?= e($petcomLayout['account']['username']) ?> (used to log in)</div>
+          <div class="my-info-identity__name"><?= e($petordersLayout['name']) ?></div>
+          <div class="my-info-identity__username"><?= e($petordersLayout['account']['username']) ?> (used to log in)</div>
         </div>
       </div>
 
@@ -169,7 +169,7 @@ if (!isset($petcomLayout['nuclides'])) {
         <div class="detail-list">
           <div class="detail-list__row">
             <span class="detail-list__label">Phone</span>
-            <span class="detail-list__value tabular"><?= e($petcomLayout['account']['phone'] ?? '—') ?></span>
+            <span class="detail-list__value tabular"><?= e($petordersLayout['account']['phone'] ?? '—') ?></span>
           </div>
         </div>
       </div>
@@ -179,15 +179,15 @@ if (!isset($petcomLayout['nuclides'])) {
         <div class="detail-list">
           <div class="detail-list__row">
             <span class="detail-list__label">Lab</span>
-            <span class="detail-list__value"><?= e($petcomLayout['account']['lab_name'] ?? '—') ?></span>
+            <span class="detail-list__value"><?= e($petordersLayout['account']['lab_name'] ?? '—') ?></span>
           </div>
           <div class="detail-list__row">
             <span class="detail-list__label">Institute</span>
-            <span class="detail-list__value"><?= e($petcomLayout['account']['institute_name'] ?? '—') ?></span>
+            <span class="detail-list__value"><?= e($petordersLayout['account']['institute_name'] ?? '—') ?></span>
           </div>
           <div class="detail-list__row">
             <span class="detail-list__label">Supervising PI</span>
-            <span class="detail-list__value"><?= e($petcomLayout['account']['pi_name'] ?? '—') ?></span>
+            <span class="detail-list__value"><?= e($petordersLayout['account']['pi_name'] ?? '—') ?></span>
           </div>
         </div>
       </div>

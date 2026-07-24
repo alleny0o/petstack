@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
-// client half is petcomCleanArrivalFlags() in the script at the bottom.
+// client half is petordersCleanArrivalFlags() in the script at the bottom.
 $arrival = consume_arrival_flags(['rejected']);
 
 // Institute is derived via lab_id -> labs.institute_id, per the
@@ -297,7 +297,7 @@ $pageTitle = 'Registrations';
 </body>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  window.petcomCleanArrivalFlags(['rejected']);
+  window.petordersCleanArrivalFlags(['rejected']);
 
   var modal = document.getElementById('reject-modal');
   var requestIdInput = document.getElementById('reject-request-id');
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () {
       requestIdInput.value = btn.dataset.requestId;
       applicantLabel.textContent = btn.dataset.applicant;
-      window.petcomOpenModal(modal, { opener: btn });
+      window.petordersOpenModal(modal, { opener: btn });
     });
   });
 
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
   (function () {
     var btn = document.querySelector('.js-reject-btn[data-request-id="<?= $rejectRetryId ?>"]');
     if (btn) { applicantLabel.textContent = btn.dataset.applicant; }
-    window.petcomOpenModal(modal, { opener: btn || undefined });
+    window.petordersOpenModal(modal, { opener: btn || undefined });
   })();
   <?php endif; ?>
 });

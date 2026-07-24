@@ -141,12 +141,7 @@ Work top to bottom:
    "I'm the recipient..." if it's you, or pick someone from your lab's
    product user list (see section 11).
 
-Click **Place order**. You'll be asked to confirm:
-
-![Confirmation dialog asking "Place this order?"](images/customer/new-order-confirm.png)
-_One last check before the order is submitted._
-
-After confirming, you land on the new order's page with an "Order
+Click **Place order**. You'll be asked to confirm. After confirming, you land on the new order's page with an "Order
 placed." message. The order starts out Pending, staff take it from
 there.
 
@@ -192,9 +187,6 @@ date, time, or product user, and click **Save Changes**, then confirm.
 
 Every order has a Notes card. On your own pending orders you can edit
 it: type your note (up to 500 characters) and click **Save Notes**.
-
-![Notes card on an order with the save button](images/customer/order-notes.png)
-_Notes are shared between you and the staff processing the order._
 
 Notes are one shared field on the order. Staff read and can update the
 same text. If you're adding to an existing note, add your text rather
