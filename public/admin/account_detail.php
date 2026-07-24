@@ -44,8 +44,8 @@ $profileErrors = [];
 $tempPasswordReveal = null;
 
 $profileOld = $account !== null
-    ? ['first_name' => $account['first_name'], 'last_name' => $account['last_name'], 'phone' => $account['phone']]
-    : ['first_name' => '', 'last_name' => '', 'phone' => ''];
+    ? ['first_name' => $account['first_name'], 'last_name' => $account['last_name'], 'phone' => $account['phone'], 'email' => $account['username']]
+    : ['first_name' => '', 'last_name' => '', 'phone' => '', 'email' => ''];
 
 if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -56,6 +56,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $profileOld['first_name'] = trim($_POST['first_name'] ?? '');
         $profileOld['last_name'] = trim($_POST['last_name'] ?? '');
         $profileOld['phone'] = trim($_POST['phone'] ?? '');
+        $profileOld['email'] = trim($_POST['email'] ?? '');
 
         if ($profileOld['first_name'] === '') {
             $profileErrors['first_name'] = 'First name is required.';
@@ -74,25 +75,45 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (mb_strlen($profileOld['phone']) > 20) {
             $profileErrors['phone'] = 'Phone must be 20 characters or fewer.';
         }
-
-        if ($profileErrors && request_wants_json()) {
-            json_response(['ok' => false, 'errors' => $profileErrors], 422);
+        if ($profileOld['email'] === '' || !filter_var($profileOld['email'], FILTER_VALIDATE_EMAIL)) {
+            $profileErrors['email'] = 'A valid email is required.';
+        } elseif (mb_strlen($profileOld['email']) > 50) {
+            // The email becomes users.username, which is VARCHAR(50).
+            $profileErrors['email'] = 'Email must be 50 characters or fewer.';
         }
 
         if (!$profileErrors) {
-            $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?')
-                ->execute([$profileOld['first_name'], $profileOld['last_name'], $profileOld['phone'], $userId]);
-            $account = fetch_account($pdo, $userId);
-            $profileOld = ['first_name' => $account['first_name'], 'last_name' => $account['last_name'], 'phone' => $account['phone']];
-            $flash = ['type' => 'success', 'message' => 'Profile updated.'];
-            // No redirect target -- edit_profile alone re-renders in
-            // place rather than PRGing (unlike toggle_active/reset_password
-            // below); the AJAX success carries just the message, so the
-            // client shows the same toast without navigating instead of
-            // following a redirect.
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'message' => $flash['message']]);
+            // Pre-check, same convention as accounts.php -- the catch
+            // block below is the race-condition backstop.
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ?');
+            $stmt->execute([$profileOld['email'], $userId]);
+            if ($stmt->fetchColumn()) {
+                $profileErrors['email'] = 'An account already exists for this email.';
             }
+        }
+
+        if (!$profileErrors) {
+            try {
+                $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ?, username = ? WHERE user_id = ?')
+                    ->execute([$profileOld['first_name'], $profileOld['last_name'], $profileOld['phone'], $profileOld['email'], $userId]);
+                $account = fetch_account($pdo, $userId);
+                $profileOld = ['first_name' => $account['first_name'], 'last_name' => $account['last_name'], 'phone' => $account['phone'], 'email' => $account['username']];
+                $flash = ['type' => 'success', 'message' => 'Profile updated.'];
+                // No redirect target -- edit_profile alone re-renders in
+                // place rather than PRGing (unlike toggle_active/reset_password
+                // below); the AJAX success carries just the message, so the
+                // client shows the same toast without navigating instead of
+                // following a redirect.
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'message' => $flash['message']]);
+                }
+            } catch (PDOException $e) {
+                $profileErrors['email'] = 'Could not save changes. An account for this email may already exist.';
+            }
+        }
+
+        if ($profileErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $profileErrors], 422);
         }
     } elseif ($action === 'toggle_active') {
         if ($isSelf && $account['active']) {
@@ -279,6 +300,13 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                         <input type="hidden" name="action" value="edit_profile">
                         <div class="alert alert--error" data-error-banner-for="edit-profile-form" <?= $profileErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
+                        <div class="<?= field_class($profileErrors, 'email') ?>">
+                            <label for="email">Email <span class="required-mark">*</span></label>
+                            <input type="email" id="email" name="email" value="<?= e($profileOld['email']) ?>" required>
+                            <span class="field-hint">This is also their username for logging in.</span>
+                            <?= field_error($profileErrors, 'email') ?>
+                        </div>
+
                         <div class="field-row">
                             <div class="<?= field_class($profileErrors, 'first_name') ?>">
                                 <label for="first_name">First name <span class="required-mark">*</span></label>
@@ -307,10 +335,6 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                 <div class="card">
                     <span class="card__title">Account</span>
                     <div class="detail-list">
-                        <div class="detail-list__row">
-                            <span class="detail-list__label">Email (username)</span>
-                            <span class="detail-list__value"><?= e($account['username']) ?></span>
-                        </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Role</span>
                             <span class="detail-list__value"><?= $account['is_admin'] ? 'Admin' : 'Staff' ?></span>

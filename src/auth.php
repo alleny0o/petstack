@@ -101,13 +101,15 @@ function require_role($allowedRoles): void
         redirect('/login.php');
     }
 
-    $stmt = get_db()->prepare('SELECT active FROM users WHERE user_id = ?');
+    $stmt = get_db()->prepare('SELECT active, username FROM users WHERE user_id = ?');
     $stmt->execute([$_SESSION['user_id']]);
-    if (!$stmt->fetchColumn()) {
+    $currentUser = $stmt->fetch();
+    if (!$currentUser || !$currentUser['active']) {
         session_unset();
         session_destroy();
         redirect('/login.php');
     }
+    $_SESSION['username'] = $currentUser['username'];
 
     if (!empty($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_IDLE_LIMIT_SECONDS) {
         session_unset();
