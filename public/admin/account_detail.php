@@ -173,6 +173,69 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect($dest);
             }
         }
+    } elseif ($action === 'toggle_role') {
+        if ($isSelf) {
+            // Not reachable through the UI (the button is disabled for
+            // this case below) -- defensive server-side twin, same shape
+            // as toggle_active/reset_password's isSelf guards. Demoting
+            // yourself would strand you on the admin page you're
+            // standing on; promoting yourself is a no-op only an admin
+            // could attempt anyway.
+            $flash = ['type' => 'error', 'message' => 'You cannot change your own role.'];
+            if (request_wants_json()) {
+                json_response(['ok' => false, 'message' => $flash['message']], 422);
+            }
+        } elseif ($account['is_admin']) {
+            // Demote: same last-admin protection as deactivation above --
+            // never leave zero active admins, serialized with FOR UPDATE
+            // so two admins demoting each other can't both slip past.
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare(
+                'SELECT COUNT(*) FROM admins a
+                 JOIN users u ON u.user_id = a.user_id
+                 WHERE u.active = 1 AND u.user_id <> ?
+                 FOR UPDATE'
+            );
+            $stmt->execute([$userId]);
+            $otherActiveAdmins = (int) $stmt->fetchColumn();
+
+            if ($otherActiveAdmins === 0) {
+                $pdo->rollBack();
+                $flash = ['type' => 'error', 'message' => 'Cannot demote the last active admin account.'];
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'message' => $flash['message']], 422);
+                }
+            } else {
+                $pdo->prepare('DELETE FROM admins WHERE user_id = ?')->execute([$userId]);
+                $pdo->commit();
+
+                $dest = '/admin/account_detail.php?id=' . $userId . '&demoted=1';
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            }
+        } else {
+            // Promote. The staff row is guaranteed (this whole page is
+            // scoped to staff), so this is a single insert; the catch
+            // covers the stale-page race where another admin promoted
+            // them first -- a duplicate-PK violation must surface as a
+            // clean error, not the global 500 page.
+            try {
+                $pdo->prepare('INSERT INTO admins (user_id) VALUES (?)')->execute([$userId]);
+
+                $dest = '/admin/account_detail.php?id=' . $userId . '&promoted=1';
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $flash = ['type' => 'error', 'message' => 'Could not change the role. Reload the page and try again.'];
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'message' => $flash['message']], 422);
+                }
+            }
+        }
     } elseif ($action === 'reset_password') {
         if ($isSelf) {
             // Resetting your own password while logged in has no
@@ -230,7 +293,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
 // client half is petcomCleanArrivalFlags() near the bottom.
-$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated']);
+$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
 // hygiene), shown only on a fresh ?reset=1 arrival for the SAME account
@@ -282,6 +345,8 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                 <?= $arrival['updated'] ? toast_flash('success', 'Profile updated.') : '' ?>
                 <?= $arrival['reactivated'] ? toast_flash('success', 'Account reactivated.') : '' ?>
                 <?= $arrival['deactivated'] ? toast_flash('success', 'Account deactivated. They have been signed out and can no longer log in.') : '' ?>
+                <?= $arrival['promoted'] ? toast_flash('success', 'Promoted to admin.') : '' ?>
+                <?= $arrival['demoted'] ? toast_flash('success', 'Demoted to staff.') : '' ?>
 
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
@@ -412,6 +477,29 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                         <?php endif; ?>
 
                         <?php if ($isSelf): ?>
+                            <button type="button" class="btn btn--secondary" disabled title="You cannot change your own role."><?= $account['is_admin'] ? 'Demote to Staff' : 'Promote to Admin' ?></button>
+                        <?php elseif ($account['is_admin']): ?>
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="toggle-role-form" novalidate data-ajax-submit
+                                  data-confirm="Demote <?= e($account['first_name'] . ' ' . $account['last_name']) ?> to staff? They will lose admin access immediately."
+                                  data-confirm-title="Demote to staff"
+                                  data-confirm-verb="Demote"
+                                  data-confirm-danger>
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="toggle_role">
+                                <button type="submit" class="btn btn--secondary">Demote to Staff</button>
+                            </form>
+                        <?php else: ?>
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="toggle-role-form" novalidate data-ajax-submit
+                                  data-confirm="Make <?= e($account['first_name'] . ' ' . $account['last_name']) ?> an admin? They will gain full administrative access immediately."
+                                  data-confirm-title="Promote to admin"
+                                  data-confirm-verb="Promote">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="toggle_role">
+                                <button type="submit" class="btn btn--secondary">Promote to Admin</button>
+                            </form>
+                        <?php endif; ?>
+
+                        <?php if ($isSelf): ?>
                             <button type="button" class="btn btn--secondary" disabled title="You cannot reset your own password here. Use Change Password instead.">Reset Password</button>
                         <?php else: ?>
                             <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="reset-password-form" novalidate data-ajax-submit
@@ -426,7 +514,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                         <?php endif; ?>
                     </div>
                     <?php if ($isSelf): ?>
-                        <p class="field-hint mt-2 mb-0">This is your own account &mdash; deactivation is blocked, and password changes go through <a href="/change_password.php">Change Password</a>.</p>
+                        <p class="field-hint mt-2 mb-0">This is your own account &mdash; deactivation and role changes are blocked, and password changes go through <a href="/change_password.php">Change Password</a>.</p>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -436,7 +524,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
 <?php if ($account !== null): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  window.petcomCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated']);
+  window.petcomCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
 });
 </script>
 <?php endif; ?>

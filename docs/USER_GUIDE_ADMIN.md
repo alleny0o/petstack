@@ -145,7 +145,13 @@ _An account's page. Note the safeguards on your own account._
 | Action                          | Detail                                                                                                                                                                                                                                                               |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Deactivate / Reactivate Account | Deactivate signs them out immediately and blocks logins. Reactivate restores access. Two safeguards: you cannot deactivate your own account, and you cannot deactivate the last active admin, the system refuses so there's always at least one admin who can get in |
+| Promote to Admin / Demote to Staff | Changes the account's role, effective immediately (their pages update on their very next click, no re-login needed). Same two safeguards as deactivation: you cannot change your own role, and you cannot demote the last active admin                            |
 | Reset Password                  | Same one-time temporary password flow as for customers. You can't reset your own password here, use Change Password like everyone else                                                                                                                               |
+
+Note: customer accounts can never be promoted to staff or admin. If a
+customer joins the department as staff, create them a fresh staff
+account here and deactivate their old customer account from its
+customer page — their order history stays on the deactivated account.
 
 ## 5. Catalog: nuclides
 
