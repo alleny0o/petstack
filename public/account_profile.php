@@ -37,12 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         || mb_strlen($firstName) > 100 || mb_strlen($lastName) > 100) {
         redirect($target . $sep . 'profile_error=1');
     }
-    if ($phone !== '' && (!preg_match('/^[0-9()+.\-\s]+$/', $phone) || !preg_match('/[0-9]/', $phone) || mb_strlen($phone) > 20)) {
+    if ($phone === '' || !preg_match('/^[0-9()+.\-\s]+$/', $phone) || !preg_match('/[0-9]/', $phone) || mb_strlen($phone) > 20) {
         redirect($target . $sep . 'profile_error=1');
     }
 
     get_db()->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?')
-        ->execute([$firstName, $lastName, $phone !== '' ? $phone : null, (int) $_SESSION['user_id']]);
+        ->execute([$firstName, $lastName, $phone, (int) $_SESSION['user_id']]);
 
     redirect($target . $sep . 'profile_updated=1');
 }

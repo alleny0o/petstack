@@ -39,8 +39,12 @@ function fetch_customer(PDO $pdo, int $userId): ?array
 
 $userId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
 $customer = $userId > 0 ? fetch_customer($pdo, $userId) : null;
+// Same server-side edit toggle as customer/order_detail.php's Order
+// Details card: ?edit=1 swaps the read-only Customer Details card for
+// the form. The form's action URL keeps edit=1 so a no-JS
+// validation-error re-render lands back in editing state.
+$editing = $customer !== null && ($_GET['edit'] ?? null) === '1';
 
-$flash = null;
 $fieldErrors = [];
 $tempPasswordReveal = null;
 
@@ -48,6 +52,7 @@ $editOld = [
     'first_name'         => '',
     'last_name'          => '',
     'phone'              => '',
+    'email'              => '',
     'institute_id'       => '',
     'lab_id'             => '',
     'supervising_pi_id'  => '',
@@ -59,6 +64,7 @@ function reset_edit_old(array $customer): array
         'first_name'         => $customer['first_name'],
         'last_name'          => $customer['last_name'],
         'phone'              => $customer['phone'] ?? '',
+        'email'              => $customer['username'],
         'institute_id'       => $customer['institute_id'] !== null ? (string) $customer['institute_id'] : '',
         'lab_id'             => $customer['lab_id'] !== null ? (string) $customer['lab_id'] : '',
         'supervising_pi_id'  => $customer['supervising_pi_id'] !== null ? (string) $customer['supervising_pi_id'] : '',
@@ -95,6 +101,12 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $fieldErrors['phone'] = 'Phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.';
         } elseif (mb_strlen($editOld['phone']) > 20) {
             $fieldErrors['phone'] = 'Phone must be 20 characters or fewer.';
+        }
+        if ($editOld['email'] === '' || !filter_var($editOld['email'], FILTER_VALIDATE_EMAIL)) {
+            $fieldErrors['email'] = 'A valid email is required.';
+        } elseif (mb_strlen($editOld['email']) > 50) {
+            // The email becomes users.username, which is VARCHAR(50).
+            $fieldErrors['email'] = 'Email must be 50 characters or fewer.';
         }
         if ($editOld['lab_id'] === '' || !ctype_digit($editOld['lab_id'])) {
             $fieldErrors['lab_id'] = 'Select a lab.';
@@ -139,33 +151,48 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if ($fieldErrors && request_wants_json()) {
-            json_response(['ok' => false, 'errors' => $fieldErrors], 422);
+        if (!$fieldErrors) {
+            // Pre-check, same convention as accounts.php -- the catch
+            // block below is the race-condition backstop.
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ?');
+            $stmt->execute([$editOld['email'], $userId]);
+            if ($stmt->fetchColumn()) {
+                $fieldErrors['email'] = 'An account already exists for this email.';
+            }
         }
 
         if (!$fieldErrors) {
             $pdo->beginTransaction();
-            $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?')
-                ->execute([$editOld['first_name'], $editOld['last_name'], $editOld['phone'], $userId]);
-            $pdo->prepare(
-                'UPDATE customers
-                 SET lab_id = ?, supervising_pi_id = ?
-                 WHERE user_id = ?'
-            )->execute([
-                (int) $editOld['lab_id'],
-                (int) $editOld['supervising_pi_id'],
-                $userId,
-            ]);
-            $pdo->commit();
+            try {
+                $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, phone = ?, username = ? WHERE user_id = ?')
+                    ->execute([$editOld['first_name'], $editOld['last_name'], $editOld['phone'], $editOld['email'], $userId]);
+                $pdo->prepare(
+                    'UPDATE customers
+                     SET lab_id = ?, supervising_pi_id = ?
+                     WHERE user_id = ?'
+                )->execute([
+                    (int) $editOld['lab_id'],
+                    (int) $editOld['supervising_pi_id'],
+                    $userId,
+                ]);
+                $pdo->commit();
 
-            $customer = fetch_customer($pdo, $userId);
-            $editOld = reset_edit_old($customer);
-            $flash = ['type' => 'success', 'message' => 'Customer updated.'];
-            // No redirect target -- same self-rendering shape as
-            // account_detail.php's Edit Profile form.
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'message' => $flash['message']]);
+                // PRG back to the read-only view (dropping edit=1), with
+                // an arrival-flag toast -- same shape as toggle_active
+                // below.
+                $dest = '/admin/customer_detail.php?id=' . $userId . '&updated=1';
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                $fieldErrors['email'] = 'Could not save changes. An account for this email may already exist.';
             }
+        }
+
+        if ($fieldErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $fieldErrors], 422);
         }
     } elseif ($action === 'toggle_active') {
         // No business-rule blocks here (unlike account_detail.php's
@@ -223,8 +250,8 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
-// client half is petorderCleanArrivalFlags() near the bottom.
-$arrival = consume_arrival_flags(['reset', 'reactivated', 'deactivated']);
+// client half is petcomCleanArrivalFlags() near the bottom.
+$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
 // hygiene), shown only on a fresh ?reset=1 arrival for the SAME
@@ -301,11 +328,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     </div>
                 </div>
 
-                <?php if ($flash && $flash['type'] === 'success'): ?>
-                    <?= toast_flash('success', $flash['message']) ?>
-                <?php elseif ($flash): ?>
-                    <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
-                <?php endif; ?>
+                <?= $arrival['updated'] ? toast_flash('success', 'Customer updated.') : '' ?>
                 <?= $arrival['reactivated'] ? toast_flash('success', 'Customer reactivated.') : '' ?>
                 <?= $arrival['deactivated'] ? toast_flash('success', 'Customer deactivated. They have been signed out and can no longer log in.') : '' ?>
 
@@ -326,10 +349,6 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     <span class="card__title">Account</span>
                     <div class="detail-list">
                         <div class="detail-list__row">
-                            <span class="detail-list__label">Email (username)</span>
-                            <span class="detail-list__value"><?= e($customer['username']) ?></span>
-                        </div>
-                        <div class="detail-list__row">
                             <span class="detail-list__label">Registered</span>
                             <span class="detail-list__value"><?= e(date('M j, Y g:i A', strtotime($customer['created_at']))) ?></span>
                         </div>
@@ -344,12 +363,61 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     </div>
                 </div>
 
+                <?php // Read-only card swaps for the form via ?edit=1 -- the
+                      // markup swap is the mode signal, same convention as
+                      // customer/order_detail.php's Order Details card (no
+                      // .is-editing class, no toggle JS). ?>
+                <?php if (!$editing): ?>
+                <div class="card">
+                    <div class="card__header">
+                        <span class="card__title">Customer Details</span>
+                        <a href="/admin/customer_detail.php?id=<?= (int) $userId ?>&amp;edit=1" class="btn btn--secondary btn--sm">Edit Details</a>
+                    </div>
+                    <div class="detail-list">
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Email (username)</span>
+                            <span class="detail-list__value"><?= e($customer['username']) ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">First name</span>
+                            <span class="detail-list__value"><?= e($customer['first_name']) ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Last name</span>
+                            <span class="detail-list__value"><?= e($customer['last_name']) ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Phone</span>
+                            <span class="detail-list__value tabular"><?= e($customer['phone'] ?? '—') ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Institute</span>
+                            <span class="detail-list__value"><?= e($customer['institute_name'] ?? '—') ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Lab</span>
+                            <span class="detail-list__value"><?= e($customer['lab_name'] ?? '—') ?></span>
+                        </div>
+                        <div class="detail-list__row">
+                            <span class="detail-list__label">Supervising PI</span>
+                            <span class="detail-list__value"><?= e($customer['pi_name'] ?? '—') ?></span>
+                        </div>
+                    </div>
+                </div>
+                <?php else: ?>
                 <div class="card">
                     <span class="card__title">Edit Details</span>
-                    <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="edit-customer-form" novalidate data-ajax-submit>
+                    <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>&amp;edit=1" id="edit-customer-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="edit">
                         <div class="alert alert--error" data-error-banner-for="edit-customer-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
+
+                        <div class="<?= field_class($fieldErrors, 'email') ?>">
+                            <label for="email">Email <span class="required-mark">*</span></label>
+                            <input type="email" id="email" name="email" value="<?= e($editOld['email']) ?>" required>
+                            <span class="field-hint">This is also their username for logging in.</span>
+                            <?= field_error($fieldErrors, 'email') ?>
+                        </div>
 
                         <div class="field-row">
                             <div class="<?= field_class($fieldErrors, 'first_name') ?>">
@@ -406,11 +474,13 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             </div>
                         </div>
 
-                        <div class="form-section">
+                        <div class="form-section flex gap-3">
+                            <a href="/admin/customer_detail.php?id=<?= (int) $userId ?>" class="btn btn--ghost">Cancel</a>
                             <button type="submit" class="btn btn--primary">Save Changes</button>
                         </div>
                     </form>
                 </div>
+                <?php endif; ?>
 
                 <div class="card">
                     <span class="card__title">Account Actions</span>
@@ -497,7 +567,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  window.petordersCleanArrivalFlags(['reset', 'reactivated', 'deactivated']);
+  window.petcomCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated']);
 });
 </script>
 <?php endif; ?>

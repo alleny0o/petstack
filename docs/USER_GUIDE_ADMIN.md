@@ -127,9 +127,9 @@ _Staff and admin accounts in one list._
 **To create an account:** click **+ Account**.
 
 ![New account dialog with email, name, and role choice](images/admin/account-new-modal.png)
-_Creating an account: the @nih.gov email becomes the username; pick Staff or Admin._
+_Creating an account: the email becomes the username; pick Staff or Admin._
 
-Enter their @nih.gov email (this becomes their username), first and
+Enter their email address (this becomes their username), first and
 last name, and choose the role: **Staff** (processes customer orders)
 or **Admin** (everything staff can do, plus management and approvals).
 Click **Create Account**, a one-time temporary password banner appears,

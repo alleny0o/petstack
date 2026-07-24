@@ -44,7 +44,7 @@ Fill in every field:
 | Institute              | Your NIH institute or center                                                                                                            |
 | Lab                    | Your lab (the list shows labs at the institute you picked). If your lab isn't listed, contact an administrator                          |
 | First name / Last name |                                                                                                                                         |
-| Email                  | Must be your @nih.gov address. This becomes your username for logging in                                                                |
+| Email                  | Your email address. This becomes your username for logging in                                                                          |
 | Phone                  | A number where you can be reached                                                                                                       |
 | Supervising PI         | The principal investigator you work under (the list shows PIs at the lab you picked). If your PI isn't listed, contact an administrator |
 
@@ -68,7 +68,7 @@ _The status page tells you whether your registration is Pending, Approved, or Re
 
 ## 3. Logging in for the first time
 
-Go to the login page and enter your username (your @nih.gov email) and
+Go to the login page and enter your username (your email address) and
 the temporary password the administrator sent you.
 
 ![Login page with username and password fields](images/customer/login.png)

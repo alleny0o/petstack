@@ -49,8 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $fieldErrors['email'] = 'A valid email is required.';
-    } elseif (!preg_match('/@nih\.gov$/i', $old['email'])) {
-        $fieldErrors['email'] = 'Email must be an @nih.gov address.';
     } elseif (mb_strlen($old['email']) > 50) {
         // 50, not the column's 254: on approval this email becomes
         // users.username, which is VARCHAR(50).

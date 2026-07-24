@@ -74,14 +74,15 @@ INSERT INTO lab_pis (lab_id, pi_id) VALUES
 -- Usernames are real NIH-email-style, matching Kris's requirement
 -- that username = NIH email address.
 -- first_name/last_name/phone live on users now (moved off staff/customers)
--- -- phone stays NULL for admin/staff (no real requirement behind it there),
--- but every customer gets a placeholder phone: real approved customers
--- always have one, since register.php requires it and registration
--- approval copies it onto the new users row (see registrations.php).
+-- -- every user gets a placeholder phone now that it's required for all
+-- three roles, not just customers: register.php requires it for
+-- self-registered customers (copied onto users by registrations.php's
+-- approval), and accounts.php/bootstrap_admin.php now require it the
+-- same way for staff/admin.
 INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES
-  ('robert.nguyen@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Robert', 'Nguyen',   NULL,           1, 1), -- 1: admin
-  ('maria.santos@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Maria',  'Santos',   NULL,           1, 1), -- 2: staff
-  ('james.oconnor@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'James',  'O''Connor', NULL,          1, 1), -- 3: staff
+  ('robert.nguyen@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Robert', 'Nguyen',   '301-555-0110', 1, 1), -- 1: admin
+  ('maria.santos@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Maria',  'Santos',   '301-555-0125', 1, 1), -- 2: staff
+  ('james.oconnor@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'James',  'O''Connor', '301-555-0136', 1, 1), -- 3: staff
   ('alice.carter@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Alice',  'Carter',   '301-555-0142', 1, 1), -- 4: customer
   ('brian.kim@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Brian',  'Kim',      '301-555-0157', 1, 1), -- 5: customer
   ('deepa.patel@nih.gov',    'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Deepa',  'Patel',    '301-555-0163', 1, 1), -- 6: customer

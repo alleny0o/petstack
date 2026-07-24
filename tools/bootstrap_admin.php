@@ -7,9 +7,11 @@
  * touch or depend on sql/seed.sql; use that + tools/set_temp_passwords.php
  * for dev/test data instead.
  *
- * Usage: php tools/bootstrap_admin.php <username> <first_name> <last_name>
- *   <username> must be an @nih.gov address (matches the app-wide
+ * Usage: php tools/bootstrap_admin.php <username> <first_name> <last_name> <phone>
+ *   <username> must be a valid email address (matches the app-wide
  *   username-is-email convention).
+ *   <phone> must contain only digits, spaces, dashes, parentheses, and an
+ *   optional leading +, 20 characters or fewer (matches users.phone).
  *
  * Run once after loading sql/schema.sql alone, before pointing a real
  * deployment at the database.
@@ -27,20 +29,29 @@ function generate_temp_password(): string
     return substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(16))), 0, 16);
 }
 
-if ($argc !== 4) {
-    fwrite(STDERR, "Usage: php tools/bootstrap_admin.php <username> <first_name> <last_name>\n");
+if ($argc !== 5) {
+    fwrite(STDERR, "Usage: php tools/bootstrap_admin.php <username> <first_name> <last_name> <phone>\n");
     exit(1);
 }
 
-[, $username, $firstName, $lastName] = $argv;
+[, $username, $firstName, $lastName, $phone] = $argv;
 
-if (!filter_var($username, FILTER_VALIDATE_EMAIL) || !preg_match('/@nih\.gov$/i', $username)) {
-    fwrite(STDERR, "Error: username must be a valid @nih.gov email address.\n");
+if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+    fwrite(STDERR, "Error: username must be a valid email address.\n");
     exit(1);
 }
 
 if ($firstName === '' || $lastName === '') {
     fwrite(STDERR, "Error: first_name and last_name are required.\n");
+    exit(1);
+}
+
+if ($phone === '' || !preg_match('/^[0-9()+.\-\s]+$/', $phone) || !preg_match('/[0-9]/', $phone)) {
+    fwrite(STDERR, "Error: phone must contain only digits, spaces, dashes, parentheses, and an optional leading +.\n");
+    exit(1);
+}
+if (mb_strlen($phone) > 20) {
+    fwrite(STDERR, "Error: phone must be 20 characters or fewer.\n");
     exit(1);
 }
 
@@ -62,8 +73,8 @@ try {
     $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
 
     $pdo->prepare(
-        'INSERT INTO users (username, password_hash, first_name, last_name, must_change_password, active) VALUES (?, ?, ?, ?, 1, 1)'
-    )->execute([$username, $tempHash, $firstName, $lastName]);
+        'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'
+    )->execute([$username, $tempHash, $firstName, $lastName, $phone]);
     $newUserId = (int) $pdo->lastInsertId();
 
     $pdo->prepare('INSERT INTO staff (user_id) VALUES (?)')->execute([$newUserId]);

@@ -50,8 +50,8 @@
           </div>
         </div>
         <div class="field">
-          <label for="profile-phone">Phone</label>
-          <input type="text" id="profile-phone" name="phone" value="<?= e($petordersLayout['account']['phone'] ?? '') ?>">
+          <label for="profile-phone">Phone <span class="required-mark">*</span></label>
+          <input type="text" id="profile-phone" name="phone" value="<?= e($petordersLayout['account']['phone'] ?? '') ?>" required>
         </div>
         <p class="field-hint mb-0">Need to update your password? <a href="/change_password.php">Change Password</a></p>
       </div>

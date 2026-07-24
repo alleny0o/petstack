@@ -85,7 +85,7 @@ CREATE TABLE users (
   password_hash         VARCHAR(255) NOT NULL,
   first_name            VARCHAR(100) NOT NULL,
   last_name             VARCHAR(100) NOT NULL,
-  phone                 VARCHAR(20) NULL,
+  phone                 VARCHAR(20) NOT NULL,
   must_change_password  TINYINT(1) NOT NULL DEFAULT 1,
   failed_login_count    TINYINT UNSIGNED NOT NULL DEFAULT 0,
   locked_until          DATETIME NULL,
