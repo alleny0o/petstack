@@ -158,7 +158,7 @@ if ($labId > 0) {
                 CONCAT(pu.first_name, ' ', pu.last_name) AS product_user_name
          $joins
          $whereSql
-         ORDER BY o.order_id DESC
+         ORDER BY o.requested_datetime DESC, o.order_id DESC
          LIMIT $offset, $pageSize"
     );
     $listStmt->execute($params);

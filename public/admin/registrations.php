@@ -144,7 +144,7 @@ $requests = $pdo->query(
             (SELECT pr.rejection_reason
              FROM customer_registration_requests pr
              WHERE pr.email = r.email AND pr.status = 'rejected'
-             ORDER BY pr.reviewed_at DESC, pr.request_id DESC
+             ORDER BY pr.submitted_at DESC, pr.reviewed_at DESC, pr.request_id DESC
              LIMIT 1) AS last_rejection_reason
      FROM customer_registration_requests r
      JOIN labs l ON l.lab_id = r.lab_id
