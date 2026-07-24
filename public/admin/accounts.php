@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Pre-check, same convention as register.php -- the transaction's
         // catch block below is the race-condition backstop, same as
         // registrations.php's approve action.
-        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ?');
+        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND active = 1');
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
             $fieldErrors['email'] = 'An account already exists for this email.';

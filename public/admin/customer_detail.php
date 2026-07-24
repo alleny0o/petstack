@@ -45,6 +45,7 @@ $customer = $userId > 0 ? fetch_customer($pdo, $userId) : null;
 // validation-error re-render lands back in editing state.
 $editing = $customer !== null && ($_GET['edit'] ?? null) === '1';
 
+$flash = null;
 $fieldErrors = [];
 $tempPasswordReveal = null;
 
@@ -154,7 +155,7 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$fieldErrors) {
             // Pre-check, same convention as accounts.php -- the catch
             // block below is the race-condition backstop.
-            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ?');
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ? AND active = 1');
             $stmt->execute([$editOld['email'], $userId]);
             if ($stmt->fetchColumn()) {
                 $fieldErrors['email'] = 'An account already exists for this email.';
@@ -195,19 +196,49 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             json_response(['ok' => false, 'errors' => $fieldErrors], 422);
         }
     } elseif ($action === 'toggle_active') {
-        // No business-rule blocks here (unlike account_detail.php's
-        // last-admin protection) -- a customer toggle always succeeds.
+        // No last-admin-style protection here (unlike account_detail.php)
+        // -- deactivate always succeeds. Reactivate has exactly one
+        // check: the freed-up email may have since been claimed by a
+        // different active account (username is only unique among
+        // active accounts).
         $newActive = $customer['active'] ? 0 : 1;
-        $pdo->prepare('UPDATE users SET active = ? WHERE user_id = ?')->execute([$newActive, $userId]);
 
-        // PRG like every other converted action on this page -- no secret
-        // to preserve here, so a plain arrival flag is enough (unlike
-        // reset_password's session flash).
-        $dest = '/admin/customer_detail.php?id=' . $userId . '&' . ($newActive ? 'reactivated=1' : 'deactivated=1');
-        if (request_wants_json()) {
-            json_response(['ok' => true, 'redirect' => $dest]);
+        if ($newActive === 1) {
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND user_id <> ? AND active = 1');
+            $stmt->execute([$customer['username'], $userId]);
+            if ($stmt->fetchColumn()) {
+                $flash = ['type' => 'error', 'message' => 'Cannot reactivate: another active account already uses this email.'];
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'message' => $flash['message']], 422);
+                }
+            } else {
+                try {
+                    $pdo->prepare('UPDATE users SET active = 1 WHERE user_id = ?')->execute([$userId]);
+
+                    $dest = '/admin/customer_detail.php?id=' . $userId . '&reactivated=1';
+                    if (request_wants_json()) {
+                        json_response(['ok' => true, 'redirect' => $dest]);
+                    }
+                    redirect($dest);
+                } catch (PDOException $e) {
+                    $flash = ['type' => 'error', 'message' => 'Cannot reactivate: another active account already uses this email.'];
+                    if (request_wants_json()) {
+                        json_response(['ok' => false, 'message' => $flash['message']], 422);
+                    }
+                }
+            }
+        } else {
+            $pdo->prepare('UPDATE users SET active = 0 WHERE user_id = ?')->execute([$userId]);
+
+            // PRG like every other converted action on this page -- no
+            // secret to preserve here, so a plain arrival flag is enough
+            // (unlike reset_password's session flash).
+            $dest = '/admin/customer_detail.php?id=' . $userId . '&deactivated=1';
+            if (request_wants_json()) {
+                json_response(['ok' => true, 'redirect' => $dest]);
+            }
+            redirect($dest);
         }
-        redirect($dest);
     } elseif ($action === 'reset_password') {
         $tempPassword = generate_temp_password();
         $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
@@ -328,6 +359,9 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                     </div>
                 </div>
 
+                <?php if ($flash): ?>
+                    <div class="alert alert--<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                <?php endif; ?>
                 <?= $arrival['updated'] ? toast_flash('success', 'Customer updated.') : '' ?>
                 <?= $arrival['reactivated'] ? toast_flash('success', 'Customer reactivated.') : '' ?>
                 <?= $arrival['deactivated'] ? toast_flash('success', 'Customer deactivated. They have been signed out and can no longer log in.') : '' ?>
