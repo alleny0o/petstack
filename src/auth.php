@@ -111,6 +111,17 @@ function require_role($allowedRoles): void
     }
     $_SESSION['username'] = $currentUser['username'];
 
+    // Re-derive role from table membership every request (mirrors the
+    // active/username re-check above) so a promote/demote takes effect
+    // on the target's next request instead of at next login.
+    $currentRole = determine_role(get_db(), (int) $_SESSION['user_id']);
+    if ($currentRole === null) {
+        session_unset();
+        session_destroy();
+        redirect('/login.php');
+    }
+    $_SESSION['role'] = $currentRole;
+
     if (!empty($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_IDLE_LIMIT_SECONDS) {
         session_unset();
         session_destroy();
