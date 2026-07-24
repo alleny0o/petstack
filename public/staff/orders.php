@@ -119,7 +119,7 @@ if (in_array($queueStatus, ['pending', 'accepted'], true)) {
 } elseif (in_array($queueStatus, ['completed', 'cancelled'], true)) {
     $queueOrderBy = 'o.updated_at DESC';
 } else {
-    $queueOrderBy = 'o.order_id DESC';
+    $queueOrderBy = 'o.requested_datetime DESC';
 }
 
 $queueWhere = $queueFilterWhere;
@@ -147,7 +147,7 @@ $queueListStmt = $pdo->prepare(
             u.first_name, u.last_name, u.username
      $queueJoins
      $queueWhereSql
-     ORDER BY $queueOrderBy
+     ORDER BY $queueOrderBy, o.order_id DESC
      LIMIT $queueOffset, $queuePageSize"
 );
 $queueListStmt->execute($queueParams);

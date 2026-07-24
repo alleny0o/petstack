@@ -46,7 +46,7 @@ if ($labId > 0) {
          JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
          JOIN products p  ON p.product_id = o.product_id
          JOIN users u     ON u.user_id = o.customer_id
-         ORDER BY o.order_id DESC
+         ORDER BY o.requested_datetime DESC, o.order_id DESC
          LIMIT 5'
     );
     $recentStmt->execute([$labId]);

@@ -1,4 +1,10 @@
 <?php
+error_reporting(E_ALL);
+
+// Force errors to be displayed on the screen
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+
 require __DIR__ . '/../../src/helpers.php';
 bootstrap_session();
 require __DIR__ . '/../../src/auth.php';
